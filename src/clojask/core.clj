@@ -1,4 +1,4 @@
-(ns clojack.core
+(ns clojask.core
   (:require [clojure.core.async :refer [chan >!! <!! close!]]
             [onyx.extensions :as extensions]
             [onyx.plugin.core-async :refer [take-segments!]]
