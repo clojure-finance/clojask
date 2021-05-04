@@ -2,20 +2,31 @@
   (:require [clojure.core.async :refer [chan >!! <!! close!]]
             [onyx.extensions :as extensions]
             [onyx.plugin.core-async :refer [take-segments!]]
+            [onyx.plugin.seq :refer :all]
             [onyx.api]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.java.io :refer [resource]])
+  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter))
   (:gen-class))
 
+;; (defn spit2 [file-name data]
+;;   (with-open [wtr (BufferedWriter. (FileWriter.	file-name))]
+;;     (.write wtr	data)))
+
+(def wtr (BufferedWriter. (FileWriter.	"test.csv")))
+;; (.write wtr "asd")
 (defn first-half
   [segment]
-;;   (println segment)
-  (update-in segment [:map] (fn [n] (assoc n :first (:id segment)))))
+  ;; (println segment)
+  (.write wtr segment)
+  ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
+  )
 
 (defn second-half
   [segment]
-  (update-in segment [:map] (fn [n] (assoc n :second (:id segment)))))
+  ;; (update-in segment [:map] (fn [n] (assoc n :second (:id segment))))
+  )
 
 ;;                 a vector of map
 ;;                /              \
@@ -44,14 +55,20 @@
 
 (def catalog
   [{:onyx/name :in
-    :onyx/plugin :onyx.plugin.core-async/input
+    ;; :onyx/plugin :onyx.plugin.core-async/input
+    :onyx/plugin :onyx.plugin.seq/input
     :onyx/type :input
-    :onyx/medium :core.async
+    ;; :onyx/medium :core.async
+    :onyx/medium :seq
+    :seq/checkpoint? true
+
     :onyx/batch-size batch-size
     :onyx/max-peers 1
     :onyx/doc "Reads segments from a core.async channel"}
 
    {:onyx/name :first-half
+    ;; :demo/writer wtr
+    ;; :onyx/params [:demo/writer]
     :onyx/fn :clojask.demo/first-half
     :onyx/type :function
     :onyx/batch-size batch-size
@@ -150,23 +167,57 @@
 (defn inject-out-ch [event lifecycle]
   {:core.async/chan output-chan})
 
+;; (def in-calls
+;;   {:lifecycle/before-task-start inject-in-ch})
+(defn inject-in-reader [event lifecycle]
+  (let [rdr (FileReader. (:buffered-reader/filename lifecycle))]
+    {:seq/rdr rdr
+     :seq/seq (line-seq (BufferedReader. rdr))}))
+
+(defn close-reader [event lifecycle]
+  (.close (:seq/rdr event)))
+
+;; (defn inject-out-writer [event lifecycle]
+;;   (let [wrt (FileWritter. (:buffered-writer/filename lifecycle))]
+;;     {:seq/wrt wrt}))
+
 (def in-calls
-  {:lifecycle/before-task-start inject-in-ch})
+  {:lifecycle/before-task-start inject-in-reader
+   :lifecycle/after-task-stop close-reader})
+
+(def first-half-calls
+  )
 
 (def out-calls
   {:lifecycle/before-task-start inject-out-ch})
+;; (def out-calls
+;;   {:lifecycle/before-task-start inject-out-writer
+;;    :lifecycle/after-task-stop })
 
 (def lifecycles
+  ;; [{:lifecycle/task :in
+  ;;   :lifecycle/calls :clojask.demo/in-calls
+  ;;   :core.async/id (java.util.UUID/randomUUID)}
+  ;;  {:lifecycle/task :in
+  ;;   :lifecycle/calls :onyx.plugin.core-async/reader-calls}
   [{:lifecycle/task :in
-    :lifecycle/calls :clojask.demo/in-calls
-    :core.async/id (java.util.UUID/randomUUID)}
+    :buffered-reader/filename "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"
+    :lifecycle/calls ::in-calls}
    {:lifecycle/task :in
-    :lifecycle/calls :onyx.plugin.core-async/reader-calls}
+    :lifecycle/calls :onyx.plugin.seq/reader-calls}
+  ;;  {:lifecycle/task :first-half
+  ;;   :buffer-writer wtr
+  ;;   :lifecycle/calls ::first-half-calls}
    {:lifecycle/task :output1
     :lifecycle/calls :clojask.demo/out-calls
     :core.async/id (java.util.UUID/randomUUID)}
    {:lifecycle/task :output1
     :lifecycle/calls :onyx.plugin.core-async/writer-calls}
+  ;;  {:lifecycle/task :output1
+  ;;   :buffered-writer/filename "test.csv"
+  ;;   :lifecycle/calls :clojask.demo/out-calls}
+  ;;  {:lifecycle/task :output1
+  ;;   :lifecycle/calls :onyx.plugin.core-async/writer-calls}
    {:lifecycle/task :output2
     :lifecycle/calls :clojask.demo/out-calls
     :core.async/id (java.util.UUID/randomUUID)}
@@ -179,15 +230,15 @@
 (defn second-half? [event old-segment new-segment all-new-segment]
   (>= (:id new-segment) 3))
 
-(def flow-conditions
-  [{:flow/from :in
-    :flow/to [:first-half]
-    :flow/predicate :clojask.demo/first-half?
-    :flow/doc ""}
-   {:flow/from :in
-    :flow/to [:second-half]
-    :flow/predicate :clojask.demo/second-half?
-    :flow/doc ""}])
+;; (def flow-conditions
+;;   [{:flow/from :in
+;;     :flow/to [:first-half]
+;;     :flow/predicate :clojask.demo/first-half?
+;;     :flow/doc ""}
+;;    {:flow/from :in
+;;     :flow/to [:second-half]
+;;     :flow/predicate :clojask.demo/second-half?
+;;     :flow/doc ""}])
 
 (defn collect-outputs
   "Collects the output from the output channel"
@@ -205,7 +256,7 @@
                                             {:workflow workflow
                                              :catalog catalog
                                              :lifecycles lifecycles
-                                             :flow-conditions flow-conditions
+                                            ;;  :flow-conditions flow-conditions
                                              :task-scheduler :onyx.task-scheduler/balanced})
             job-id (:job-id submission)]
         (println submission)
