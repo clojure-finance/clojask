@@ -32,11 +32,19 @@
   ;; return is the segment replacing the key element
   (assoc segment key (- (key segment))))
 
-(defn square
-  [])
+(defn square [segment]
+  (update-in segment [:value]
+    #(apply * % %)
+    ))
 
-(defn log
-  [])
+;; help function 
+(defn log-10 [n]
+  (/ (Math/log n) (Math/log 10)))
+
+(defn log [segment]
+  (update-in segment [:value]
+    #(apply log-10 %)
+    ))
 
 ;; .
 ;; .
