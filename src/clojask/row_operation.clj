@@ -1,6 +1,7 @@
 (ns clojask.row-operation)
 "Function used in catalog-user defined functions."
 
+;; addition
 (defn add
   [new-key keys segment]
   {new-key (reduce + (select-keys segment keys))})
@@ -16,3 +17,15 @@
   )
 
 ;; more to write
+
+;; subtraction
+
+;; multiplication
+
+;; division
+
+;; modulus
+
+;; exponential
+
+;; logarithm

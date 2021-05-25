@@ -16,8 +16,6 @@
 ;; For the below functions
 ;; Every one should have one inline version and a non-inline version
 
-
-
 (defn neg
   [new-key key segment]
   {new-key (- (key segment))})
@@ -32,6 +30,61 @@
   ;; return is the segment replacing the key element
   (assoc segment key (- (key segment))))
 
+;; addition
+(defn add-const
+  "returns :new-key {element + const}"
+  [new-key const key segment]
+  {new-key (+ (key segment) const)})
+
+(defn inline-add-const
+  "returns :key {element + const}"
+  [const key segment]
+  {assoc segment key (+ (key segment) const)})
+
+;; subtraction
+(defn subtract-const
+  "returns :new-key {element - const}"
+  [new-key const key segment]
+  {new-key (- (key segment) const)})
+
+(defn inline-subtract-const
+  "returns :key {element - const}"
+  [const key segment]
+  {assoc segment key (- (key segment) const)})
+
+;; multiplication
+(defn multiply-const
+  "returns :new-key {element * const}"
+  [new-key const key segment]
+  {new-key (* (key segment) const)})
+
+(defn inline-multiply-const
+  "returns :key {element * const}"
+  [const key segment]
+  {assoc segment key (* (key segment) const)})
+
+;; divison
+(defn divide-const
+  "returns :new-key {element / const}"
+  [new-key const key segment]
+  {new-key (/ (key segment) const)})
+
+(defn inline-divide-const
+  "returns :key {element / const}"
+  [const key segment]
+  {assoc segment key (/ (key segment) const)})
+
+;; modulus
+(defn modulus-const
+  "returns :new-key {element mod const}"
+  [new-key const key segment]
+  {new-key (mod (key segment) const)})
+
+(defn inline-modulus-const
+  "returns :key {element mod const}"
+  [const key segment]
+  {assoc segment key (mod (key segment) const)})
+
 (defn square 
   [new-key key segment]
   {new-key (* (key segment) (key segment))})
@@ -40,19 +93,18 @@
   [key segment]
   {assoc segment key (* (key segment) (key segment))})
 
-;; help function 
-(defn log-10 
-  [n]
-  (/ (Math/log n) (Math/log 10)))
+;; !to-do: exponential function
+  
+;; logarithm
+(defn log-base
+  "Helper function for log_<base>" 
+  [n base]
+  (/ (Math/log n) (Math/log base)))
 
 (defn log 
-  [new-key key segment]
-  {new-key (log-10 (key segment))})
+  [new-key base key segment]
+  {new-key (log-base (key segment) base)})
 
 (defn inline-log
-  [key segment]
-  {assoc segment key (log-10 (key segment))})
-
-;; .
-;; .
-;; .
+  [base key segment]
+  {assoc segment key (log-base (key segment) base)})
