@@ -26,6 +26,6 @@
 
 ;; modulus
 
-;; exponential
+;; exponentiation
 
 ;; logarithm

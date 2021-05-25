@@ -93,7 +93,14 @@
   [key segment]
   {assoc segment key (* (key segment) (key segment))})
 
-;; !to-do: exponential function
+;; exponentiation
+(defn exp
+  [new-key exponent key segment]
+  {new-key (Math/pow (key segment) exponent)})
+
+(defn inline-exp
+  [exponent key segment]
+  {assoc segment key (Math/pow (key segment) exponent)})
   
 ;; logarithm
 (defn log-base
