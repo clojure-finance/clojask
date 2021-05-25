@@ -4995,3 +4995,32 @@
 21-05-25 06:49:24 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: 78fae37d-a463-2726-0f71-05b10570c55b :add-peer 6a9d4574-ec8b-5ba0-c245-a70ca2df464a
 21-05-25 06:49:24 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: 78fae37d-a463-2726-0f71-05b10570c55b :start-peer 6a9d4574-ec8b-5ba0-c245-a70ca2df464a
 21-05-25 06:49:24 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer 83b528f0-ff2c-0676-6dfc-1cfa5933e527
+21-05-25 08:30:38 Awoo.local INFO [onyx.static.logging-configuration:34] - Starting Logging Configuration
+21-05-25 08:30:38 Awoo.local INFO [onyx.log.zookeeper:155] - Starting ZooKeeper server
+21-05-25 08:30:40 Awoo.local INFO [onyx.static.logging-configuration:34] - Starting Logging Configuration
+21-05-25 08:30:40 Awoo.local INFO [onyx.messaging.aeron.messaging-group:47] - Starting Aeron Peer Group
+21-05-25 08:30:40 Awoo.local INFO [onyx.monitoring.metrics-monitoring:114] - Started Metrics Reporting to JMX.
+21-05-25 08:30:40 Awoo.local WARN [onyx.peer.peer-group-manager:277] - Aeron media driver is healthy, thus starting all peers.
+21-05-25 08:30:40 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action:  :start-peer-group nil
+21-05-25 08:30:40 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action:  :start-communicator nil
+21-05-25 08:30:40 Awoo.local INFO [onyx.log.zookeeper:155] - Starting ZooKeeper client connection. If Onyx hangs here it may indicate a difficulty connecting to ZooKeeper.
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.communicator:32] - Starting Log Writer
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.communicator:65] - Starting Replica Subscription
+21-05-25 08:30:41 Awoo.local INFO [onyx.static.logging-configuration:34] - Starting Logging Configuration
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :send-to-outbox {:fn :prepare-join-cluster, :args {:joiner #uuid "b8571b44-7816-e00c-98f8-a580cab3e7f0"}}
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-all-peers nil
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :add-peer 8e86164e-7f2a-fc5d-5784-f51c73d427a0
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-peer 8e86164e-7f2a-fc5d-5784-f51c73d427a0
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer f911c715-347c-5e79-cd4d-962062058f01
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :add-peer 3771f706-a6de-c496-04b1-005f9e87c4b4
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-peer 3771f706-a6de-c496-04b1-005f9e87c4b4
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer a0287e62-916d-1b6f-d95a-030b38562488
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :add-peer 100c550e-c21d-fecf-f2d2-3cebadf0fb02
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-peer 100c550e-c21d-fecf-f2d2-3cebadf0fb02
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer 97a9af86-51dd-71e2-ee80-19ace54e9212
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :add-peer 1ffb1117-1d17-38c2-c3eb-1b0de39eee80
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-peer 1ffb1117-1d17-38c2-c3eb-1b0de39eee80
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer e2d5c417-cec1-b16d-1606-ad63dd354955
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :add-peer e96f55f3-94bf-f12f-7f76-e8a7e164dcb9
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.peer-group-manager:57] - Peer Group Action: b8571b44-7816-e00c-98f8-a580cab3e7f0 :start-peer e96f55f3-94bf-f12f-7f76-e8a7e164dcb9
+21-05-25 08:30:41 Awoo.local INFO [onyx.peer.virtual-peer:17] - Starting Virtual Peer f772ba43-0de0-825b-a912-e2b25f8aaf8c

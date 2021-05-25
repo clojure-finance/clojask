@@ -121,3 +121,11 @@
   "returns :key {log_base(element)}"
   [base key segment]
   {assoc segment key (log-base (key segment) base)})
+
+
+;; !to-do comparison 
+
+(defn gr-than
+  "returns :new-key {element > n}" 
+  [new-key n key segment]
+  {new-key (> (key segment) n)})
