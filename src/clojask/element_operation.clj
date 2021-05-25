@@ -86,19 +86,23 @@
   {assoc segment key (mod (key segment) const)})
 
 (defn square 
+  "returns :new-key {element^2}"
   [new-key key segment]
   {new-key (* (key segment) (key segment))})
 
 (defn inline-square
+  "returns :key {element^2}"
   [key segment]
   {assoc segment key (* (key segment) (key segment))})
 
 ;; exponentiation
 (defn exp
+  "returns :new-key {element^exponent}"
   [new-key exponent key segment]
   {new-key (Math/pow (key segment) exponent)})
 
 (defn inline-exp
+  "returns :key {element^exponent}"
   [exponent key segment]
   {assoc segment key (Math/pow (key segment) exponent)})
   
@@ -109,9 +113,11 @@
   (/ (Math/log n) (Math/log base)))
 
 (defn log 
+  "returns :new-key {log_base(element)}"
   [new-key base key segment]
   {new-key (log-base (key segment) base)})
 
 (defn inline-log
+  "returns :key {log_base(element)}"
   [base key segment]
   {assoc segment key (log-base (key segment) base)})
