@@ -39,7 +39,7 @@
 (defn inline-add-const
   "returns :key {element + const}"
   [const key segment]
-  {assoc segment key (+ (key segment) const)})
+  (assoc segment key (+ (key segment) const)))
 
 ;; subtraction
 (defn subtract-const
@@ -50,7 +50,7 @@
 (defn inline-subtract-const
   "returns :key {element - const}"
   [const key segment]
-  {assoc segment key (- (key segment) const)})
+  (assoc segment key (- (key segment) const)))
 
 ;; multiplication
 (defn multiply-const
@@ -61,7 +61,7 @@
 (defn inline-multiply-const
   "returns :key {element * const}"
   [const key segment]
-  {assoc segment key (* (key segment) const)})
+  (assoc segment key (* (key segment) const)))
 
 ;; divison
 (defn divide-const
@@ -72,7 +72,7 @@
 (defn inline-divide-const
   "returns :key {element / const}"
   [const key segment]
-  {assoc segment key (/ (key segment) const)})
+  (assoc segment key (/ (key segment) const)))
 
 ;; modulus
 (defn modulus-const
@@ -83,7 +83,7 @@
 (defn inline-modulus-const
   "returns :key {element mod const}"
   [const key segment]
-  {assoc segment key (mod (key segment) const)})
+  (assoc segment key (mod (key segment) const)))
 
 (defn square 
   "returns :new-key {element^2}"
@@ -93,7 +93,7 @@
 (defn inline-square
   "returns :key {element^2}"
   [key segment]
-  {assoc segment key (* (key segment) (key segment))})
+  (assoc segment key (* (key segment) (key segment))))
 
 ;; exponentiation
 (defn exp
@@ -104,7 +104,7 @@
 (defn inline-exp
   "returns :key {element^exponent}"
   [exponent key segment]
-  {assoc segment key (Math/pow (key segment) exponent)})
+  (assoc segment key (Math/pow (key segment) exponent)))
   
 ;; logarithm
 (defn log-base
@@ -120,12 +120,35 @@
 (defn inline-log
   "returns :key {log_base(element)}"
   [base key segment]
-  {assoc segment key (log-base (key segment) base)})
+  (assoc segment key (log-base (key segment) base)))
 
-
-;; !to-do comparison 
-
+;; comparison
 (defn gr-than
   "returns :new-key {element > n}" 
   [new-key n key segment]
   {new-key (> (key segment) n)})
+
+(defn geq-than
+  "returns :new-key {element >= n}" 
+  [new-key n key segment]
+  {new-key (>= (key segment) n)})
+
+(defn le-than
+  "returns :new-key {element < n}" 
+  [new-key n key segment]
+  {new-key (< (key segment) n)})
+
+(defn leq-than
+  "returns :new-key {element <= n}" 
+  [new-key n key segment]
+  {new-key (<= (key segment) n)})
+
+(defn equal
+  "returns :new-key {element == n}" 
+  [new-key n key segment]
+  {new-key (= (key segment) n)})
+
+(defn not-equal
+  "returns :new-key {element != n}" 
+  [new-key n key segment]
+  {new-key (not= (key segment) n)})
