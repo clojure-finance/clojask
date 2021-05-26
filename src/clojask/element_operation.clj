@@ -11,16 +11,23 @@
   ;; return is the map of the filtered map
   (select-keys segment keys))
 
+(defn assign
+  "returns :new-key {element}"
+  [n key segment]
+  (assoc segment key n))
 ;; more to write
 
 ;; For the below functions
 ;; Every one should have one inline version and a non-inline version
 
+;; negation
 (defn neg
+  "returns :new-key {- element}"
   [new-key key segment]
   {new-key (- (key segment))})
 
 (defn inline-neg
+  "returns :key {- element}"
   [key segment]
   ;; key is the key of the element to be negate
   ;; segment is map of one row of the dataset
