@@ -16,3 +16,31 @@
   )
 
 ;; more to write
+
+;; subtraction
+(defn subtract
+  [new-key keys segment]
+  {new-key (reduce - (select-keys segment keys))})
+
+;; multiplication
+(defn multiply
+  [new-key keys segment]
+  {new-key (reduce * (select-keys segment keys))})
+
+;; division
+(defn division
+  [new-key keys segment]
+  {new-key (reduce / (select-keys segment keys))})
+
+;; modulus
+(defn modulus
+  [new-key keys segment]
+  {new-key (reduce mod (select-keys segment keys))})
+
+;; exponentiation
+
+;; logarithm
+
+;; comparison
+
+;; assignment
