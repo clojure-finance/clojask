@@ -9,3 +9,6 @@ Clojure data frame with parallel computing on larger-than-memory datasets
 
 `lein test`
 
+
+#### Requirements for the input file:
+- the first row should contains the column names
