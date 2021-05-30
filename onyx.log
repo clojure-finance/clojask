@@ -5474,3 +5474,4 @@
 21-05-30 07:57:31 LYriCs-Air.local INFO [onyx.static.logging-configuration:38] - Stopping Logging Configuration
 21-05-30 07:57:31 LYriCs-Air.local INFO [onyx.log.zookeeper:192] - Stopping ZooKeeper server
 21-05-30 07:57:31 LYriCs-Air.local INFO [onyx.static.logging-configuration:38] - Stopping Logging Configuration
+21-05-30 07:58:31 LYriCs-Air.local INFO [onyx.messaging.aeron.embedded-media-driver:10] - Couldn't delete aeron media dir. May have been already deleted by shutdown hook. java.nio.file.NoSuchFileException: /var/folders/z4/vjb8q8t96570x7cs6m226xf00000gn/T/aeron-lyc
