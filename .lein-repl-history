@@ -2,3 +2,22 @@
 (add [1 3 4])
 (select-keys {:asd 23 :sad 24} :asd)
 (select-keys {:asd 23 :sad 24} [:asd])
+(dataframe)
+(dataframe 
+)
+exit
+(dataframe "./resources/Employees.csv"
+)
+(dataframe "./resources/Employees.csv")
+(dataframe)
+exit
+(def x (dataframe "resources/Employees.csv"))
+x
+(.colDesp x)
+(.operate x println :Salary)
+(.compute x "resources/test.csv")
+(.operate x Double/parse-double  :Salary)
+(.operate x Double/parse-int  :Salary)
+(.operate x Double/valueOf  :Salary)
+(.operate x -  :Salary)
+(.operate x log  :Salary)

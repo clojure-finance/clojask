@@ -19,12 +19,12 @@
   (init
     [this colNames]
 ;;    (set! col-keys (map keyword colNames))
-    (set! col-dsp (zipmap col-keys (map (fn [_] (str "(" (keyword _) " row)")) colNames))))
+    (set! col-dsp (zipmap col-keys (map (fn [_] (str "(" (keyword _) " DataFrame/row)")) colNames))))
   (operate
     [this operation col]
     (if (contains? col-dsp col)
       (set! col-dsp (assoc col-dsp col (str "(" (func-name operation) " " (get col-dsp col) ")")))
-      (set! col-dsp (assoc col-dsp col (str "(" (func-name operation) " row)"))) ;; would not come here otherwise deprecate
+      (set! col-dsp (assoc col-dsp col (str "(" (func-name operation) " DataFrame/row)"))) ;; would not come here otherwise deprecate
       ))
   (getMap
     [this]

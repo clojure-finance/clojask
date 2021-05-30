@@ -11,6 +11,7 @@
   (compute [output-dir])
   (operate [operation colName])
   (colDesp [])
+  (head [n])
   (assoc [dataframe])  ;; combine another dataframe with the current
   )
 
@@ -33,7 +34,9 @@
   (colDesp
     [this]
     (.getMap col-info))
-
+  (head
+   [this n]
+   ())
     ;; currently put read file here
   (compute
     [this output-dir]
@@ -49,7 +52,9 @@
 ;;                    (println (first (.getKeys col-info)))
             (.write wtr (str (clojure.string/join "," (map (fn [_] (eval (read-string (_ (.colDesp this))))) (.getKeys col-info))) "\n"))
             (println (zipmap (.getKeys col-info) (doall (map (fn [_] (eval (read-string (_ (.colDesp this))))) (.getKeys col-info)))))))
-        (.flush wtr)))))
+        (.flush wtr))
+      
+      ())))
 
 (defn dataframe
   [path]

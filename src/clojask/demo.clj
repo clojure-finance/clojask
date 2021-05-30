@@ -14,34 +14,36 @@
 ;;   (with-open [wtr (BufferedWriter. (FileWriter.	file-name))]
 ;;     (.write wtr	data)))
 
-(def wtr (BufferedWriter. (FileWriter.	"test.csv")))
+(def wtr (BufferedWriter. (FileWriter.	"resources/test.csv")))
 ;; (.write wtr "asd")
-(defn first-half
+
+(defn sample-worker
   [segment]
   ;; (println segment)
-  (.write wtr segment)
+  segment
   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
   )
 
-(defn second-half
+(defn output
   [segment]
-  ;; (update-in segment [:map] (fn [n] (assoc n :second (:id segment))))
-  )
+  (.write wtr (str segment "\n"))
+  nil)
 
 ;;                 a vector of map
-;;                /              \
-;;          first half         second half
-;;     add a new key :first   add a new key :second    
-;;           |                        |
-;;         output1                 output2
+;;                        |
+;;                    sample-worker
+;;                        |
+;;                      output
+;;                        |
+;;                       end
+;;                     
 ;; 
 ;; 
 
 (def workflow
-  [[:in :first-half]
-   [:in :second-half]
-   [:first-half :output1]
-   [:second-half :output2]])
+  [[:in :sample-worker]
+   [:sample-worker :output]
+   [:output :end]])
 
 ;;; Use core.async for I/O
 (def capacity 1000)
@@ -66,35 +68,28 @@
     :onyx/max-peers 1
     :onyx/doc "Reads segments from a core.async channel"}
 
-   {:onyx/name :first-half
+   {:onyx/name :sample-worker
     ;; :demo/writer wtr
     ;; :onyx/params [:demo/writer]
-    :onyx/fn :clojask.demo/first-half
+    :onyx/fn :clojask.demo/sample-worker
     :onyx/type :function
     :onyx/batch-size batch-size
-    :onyx/doc "Append key :first to the first half"}
+    :onyx/doc "do nothing"}
 
-   {:onyx/name :second-half
-    :onyx/fn :clojask.demo/second-half
+   {:onyx/name :output
+    :onyx/fn :clojask.demo/output
     :onyx/type :function
+    :onyx/max-peers 1
     :onyx/batch-size batch-size
-    :onyx/doc "Append key :second to the second half"}
-
-   {:onyx/name :output1
+    :onyx/doc "Writes segments to the file"}
+   
+   {:onyx/name :end
     :onyx/plugin :onyx.plugin.core-async/output
     :onyx/type :output
     :onyx/medium :core.async
     :onyx/max-peers 1
     :onyx/batch-size batch-size
-    :onyx/doc "Writes segments to a core.async channel"}
-
-   {:onyx/name :output2
-    :onyx/plugin :onyx.plugin.core-async/output
-    :onyx/type :output
-    :onyx/medium :core.async
-    :onyx/max-peers 1
-    :onyx/batch-size batch-size
-    :onyx/doc "Writes segments to a core.async channel"}])
+    :onyx/doc "Dummy end node"}])
 
 ;; (def windows
 ;;   [{:window/id :word-counter
@@ -115,26 +110,6 @@
 ;;   ;; (println event window trigger opts)
 ;;   (println group-key "->" state))
 
-
-(def input-segments
-  [{:id 0 :map {:seg 1}}
-   {:id 1 :map {:seg 2}}
-   {:id 2 :map {:seg 3}}
-   {:id 3 :map {:seg 4}}
-   {:id 4 :map {:seg 5}}])
-
-;; [{:id xxx :name xxx} {} {}]
-
-;; {:column-name [] }
-
-(defn prepare-input
-  []
-  (doseq [segment input-segments]
-    (>!! input-chan segment))
-
-  ;; The core.async channel to be closed when using batch mode,
-  ;; otherwise an Onyx peer will block indefinitely trying to read.
-  (close! input-chan))
 
 (def id (java.util.UUID/randomUUID))
 
@@ -160,9 +135,9 @@
 
 (def v-peers (onyx.api/start-peers n-peers peer-group))
 
-(defn inject-in-ch [event lifecycle]
-  {:core.async/buffer input-buffer
-   :core.async/chan input-chan})
+;; (defn inject-in-ch [event lifecycle]
+;;   {:core.async/buffer input-buffer
+;;    :core.async/chan input-chan})
 
 (defn inject-out-ch [event lifecycle]
   {:core.async/chan output-chan})
@@ -185,9 +160,6 @@
   {:lifecycle/before-task-start inject-in-reader
    :lifecycle/after-task-stop close-reader})
 
-(def first-half-calls
-  )
-
 (def out-calls
   {:lifecycle/before-task-start inject-out-ch})
 ;; (def out-calls
@@ -201,34 +173,17 @@
   ;;  {:lifecycle/task :in
   ;;   :lifecycle/calls :onyx.plugin.core-async/reader-calls}
   [{:lifecycle/task :in
-    :buffered-reader/filename "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"
+    :buffered-reader/filename "resources/CRSP-extract.csv"
     :lifecycle/calls ::in-calls}
    {:lifecycle/task :in
     :lifecycle/calls :onyx.plugin.seq/reader-calls}
   ;;  {:lifecycle/task :first-half
   ;;   :buffer-writer wtr
   ;;   :lifecycle/calls ::first-half-calls}
-   {:lifecycle/task :output1
+   {:lifecycle/task :end
     :lifecycle/calls :clojask.demo/out-calls
     :core.async/id (java.util.UUID/randomUUID)}
-   {:lifecycle/task :output1
-    :lifecycle/calls :onyx.plugin.core-async/writer-calls}
-  ;;  {:lifecycle/task :output1
-  ;;   :buffered-writer/filename "test.csv"
-  ;;   :lifecycle/calls :clojask.demo/out-calls}
-  ;;  {:lifecycle/task :output1
-  ;;   :lifecycle/calls :onyx.plugin.core-async/writer-calls}
-   {:lifecycle/task :output2
-    :lifecycle/calls :clojask.demo/out-calls
-    :core.async/id (java.util.UUID/randomUUID)}
-   {:lifecycle/task :output2
-    :lifecycle/calls :onyx.plugin.core-async/writer-calls}])
-
-(defn first-half? [event old-segment new-segment all-new-segment]
-  (< (:id new-segment) 3))
-
-(defn second-half? [event old-segment new-segment all-new-segment]
-  (>= (:id new-segment) 3))
+   ])
 
 ;; (def flow-conditions
 ;;   [{:flow/from :in
@@ -240,10 +195,10 @@
 ;;     :flow/predicate :clojask.demo/second-half?
 ;;     :flow/doc ""}])
 
-(defn collect-outputs
-  "Collects the output from the output channel"
-  []
-  (map #(take-segments! % 50) [output-chan]))
+;; (defn collect-outputs
+;;   "Collects the output from the output channel"
+;;   []
+;;   (map #(take-segments! % 50) [output-chan]))
 
 (def ONYX true)
 
@@ -251,7 +206,7 @@
   [& args]
   (if ONYX
     (do
-      (prepare-input)
+      ;; (prepare-input)
       (let [submission (onyx.api/submit-job peer-config
                                             {:workflow workflow
                                              :catalog catalog
@@ -261,10 +216,7 @@
             job-id (:job-id submission)]
         (println submission)
         (assert job-id "Job was not successfully submitted")
-        (feedback-exception! peer-config job-id)
-;;   (onyx.plugin.core-async/take-segments! output-chan 50)
-        (let [output (collect-outputs)]
-          (println output)))
+        (feedback-exception! peer-config job-id))
       (doseq [v-peer v-peers]
         (onyx.api/shutdown-peer v-peer))
       (println 4)
