@@ -1,7 +1,7 @@
 (ns clojask.element-operation)
 "Function used in catalog-user defined functions."
 
-(defn get
+(defn get-key
   [keys segment]
   ;; keys is a vector of keys to retrieve
   ;; segment is map of one row of the dataset
@@ -24,7 +24,14 @@
 (defn neg
   "returns :new-key {- element}"
   [new-key key segment]
-  {new-key (- (key segment))})
+  ;(update-in segment [key] #(apply * -1 %))
+  ;(fn [segment] {new-key (* (key segment) -1)}))
+  ;{new-key (* (key segment) -1)})
+  ;; (let [new-segment (assoc segment new-key (* (key segment) -1))]
+  ;;   new-segment
+  ;; )
+  (assoc segment new-key (* (key segment) -1))
+  )
 
 (defn inline-neg
   "returns :key {- element}"
@@ -35,7 +42,8 @@
   ;; {:id 1 :tic "AAPL" :price 37.5 ...}
   ;;
   ;; return is the segment replacing the key element
-  (assoc segment key (- (key segment))))
+  ;(assoc segment key 0))
+  (assoc segment key (* (key segment) -1)))
 
 ;; addition
 (defn add-const

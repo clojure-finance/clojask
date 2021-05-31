@@ -1,8 +1,10 @@
 (ns clojask.demo
-  (:require [clojure.core.async :refer [chan >!! <!! close!]]
+  (:require [clojask.utils :refer :all]
+            [clojask.element-operation :refer :all]
+            [clojure.core.async :refer [chan >!! <!! close!]]
             [onyx.extensions :as extensions]
             [onyx.plugin.core-async :refer [take-segments!]]
-            [onyx.plugin.seq :refer :all]
+            ;[onyx.plugin.seq :refer :all]
             [onyx.api]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
@@ -14,7 +16,7 @@
 ;;   (with-open [wtr (BufferedWriter. (FileWriter.	file-name))]
 ;;     (.write wtr	data)))
 
-(def wtr (BufferedWriter. (FileWriter.	"resources/test.csv")))
+(def wtr (BufferedWriter. (FileWriter.	"./resources/test.csv")))
 ;; (.write wtr "asd")
 
 (defn sample-worker
@@ -24,11 +26,24 @@
   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
   )
 
+;; !! for debugging
+(def input
+  [{:name "Mike" :salary 100}
+   {:name "Lucas" :salary 500}
+   {:name "Tim" :salary 50}
+   {:name "Aaron" :salary 12}
+   {:name "Lauren" :salary 1000}
+   {:name "Bob" :salary 70}
+   {:name "Fred" :salary 52}
+   {:name "Lisa" :salary 60}
+   {:name "Tina" :salary 80}])
+
 (defn output
   [segment]
   (.write wtr (str segment "\n"))
   nil)
 
+;;
 ;;                 a vector of map
 ;;                        |
 ;;                    sample-worker
@@ -37,8 +52,6 @@
 ;;                        |
 ;;                       end
 ;;                     
-;; 
-;; 
 
 (def workflow
   [[:in :sample-worker]
@@ -56,25 +69,37 @@
 (def batch-size 10)
 
 (def catalog
-  [{:onyx/name :in
-    ;; :onyx/plugin :onyx.plugin.core-async/input
-    :onyx/plugin :onyx.plugin.seq/input
-    :onyx/type :input
-    ;; :onyx/medium :core.async
-    :onyx/medium :seq
-    :seq/checkpoint? true
+  [
+    ;; {:onyx/name :in
+    ;; ;; :onyx/plugin :onyx.plugin.core-async/input
+    ;; :onyx/plugin :onyx.plugin.seq/input
+    ;; :onyx/type :input
+    ;; ;; :onyx/medium :core.async
+    ;; :onyx/medium :seq
+    ;; :seq/checkpoint? true
+    ;; :onyx/batch-size batch-size
+    ;; :onyx/max-peers 1
+    ;; :onyx/doc "Reads segments from a core.async channel"}
 
-    :onyx/batch-size batch-size
-    :onyx/max-peers 1
-    :onyx/doc "Reads segments from a core.async channel"}
+    ; !! for debugging
+    {:onyx/name :in
+     :onyx/plugin :onyx.plugin.core-async/input
+     :onyx/type :input
+     :onyx/medium :core.async
+     :onyx/batch-size batch-size
+     :onyx/max-peers 1
+     :onyx/doc "Reads segments from a core.async channel"}
 
+   ; !! for debugging
    {:onyx/name :sample-worker
-    ;; :demo/writer wtr
-    ;; :onyx/params [:demo/writer]
-    :onyx/fn :clojask.demo/sample-worker
-    :onyx/type :function
-    :onyx/batch-size batch-size
-    :onyx/doc "do nothing"}
+     ;:onyx/fn :clojask.demo/transform-name
+     :onyx/fn :clojask.element-operation/neg
+     :onyx/type :function
+     :onyx/batch-size batch-size
+     :param/newkey :salary-neg ;; function parameters
+     :param/key :salary
+     :onyx/params [:param/newkey :param/key]
+     :onyx/doc "Negate element in <key> and store in <newkey>"}
 
    {:onyx/name :output
     :onyx/fn :clojask.demo/output
@@ -167,20 +192,25 @@
 ;;    :lifecycle/after-task-stop })
 
 (def lifecycles
-  ;; [{:lifecycle/task :in
-  ;;   :lifecycle/calls :clojask.demo/in-calls
-  ;;   :core.async/id (java.util.UUID/randomUUID)}
-  ;;  {:lifecycle/task :in
-  ;;   :lifecycle/calls :onyx.plugin.core-async/reader-calls}
-  [{:lifecycle/task :in
-    :buffered-reader/filename "resources/CRSP-extract.csv"
-    :lifecycle/calls ::in-calls}
-   {:lifecycle/task :in
-    :lifecycle/calls :onyx.plugin.seq/reader-calls}
-  ;;  {:lifecycle/task :first-half
-  ;;   :buffer-writer wtr
-  ;;   :lifecycle/calls ::first-half-calls}
-   {:lifecycle/task :end
+  [
+    ; !! for dataframe
+    ;; {:lifecycle/task :in
+    ;; :buffered-reader/filename "resources/CRSP-extract.csv"
+    ;; :lifecycle/calls ::in-calls}
+    ;; {:lifecycle/task :in
+    ;; :lifecycle/calls :onyx.plugin.seq/reader-calls}
+
+    ; !! for debugging
+    {:lifecycle/task :in
+    :lifecycle/calls :clojask.utils/in-calls-debug
+    :core.async/id (java.util.UUID/randomUUID)
+    :onyx/doc "Injects the core.async reader channel"}
+
+    {:lifecycle/task :in
+    :lifecycle/calls :onyx.plugin.core-async/reader-calls
+    :onyx/doc "core.async plugin base lifecycle"}
+
+    {:lifecycle/task :end
     :lifecycle/calls :clojask.demo/out-calls
     :core.async/id (java.util.UUID/randomUUID)}
    ])
@@ -207,6 +237,7 @@
   (if ONYX
     (do
       ;; (prepare-input)
+      (bind-inputs! lifecycles {:in input}) ;; debugging inputs
       (let [submission (onyx.api/submit-job peer-config
                                             {:workflow workflow
                                              :catalog catalog
@@ -217,12 +248,15 @@
         (println submission)
         (assert job-id "Job was not successfully submitted")
         (feedback-exception! peer-config job-id))
+        (.close wtr)
       (doseq [v-peer v-peers]
         (onyx.api/shutdown-peer v-peer))
       (println 4)
       (onyx.api/shutdown-peer-group peer-group)
       (println 5)
       (onyx.api/shutdown-env env)))
-  (def dataset (ds/->dataset "resources/CRSP-extract.csv"))
-;;   (println dataset)
-  (println (ds/head dataset)))
+    
+  (println "Done")
+  ;(def dataset (ds/->dataset "resources/Employees.csv"))
+  ;(println (ds/head dataset))
+  )
