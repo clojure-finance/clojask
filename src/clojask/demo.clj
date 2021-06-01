@@ -28,15 +28,15 @@
 
 ;; !! for debugging
 (def input
-  [{:name "Mike" :salary 100}
-   {:name "Lucas" :salary 500}
-   {:name "Tim" :salary 50}
-   {:name "Aaron" :salary 12}
-   {:name "Lauren" :salary 1000}
-   {:name "Bob" :salary 70}
-   {:name "Fred" :salary 52}
-   {:name "Lisa" :salary 60}
-   {:name "Tina" :salary 80}])
+  [{:name "Mike" :salary 100 :tax 0.1 :bonus 12}
+   {:name "Lucas" :salary 500 :tax 0.1 :bonus 12}
+   {:name "Tim" :salary 50 :tax 0.1 :bonus 12}
+   {:name "Aaron" :salary 12 :tax 0.1 :bonus 12}
+   {:name "Lauren" :salary 1000 :tax 0.1 :bonus 12}
+   {:name "Bob" :salary 70 :tax 0.1 :bonus 12}
+   {:name "Fred" :salary 52 :tax 0.1 :bonus 12}
+   {:name "Lisa" :salary 60 :tax 0.1 :bonus 12}
+   {:name "Tina" :salary 80 :tax 0.1 :bonus 12}])
 
 (defn output
   [segment]
@@ -93,13 +93,15 @@
    ; !! for debugging
    {:onyx/name :sample-worker
      ;:onyx/fn :clojask.demo/transform-name
-     :onyx/fn :clojask.element-operation/neg
+     :onyx/fn :clojask.element-operation/not-equal
      :onyx/type :function
      :onyx/batch-size batch-size
-     :param/newkey :salary-neg ;; function parameters
+     :param/newkey :new-salary ;; function parameters
      :param/key :salary
-     :onyx/params [:param/newkey :param/key]
-     :onyx/doc "Negate element in <key> and store in <newkey>"}
+     :param/value 100
+     :onyx/params [:param/newkey :param/value :param/key]
+     ;:onyx/params [:param/value :param/key]
+     :onyx/doc "Testing function"}
 
    {:onyx/name :output
     :onyx/fn :clojask.demo/output
@@ -255,7 +257,7 @@
       (onyx.api/shutdown-peer-group peer-group)
       (println 5)
       (onyx.api/shutdown-env env)))
-    
+
   (println "Done")
   ;(def dataset (ds/->dataset "resources/Employees.csv"))
   ;(println (ds/head dataset))
