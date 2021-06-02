@@ -1,5 +1,8 @@
-(ns clojask.utils)
-"Implements some utilities function used in dataframe"
+(ns clojask.utils
+  (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
+            [clojure.java.io :refer [resource]]
+            [onyx.plugin.core-async :refer [take-segments!]]))
+"Utility function used in dataframe"
 
 (defn func-name
   [tmp]
@@ -23,3 +26,62 @@
         (if (= (count oprs) 1)
           (opr res)
           (recur (opr res) rest)))))
+;;;; Lifecycles utils ;;;;
+
+(def default-channel-size 1000)
+
+(def output-channel-capacity (inc default-channel-size))
+
+(defonce channels (atom {}))
+(defonce buffers (atom {}))
+
+(defn get-channel
+  ([id] (get-channel id default-channel-size))
+  ([id size]
+    (if-let [id (get @channels id)]
+      id
+      (do (swap! channels assoc id (chan (or size default-channel-size)))
+          (get-channel id)))))
+
+(defn get-buffer
+  [id]
+    (if-let [id (get @buffers id)]
+      id
+      (do (swap! buffers assoc id (atom {}))
+          (get-buffer id))))
+
+(defn get-input-channel [id]
+  (get-channel id default-channel-size))
+
+(defn inject-in-ch-debug
+  [_ lifecycle]
+  {:core.async/buffer (get-buffer (:core.async/id lifecycle))
+    :core.async/chan (get-channel (:core.async/id lifecycle)
+                                  (or (:core.async/size lifecycle)
+                                      default-channel-size))})
+
+(defn inject-out-ch-debug
+  [_ lifecycle]
+  {:core.async/chan (get-channel (:core.async/id lifecycle)
+                                  (or (:core.async/size lifecycle)
+                                      default-channel-size))})
+
+(def in-calls-debug
+  {:lifecycle/before-task-start inject-in-ch-debug})
+
+(def out-calls-debug
+  {:lifecycle/before-task-start inject-out-ch-debug})
+
+(defn channel-id-for [lifecycles task-name]
+  (->> lifecycles
+        (filter #(= task-name (:lifecycle/task %)))
+        (map :core.async/id)
+        (remove nil?)
+        (first)))
+
+(defn bind-inputs! [lifecycles mapping]
+  (doseq [[task segments] mapping]
+    (let [in-ch (get-input-channel (channel-id-for lifecycles task))]
+      (doseq [segment segments]
+        (>!! in-ch segment))
+      (close! in-ch))))
