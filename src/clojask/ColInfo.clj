@@ -16,15 +16,19 @@
   ;; method
    ;; method
   ColIntf
+  ;; (init
+  ;;   [this colNames]
+  ;;   (set! col-keys (map keyword colNames))
+  ;;   (set! col-dsp (zipmap col-keys (map (fn [_] (wrap-res _ row)) col-keys))))
   (init
     [this colNames]
-;;    (set! col-keys (map keyword colNames))
-    (set! col-dsp (zipmap col-keys (map (fn [_] (str "(" (keyword _) " DataFrame/row)")) colNames))))
+    (set! col-keys (map keyword colNames))
+    (set! col-dsp (zipmap col-keys (map vector col-keys))))
   (operate
     [this operation col]
     (if (contains? col-dsp col)
-      (set! col-dsp (assoc col-dsp col (str "(" (func-name operation) " " (get col-dsp col) ")")))
-      (set! col-dsp (assoc col-dsp col (str "(" (func-name operation) " DataFrame/row)"))) ;; would not come here otherwise deprecate
+      (set! col-dsp (assoc col-dsp col (conj (col col-dsp) operation)))
+      (set! col-dsp (assoc col-dsp col (conj [col] operation))) ;; would not come here otherwise deprecate
       ))
   (getMap
     [this]

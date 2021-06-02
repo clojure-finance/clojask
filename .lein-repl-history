@@ -21,3 +21,152 @@ x
 (.operate x Double/valueOf  :Salary)
 (.operate x -  :Salary)
 (.operate x log  :Salary)
+(def x (dataframe "resources/Employees.csv"))
+x
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(defn tmp
+[value]
+(- (Integer/parseInt value)))
+(.operate x tmp :Employee)
+(.compute x "resources/test.csv")
+(.operate x tmp :Employe)
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+x
+(.compute x "resources/test.csv")
+(repeat 2)
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x println :Employee)
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x println :Employee)
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x println :Employee)
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+exit
+(def x (dataframe "resources/test.csv"))
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(.getMap x)
+(.getDesp x)
+(.colDesp x)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(loop [x [1 2 3]]
+    (println (first x))
+    (recur (rest x)))
+(loop [x [1 2 3]]
+    (if (= x nil)
+        0
+        (recur (rest x))))
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP-sorted-cleaned.csv"))
+(.compute x "resources/test.csv")
+(defn test-func
+[ele]
+(- (Integer/parseInt ele))
+)
+(.operate x test-func :Salary)
+(.compute x "resources/test.csv")
+(def x (dataframe "resources/Employees.csv"))
+(.operate x test-func :Salary)
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
+(.compute x "resources/test.csv")
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
+exit
+(dataframe)
+exit
+(def x (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
+exit
+(dataframe)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(defn neg
+[value]
+(- (Integer/parseInt value)))
+(.operate x neg :Salary)
+(.compute x "resources/test.csv")
+(defmacro test 
+[]
+))
+(defmacro test 
+[str]
+(println str))
+(test "sdfsdgas")
+(def y 3)
+(test y)
+(eval (read-string "(println 3)"))
+(.operate x Integer/parseInt :Salary)
+(.operate x Integer.parseInt :Salary)
+(def x (dataframe "resources/Employees.csv"))
+(.compute x "resources/test.csv")
+(.operate x parseInt :Salary)
+(.operate x Integer/parseInt :Salary)
+(.operate x neg :Employee)
+(.compute x "resources/test.csv")

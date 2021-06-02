@@ -27,7 +27,7 @@
 (defn output
   [segment]
   (.write wtr (str segment "\n"))
-  nil)
+)
 
 ;;                 a vector of map
 ;;                        |
@@ -152,13 +152,20 @@
 (defn close-reader [event lifecycle]
   (.close (:seq/rdr event)))
 
-;; (defn inject-out-writer [event lifecycle]
-;;   (let [wrt (FileWritter. (:buffered-writer/filename lifecycle))]
-;;     {:seq/wrt wrt}))
+(defn inject-out-writer [event lifecycle]
+  (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
+    {:seq/wrt wrt}))
+
+(defn close-writer [event lifecycle]
+  (.close (:seq/wtr event)))
 
 (def in-calls
   {:lifecycle/before-task-start inject-in-reader
    :lifecycle/after-task-stop close-reader})
+(def write-calls
+  {:lifecycle/before-task-start inject-out-writer
+   :lifecycle/after-task-stop close-writer})
+
 
 (def out-calls
   {:lifecycle/before-task-start inject-out-ch})
@@ -173,17 +180,19 @@
   ;;  {:lifecycle/task :in
   ;;   :lifecycle/calls :onyx.plugin.core-async/reader-calls}
   [{:lifecycle/task :in
-    :buffered-reader/filename "resources/CRSP-extract.csv"
+    :buffered-reader/filename "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"
     :lifecycle/calls ::in-calls}
    {:lifecycle/task :in
     :lifecycle/calls :onyx.plugin.seq/reader-calls}
   ;;  {:lifecycle/task :first-half
   ;;   :buffer-writer wtr
   ;;   :lifecycle/calls ::first-half-calls}
+  ;;  {:lifecycle/task :output
+  ;;   :buffered-reader/filename "resources/test.csv"
+  ;;   :lifecycle/calls ::write-calls}
    {:lifecycle/task :end
     :lifecycle/calls :clojask.demo/out-calls
-    :core.async/id (java.util.UUID/randomUUID)}
-   ])
+    :core.async/id (java.util.UUID/randomUUID)}])
 
 ;; (def flow-conditions
 ;;   [{:flow/from :in
@@ -217,12 +226,13 @@
         (println submission)
         (assert job-id "Job was not successfully submitted")
         (feedback-exception! peer-config job-id))
+      (.close wtr)
       (doseq [v-peer v-peers]
         (onyx.api/shutdown-peer v-peer))
       (println 4)
       (onyx.api/shutdown-peer-group peer-group)
       (println 5)
       (onyx.api/shutdown-env env)))
-  (def dataset (ds/->dataset "resources/CRSP-extract.csv"))
+  (def dataset (ds/->dataset "resources/Employees.csv"))
 ;;   (println dataset)
   (println (ds/head dataset)))
