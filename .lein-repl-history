@@ -170,3 +170,81 @@ exit
 (.operate x Integer/parseInt :Salary)
 (.operate x neg :Employee)
 (.compute x "resources/test.csv")
+(DFIntf)
+(DFIntf. )
+(DataFrame. )
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+(.compute x 1 "resources/test.csv" nil)
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+x
+exit
+(def x (dataframe "resources/Employees.csv"))
+x
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+(.compute x  "resources/test.csv")
+(.compute x 2 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 2 "resources/test.csv")
+(.compute x 1 "resources/test.csv")
+(.operate x - :Department)
+(.compute x 1 "resources/test.csv")
+exit
+(.operate x - :Department)
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+exit
+(.compute x 1 "resources/test.csv")
+(def x (dataframe "resources/Employees.csv"))
+(.compute x 1 "resources/test.csv")
+(.compute x 1 "resources/test.csv" :exception false)
+(.compute x 1 "resources/test.csv" :exception true)
+(.compute x 1 "resources/test.csv")
+(.compute x 1 "resources/test.csv" nil)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv")
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv")
+(compute x 1 "resources/test.csv" :exception true)
+(= :sd :sd)
+(.operate x - :Department)
+(compute x 1 "resources/test.csv")
+(compute x 1 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception true)

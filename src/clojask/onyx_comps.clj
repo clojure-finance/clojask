@@ -1,7 +1,7 @@
 (ns clojask.onyx-comps
   (:require [clojask.clojask-input :refer :all]
             [clojask.clojask-output :refer :all]
-            [onyx.api]
+            [onyx.api :refer :all]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv])
@@ -185,7 +185,7 @@
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist]
   (try
-    (env-config)
+    (config-env)
     (workflow-gen num-work)
 ;;   (worker-func-gen dataframe) ;;need some work
     (catalog-gen num-work)
