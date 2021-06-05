@@ -8,10 +8,13 @@
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 
+;; sample workflow
+;;
 ;; [[:in :sample-worker1]
 ;;  [:in :sample-worker2]
 ;;  [:sample-worker1 :output]
 ;;  [:sample-worker2 :output]]
+
 (defn workflow-gen
   "Generate workflow for running Onyx"
   [num-work]
@@ -88,7 +91,7 @@
         :onyx/batch-size batch-size
         :output/doc "Writes segments to the file"}))
 
-    (println catalog) ;; !!debugging
+    (println catalog) ;; !! debugging
     )
 
 
@@ -177,10 +180,27 @@
 ;;   :flow/to [:sample-worker2]
 ;;   :flow/predicate :clojask.onyx-comps/rem1?
 ;;   :flow/doc ""}]
+
 (defn flow-cond-gen
+  "Generate the flow conditions for running Onyx"
   [num-work]
-  (set! num-workers num-work)
-  (def flow-conditions []))
+  (reset! num-workers num-work)
+  (def flow-conditions []) ;; initialisation
+
+  ;; for loop for sample workers
+  (doseq [x (range 1 (+ num-work 1))]
+    (let [worker-name (keyword (str "sample-worker" x))
+          predicate-function (keyword "clojask.onyx-comps" (str "rem" x "?"))]
+          (def flow-conditions
+            (conj flow-conditions
+             {:flow/from :in
+              :flow/to [worker-name]
+              :flow/predicate predicate-function
+              :worker/doc "This is a flow condition"}
+              ))))
+    
+  (println flow-conditions) ;; !! debugging
+  )
 
 (def id (java.util.UUID/randomUUID))
 
@@ -199,7 +219,6 @@
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
      :onyx.messaging/bind-addr "localhost"})
-
 
   (def env (onyx.api/start-env env-config))
 
@@ -240,8 +259,11 @@
     (onyx.api/shutdown-env env)
     (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e)))))))
 
+
+;; !! debugging
 (defn -main
   [& args]
   (catalog-gen 2 10)
   (workflow-gen 2)
+  (flow-cond-gen 2)
   )
