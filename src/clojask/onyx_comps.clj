@@ -13,8 +13,24 @@
 ;;  [:sample-worker1 :output]
 ;;  [:sample-worker2 :output]]
 (defn workflow-gen
+  "Generate workflow for running Onyx"
   [num-work]
-  (def workflow []))
+  (def workflow []) ;; initialisation
+
+  ;; for loop for input edges
+  (doseq [x (range 1 (+ num-work 1))]
+    (let [worker-name (keyword (str "sample-worker" x))]
+          (def workflow (conj workflow [:in worker-name]
+              ))))
+
+  ;; for loop for output edges
+  (doseq [x (range 1 (+ num-work 1))]
+    (let [worker-name (keyword (str "sample-worker" x))]
+          (def workflow (conj workflow [worker-name :output]
+              ))))
+
+  (println workflow) ; !!debugging
+  )
 
 
 ;; (defn sample-worker
@@ -30,39 +46,51 @@
     body)
   )
 
-;; [{:onyx/name :in
-;;   :onyx/plugin :clojask.clojask-input/input
-;;   :onyx/type :input
-;;   :onyx/medium :seq
-;;   :seq/checkpoint? true
-
-;;   :onyx/batch-size batch-size
-;;   :onyx/max-peers 1
-;;   :onyx/doc "Reads segments from a core.async channel"}
-
-;;  {:onyx/name :sample-worker1
-;;   :onyx/fn :clojask.onyx-comps/sample-worker1
-;;   :onyx/type :function
-;;   :onyx/batch-size batch-size
-;;   :onyx/doc "do nothing"}
-
-;;  {:onyx/name :sample-worker2
-;;   :onyx/fn :clojask.onyx-comps/sample-worker2
-;;   :onyx/type :function
-;;   :onyx/batch-size batch-size
-;;   :onyx/doc "do nothing"}
-
-
-;;  {:onyx/name :output
-;;   :onyx/plugin :clojask.clojask-output/output
-;;   :onyx/type :output
-;;   :onyx/medium :core.async  ;; this is maked up
-;;   :onyx/max-peers 1
-;;   :onyx/batch-size batch-size
-;;   :onyx/doc "Writes segments to the file"}]
 (defn catalog-gen
-  [num-work]
-  (def catalog []))
+  "Generate the catalog for running Onyx"
+  [num-work batch-size]
+  ;; initialisation
+  (def catalog [])
+
+  ;; input
+  (def catalog 
+    (conj catalog
+     {:onyx/name :in
+      :onyx/plugin :clojask.clojask-input/input
+      :onyx/type :input
+      :onyx/medium :seq
+      :seq/checkpoint? true
+      :onyx/batch-size batch-size
+      :onyx/max-peers 1
+      :input/doc "Reads segments from a core.async channel"}))
+
+    ;; for loop for sample workers
+    (doseq [x (range 1 (+ num-work 1))]
+      (let [worker-name (keyword (str "sample-worker" x))
+            worker-function (keyword "clojask.onyx-comps" (str "sample-worker" x))]
+            (def catalog 
+              (conj catalog
+               {:onyx/name worker-name
+                :onyx/fn worker-function
+                :onyx/type :function
+                :onyx/batch-size batch-size
+                :worker/doc "This is a worker node"}
+                ))))
+    
+    ;; output
+    (def catalog
+      (conj catalog
+      {:onyx/name :output
+        :onyx/plugin :clojask.clojask-output/output
+        :onyx/type :output
+        :onyx/medium :core.async  ;; this is maked up
+        :onyx/max-peers 1
+        :onyx/batch-size batch-size
+        :output/doc "Writes segments to the file"}))
+
+    (println catalog) ;; !!debugging
+    )
+
 
 (defn inject-in-reader [event lifecycle]
   (let [rdr (FileReader. (:buffered-reader/filename lifecycle))
@@ -211,3 +239,9 @@
     (onyx.api/shutdown-peer-group peer-group)
     (onyx.api/shutdown-env env)
     (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e)))))))
+
+(defn -main
+  [& args]
+  (catalog-gen 2 10)
+  (workflow-gen 2)
+  )
