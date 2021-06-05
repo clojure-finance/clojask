@@ -9,4 +9,4 @@
                  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]]
   :repl-options {:init-ns clojask.debug}
   :plugins [[lein-update-dependency "0.1.2"]]
-  :main ^:skip-aot clojask.debug/-main)
+  :main ^:skip-aot clojask.onyx-comps/-main)
