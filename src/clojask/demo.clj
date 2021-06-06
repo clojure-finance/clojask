@@ -94,7 +94,7 @@
    ; !! for debugging
    {:onyx/name :sample-worker
      ;:onyx/fn :clojask.demo/transform-name
-     :onyx/fn :clojask.row-operation/row-add
+     :onyx/fn :clojask.row-operation/row-inline-add
      :onyx/type :function
      :onyx/batch-size batch-size
      :param/newkey :new-salary ;; function parameters
@@ -102,7 +102,8 @@
      :param/keys [:salary :bonus]
      :param/value 100
      ;:onyx/params [:param/newkey :param/key :param/value]
-     :onyx/params [:param/newkey :param/keys]
+     :onyx/params [:param/keys]
+     ;:onyx/params [:param/newkey :param/keys]
      :onyx/doc "Testing function"}
 
    {:onyx/name :output
