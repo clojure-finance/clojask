@@ -1,19 +1,21 @@
-(ns clojask.row-operation)
+(ns clojask.row-operation
+  (:require [clojure.math.numeric-tower :as math])
+  )
 "Function used in catalog-user defined functions."
 
-;; assignment
-(defn assign
+;; copy values from key to new-key
+(defn row-copy
   "returns :new-key {element}"
   [new-key key segment]
-  {new-key (key segment)})
+  (assoc segment new-key (key segment)))
 
 ;; addition
-(defn add
+(defn row-add
   "returns :new-key {element1 + element2 (and so on)}"
   [new-key keys segment]
-  {new-key (reduce + (select-keys segment keys))})
+  (assoc segment new-key (reduce + (select-keys segment keys))))
 
-(defn inline-add
+(defn row-inline-add
   "returns :keys[1] {element1 + element2 (and so on)}"
   [new-key keys segment]
   ;; new-key is the key of the key of the sum
@@ -25,73 +27,73 @@
   )
 
 ;; subtraction
-(defn subtract
+(defn row-subtract
   "returns :new-key {element1 - element2 (and so on)}"
   [new-key keys segment]
   {new-key (reduce - (select-keys segment keys))})
 
 ;; multiplication
-(defn multiply
+(defn row-multiply
   "returns :new-key {element1 * element2 (and so on)}"
   [new-key keys segment]
   {new-key (reduce * (select-keys segment keys))})
 
 ;; division
-(defn division
+(defn row-division
   "returns :new-key {element1 / element2 (and so on)}"
   [new-key keys segment]
   {new-key (reduce / (select-keys segment keys))})
 
 ;; modulus
-(defn modulus
+(defn row-modulus
   "returns :new-key {element1 mod element2 (and so on)}"
   [new-key keys segment]
   {new-key (reduce mod (select-keys segment keys))})
 
 ;; exponentiation
-(defn exp
+(defn row-exp
   "returns :new-key {element1^element2 (and so on)}"
   [new-key keys segment]
-  {new-key (reduce Math/pow (select-keys segment keys))})
+  (assoc segment new-key (reduce math/expt (select-keys segment keys))))
 
 ;; logarithm
-(defn log-base
+(defn row-log-base
   "Helper function for log_<base>" 
   [n base]
   (/ (Math/log n) (Math/log base)))
 
-(defn log
+(defn row-log
   "returns :new-key {element1^element2 (and so on)}"
   [new-key base keys segment]
-  {new-key (reduce Math/log (select-keys segment keys) base)})
+  {new-key (reduce row-log-base (select-keys segment keys) base)})
 
 ;; comparison
-(defn gr-than
+(defn row-gr-than
   "returns :new-key {element1 > element2}" 
   [new-key keys segment]
   {new-key (reduce > (select-keys segment keys))})
 
-(defn geq-than
+(defn row-geq-than
   "returns :new-key {element1 >= element2}" 
   [new-key keys segment]
   {new-key (reduce >= (select-keys segment keys))})
 
-(defn le-than
+(defn row-le-than
   "returns :new-key {element1 < element2}" 
   [new-key keys segment]
   {new-key (reduce < (select-keys segment keys))})
 
-(defn leq-than
+(defn row-leq-than
   "returns :new-key {element1 <= element2}" 
   [new-key keys segment]
   {new-key (reduce <= (select-keys segment keys))})
 
-(defn equal
+(defn row-equal
   "returns :new-key {element1 == element2}" 
   [new-key keys segment]
   {new-key (reduce = (select-keys segment keys))})
 
-(defn not-equal
+(defn row-not-equal
   "returns :new-key {element1 != element2}" 
   [new-key keys segment]
   {new-key (reduce not= (select-keys segment keys))})
