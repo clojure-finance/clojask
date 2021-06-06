@@ -13,7 +13,7 @@
 (defn row-add
   "returns :new-key {element1 + element2 (and so on)}"
   [new-key keys segment]
-  (assoc segment new-key (reduce + (select-keys segment keys))))
+  (assoc segment new-key (reduce + (map segment keys))))
 
 (defn row-inline-add
   "returns :keys[1] {element1 + element2 (and so on)}"
