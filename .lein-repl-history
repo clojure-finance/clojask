@@ -248,3 +248,68 @@ exit
 exit
 (def x (dataframe "resources/Employees.csv"))
 (compute x 1 "resources/test.csv" :exception true)
+exit
+(ColInfo. )
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x int :Salary)
+(.setType x "int" :Salary)
+(.operate x - :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(.getDesc x)
+(.colDesc x)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x int :Salary)
+(.setType x "int" :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(.colDesc x)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(.colDesc x)
+(compute x 1 "resources/test.csv" :exception true)
+(.operate x - :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(str int)
+(identity int)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(col-type (col-info x))
+(col-info x)
+(:col-info x)
+(:col-type (:col-info x))
+(:col-type (:col-inf x))
+(:col-keys (:col-info x))
+(.setType x "string" :Salary)
+(.operate x - :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(.colDesc x)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(.colTypes x)
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception true)
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(.operate x - :Salary)
+(defn add15
+[value]
+(+ value 1.5))
+(.operate x add15 :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(compute x 1 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(defn add15
+[value]
+(+ value 1.5))
+(.setType x "int" :Salary)
+(.operate x add15 :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(compute x 1 "resources/test.csv" :exception false)
+(.colType x)
+(.colTypes x)
+(.setType x "long" :Salary)

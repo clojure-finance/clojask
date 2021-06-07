@@ -1,7 +1,8 @@
 (ns clojask.utils
   (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
             [clojure.java.io :refer [resource]]
-            [onyx.plugin.core-async :refer [take-segments!]]))
+            [onyx.plugin.core-async :refer [take-segments!]])
+  (:import (java.util Date)))
 "Utility function used in dataframe"
 
 (defn func-name
@@ -85,3 +86,25 @@
       (doseq [segment segments]
         (>!! in-ch segment))
       (close! in-ch))))
+
+(defn toInt
+  [string]
+  (Integer/parseInt string))
+
+(defn toDouble
+  [string]
+  (Double/parseDouble string))
+
+(defn toString
+  [string]
+  string)
+
+(defn toDate
+  [string]
+  (Date. string))
+
+(def operation-type-map
+  {toInt "int"
+   toDouble "double"
+   toString "string"
+   toDate "date"})

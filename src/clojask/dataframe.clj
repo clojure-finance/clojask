@@ -2,7 +2,7 @@
   (:require [clojask.ColInfo :refer [->ColInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
-            [clojask.utils :refer [eval-res]]
+            [clojask.utils :refer :all]
             [clojask.onyx-comps :refer [start-onyx]]
             )
   (:import [clojask.ColInfo ColInfo]))
@@ -11,8 +11,10 @@
 (definterface DFIntf
   ;; (compute [& {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}])
   (compute [^int num-worker ^String output-dir ^boolean exception])
-  (operate [operation colName])
+  (operate [operation colName] "operate an operation to column")
+  (setType [type colName] "types supported: int double string date")
   (colDesc [])
+  (colTypes [])
   (head [n])
 
   (assoc [dataframe])  ;; combine another dataframe with the current
@@ -29,13 +31,25 @@
   DFIntf
   (operate
    [this operation colName]
-   (.operate col-info operation colName))
+   (.operate col-info operation colName)
+   "success")
   (colDesc
    [this]
-   (.getMap col-info))
+   (.getDesc col-info))
+  (colTypes
+   [this]
+   (.getType col-info))
   (head
    [this n]
    ())
+  (setType
+   [this type colName]
+   (case type
+     "int" (.setType col-info toInt colName)
+     "double" (.setType col-info toDouble colName)
+     "string" (.setType col-info toString colName)
+     "date" (.setType col-info toDate colName)
+     "No such type. You could instead write your parsing function as the first operation to this column."))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
@@ -51,7 +65,7 @@
              (let [keys (.getKeys col-info)
                    row (zipmap keys line)]
                (doseq [key keys]
-                 (.write wtr (str (eval-res row (key (.getMap col-info)))))
+                 (.write wtr (str (eval-res row (key (.getDesc col-info)))))
                  (if (not= key (last keys))(.write wtr ",")))
                (.write wtr "\n")))
            (doseq [line (rest (csv/read-csv rdr))]
@@ -59,7 +73,7 @@
                    row (zipmap keys line)]
                (doseq [key keys]
                  (try
-                   (.write wtr (str (eval-res row (key (.getMap col-info)))))
+                   (.write wtr (str (eval-res row (key (.getDesc col-info)))))
                    (catch Exception e nil))
                  (.write wtr ","))
                (.write wtr "\n"))))
@@ -79,7 +93,7 @@
     (let [reader (io/reader path)
           colNames (doall (first (csv/read-csv reader)))
           ;; colNames ["test"]
-          col-info (ColInfo. (doall (map keyword colNames)) {})]
+          col-info (ColInfo. (doall (map keyword colNames)) {} {})]
       (.close reader)
       (.init col-info colNames)
       (DataFrame. path 10 col-info))
