@@ -95,7 +95,7 @@
 (defn row-inline-log
   "returns :keys[1] {element1 - element2 (and so on)}"
   [keys segment]
-  (row-log (first keys) keys segment))
+  (row-log (first keys) (last keys) keys segment))
 
 ;; comparison
 (defn row-gr-than
@@ -105,7 +105,7 @@
 
 (defn row-inline-gr-than
   "returns :key[1] {element1 > element2}" 
-  [new-key keys segment]
+  [keys segment]
   (row-gr-than (first keys) keys segment))
 
 (defn row-geq-than
@@ -125,7 +125,7 @@
 
 (defn row-inline-le-than
   "returns :key[1] {element1 < element2}" 
-  [new-key keys segment]
+  [keys segment]
   (row-le-than (first keys) keys segment))
 
 (defn row-leq-than
@@ -135,7 +135,7 @@
 
 (defn row-inline-leq-than
   "returns :key[1] {element1 <= element2}" 
-  [new-key keys segment]
+  [keys segment]
   (row-leq-than (first keys) keys segment))
 
 (defn row-equal
@@ -145,7 +145,7 @@
 
 (defn row-inline-equal
   "returns :key[1] {element1 == element2}" 
-  [new-key keys segment]
+  [keys segment]
   (row-equal (first keys) keys segment))
 
 (defn row-not-equal
@@ -153,7 +153,7 @@
   [new-key keys segment]
   (assoc segment new-key (reduce not= (map segment keys))))
 
-(defn row-not-equal
+(defn row-inline-not-equal
   "returns :key[1] {element1 != element2}" 
-  [new-key keys segment]
+  [keys segment]
   (row-not-equal (first keys) keys segment))
