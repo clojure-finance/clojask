@@ -313,3 +313,26 @@ exit
 (.colType x)
 (.colTypes x)
 (.setType x "long" :Salary)
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 2 "resources/test.csv" :exception false)
+(def x (dataframe "resources/Employees.csv"))
+exit

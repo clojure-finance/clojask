@@ -85,7 +85,7 @@
          (if (= res "success")
            "success"
            "failed"))
-       (catch Exception e (str "failed: " (.getMessage e)))))))
+       (catch Exception e e)))))
 
 (defn dataframe
   [path]

@@ -9,11 +9,15 @@
   (let [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
    {:clojask/wtr wtr}))
 
+(defn- close-writer [event lifecycle]
+  (.close (:clojask/wtr event)))
+
 ;; Map of lifecycle calls that are required to use this plugin.
 ;; Users will generally always have to include these in their lifecycle calls
 ;; when submitting the job.
 (def writer-calls
-  {:lifecycle/before-task-start inject-into-eventmap})
+  {:lifecycle/before-task-start inject-into-eventmap
+   :lifecycle/after-task-stop close-writer})
 
 (defrecord ClojaskOutput []
   p/Plugin

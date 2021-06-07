@@ -15,6 +15,8 @@
 ;;  [:sample-worker1 :output]
 ;;  [:sample-worker2 :output]]
 
+(def id (java.util.UUID/randomUUID))
+
 (defn workflow-gen
   "Generate workflow for running Onyx"
   [num-work]
@@ -32,7 +34,7 @@
           (def workflow (conj workflow [worker-name :output]
               ))))
 
-  (println workflow) ; !!debugging
+  ;; (println workflow) ; !!debugging
   )
 
 
@@ -43,10 +45,11 @@
 ;;   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
 ;;   )
 (defn worker-func-gen
-  [body]
+  [dataframe]
   (defn worker-func
     [seg]
-    body)
+    seg) ;; biggest problem:
+  ;;  how to get body from dataframe
   )
 
 (defn catalog-gen
@@ -70,7 +73,7 @@
     ;; for loop for sample workers
     (doseq [x (range 1 (+ num-work 1))]
       (let [worker-name (keyword (str "sample-worker" x))
-            worker-function (keyword "clojask.onyx-comps" (str "sample-worker" x))]
+            worker-function (keyword "clojask.onyx-comps" "worker-func")]
             (def catalog 
               (conj catalog
                {:onyx/name worker-name
@@ -91,7 +94,7 @@
         :onyx/batch-size batch-size
         :output/doc "Writes segments to the file"}))
 
-    (println catalog) ;; !! debugging
+    ;; (println catalog) ;; !! debugging
     )
 
 
@@ -109,12 +112,16 @@
 (defn close-reader [event lifecycle]
   (.close (:seq/rdr event)))
 
-(defn inject-out-writer [event lifecycle]
-  (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
-    {:seq/wrt wrt}))
+;; (defn inject-out-writer [event lifecycle]
+;;   (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
+;;     {:seq/wrt wrt}))
 
-(defn close-writer [event lifecycle]
-  (.close (:clojask/wtr event)))
+;; (defn close-writer [event lifecycle]
+;;   (.close (:clojask/wtr event)))
+
+;; (def writer-calls
+;;   {:lifecycle/before-task-start inject-out-writer
+;;    :lifecycle/after-task-stop close-writer})
 
 (def in-calls
   {:lifecycle/before-task-start inject-in-reader
@@ -190,7 +197,7 @@
   ;; for loop for sample workers
   (doseq [x (range 1 (+ num-work 1))]
     (let [worker-name (keyword (str "sample-worker" x))
-          predicate-function (keyword "clojask.onyx-comps" (str "rem" x "?"))]
+          predicate-function (keyword "clojask.onyx-comps" (str "rem" (- x 1) "?"))]
           (def flow-conditions
             (conj flow-conditions
              {:flow/from :in
@@ -199,10 +206,8 @@
               :worker/doc "This is a flow condition"}
               ))))
     
-  (println flow-conditions) ;; !! debugging
+  ;; (println flow-conditions) ;; !! debugging
   )
-
-(def id (java.util.UUID/randomUUID))
 
 (defn config-env
   []
@@ -232,13 +237,13 @@
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist]
   (try
-    (config-env)
     (workflow-gen num-work)
-;;   (worker-func-gen dataframe) ;;need some work
-    (catalog-gen num-work)
+    (config-env)
+    (worker-func-gen dataframe) ;;need some work
+    (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
-    
+
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -257,13 +262,15 @@
       (onyx.api/shutdown-peer v-peer))
     (onyx.api/shutdown-peer-group peer-group)
     (onyx.api/shutdown-env env)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e)))))))
+    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
+  "success")
 
 
 ;; !! debugging
 (defn -main
   [& args]
-  (catalog-gen 2 10)
-  (workflow-gen 2)
-  (flow-cond-gen 2)
+  ;; (catalog-gen 2 10)
+  ;; (workflow-gen 2)
+  ;; (flow-cond-gen 2)
+  ;; (start-onyx 2 10 )
   )
