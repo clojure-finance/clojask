@@ -1,6 +1,7 @@
 (ns clojask.demo
   (:require [clojask.utils :refer :all]
             [clojask.element-operation :refer :all]
+            [clojask.row-operation :refer :all]
             [clojure.core.async :refer [chan >!! <!! close!]]
             [onyx.extensions :as extensions]
             [onyx.plugin.core-async :refer [take-segments!]]
@@ -92,16 +93,18 @@
 
    ; !! for debugging
    {:onyx/name :sample-worker
-     ;:onyx/fn :clojask.demo/transform-name
-     :onyx/fn :clojask.element-operation/not-equal
-     :onyx/type :function
-     :onyx/batch-size batch-size
-     :param/newkey :new-salary ;; function parameters
-     :param/key :salary
-     :param/value 100
-     :onyx/params [:param/newkey :param/value :param/key]
-     ;:onyx/params [:param/value :param/key]
-     :onyx/doc "Testing function"}
+    ;:onyx/fn :clojask.demo/transform-name
+    :onyx/fn :clojask.row-operation/row-inline-add
+    :onyx/type :function
+    :onyx/batch-size batch-size
+    :param/newkey :new-salary ;; function parameters
+    :param/key :salary
+    :param/keys [:salary :bonus]
+    :param/value 100
+    ;:onyx/params [:param/newkey :param/key :param/value]
+    :onyx/params [:param/keys]
+    ;:onyx/params [:param/newkey :param/keys]
+    :onyx/doc "Testing function"}
 
    {:onyx/name :output
     :onyx/fn :clojask.demo/output
