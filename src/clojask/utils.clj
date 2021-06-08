@@ -21,12 +21,13 @@
 
 (defn eval-res
   [row opr-vec]
-  (loop [res row oprs opr-vec]
+  (let [vals (vals (select-keys row (first opr-vec)))]
+   (loop [res vals oprs (rest opr-vec)]
       (let [opr (first oprs)
             rest (rest oprs)]
-        (if (= (count oprs) 1)
-          (opr res)
-          (recur (opr res) rest)))))
+        (if (= (count oprs) 0)
+          (first res)
+          (recur [(apply opr res)] rest))))))
 ;;;; Lifecycles utils ;;;;
 
 (def default-channel-size 1000)

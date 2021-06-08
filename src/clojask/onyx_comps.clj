@@ -44,11 +44,28 @@
 ;;   (:clojask-id segment)
 ;;   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
 ;;   )
+
+(def dataframe (atom nil))
+
+
+;; the body of the worker function
+;; (defn worker-body
+;;   [seg]
+;;   (let [df (deref dataframe)]
+;;     (zipmap keys )))
+
 (defn worker-func-gen
-  [dataframe]
-  (defn worker-func
-    [seg]
-    seg) ;; biggest problem:
+  [df exception]
+  (reset! dataframe df)
+  (if exception
+    (defn worker-func
+      [seg]
+      seg)
+    (defn worker-func
+      [seg]
+      (try
+        seg
+        (catch Exception e e)))) ;; biggest problem:
   ;;  how to get body from dataframe
   )
 
@@ -235,11 +252,11 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist]
+  [num-work batch-size dataframe dist exception]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe) ;;need some work
+    (worker-func-gen dataframe exception) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist)
     (flow-cond-gen num-work)

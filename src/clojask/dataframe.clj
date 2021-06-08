@@ -11,7 +11,8 @@
 (definterface DFIntf
   ;; (compute [& {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}])
   (compute [^int num-worker ^String output-dir ^boolean exception])
-  (operate [operation colName] "operate an operation to column")
+  (operate [operation colName] "operate an operation to column and replace in place")
+  (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [type colName] "types supported: int double string date")
   (colDesc [])
   (colTypes [])
@@ -31,8 +32,11 @@
   DFIntf
   (operate
    [this operation colName]
-   (.operate col-info operation colName)
-   "success")
+   (.operate col-info operation colName))
+  (operate
+   [this operation colNames newCol]
+   (assert (= clojure.lang.Keyword (type newCol)))
+   (.operate col-info operation colNames newCol))
   (colDesc
    [this]
    (.getDesc col-info))
@@ -63,14 +67,14 @@
          (if exception
            (doseq [line (rest (csv/read-csv rdr))]
              (let [keys (.getKeys col-info)
-                   row (zipmap keys line)]
+                   row (zipmap (map keyword (first (csv/read-csv rdr))) line)]
                (doseq [key keys]
                  (.write wtr (str (eval-res row (key (.getDesc col-info)))))
                  (if (not= key (last keys))(.write wtr ",")))
                (.write wtr "\n")))
            (doseq [line (rest (csv/read-csv rdr))]
              (let [keys (.getKeys col-info)
-                   row (zipmap keys line)]
+                   row (zipmap (map keyword (first (csv/read-csv rdr))) line)]
                (doseq [key keys]
                  (try
                    (.write wtr (str (eval-res row (key (.getDesc col-info)))))
@@ -81,7 +85,7 @@
          "success")
        (catch Exception e (str "failed: " (.getMessage e))))
      (try
-       (let [res (start-onyx num-worker batch-size this output-dir)]
+       (let [res (start-onyx num-worker batch-size this output-dir exception)]
          (if (= res "success")
            "success"
            "failed"))

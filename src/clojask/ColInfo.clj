@@ -4,6 +4,7 @@
 (definterface ColIntf
   (init [colNames])
   (operate [b c])
+  (operate [b c d])
   (setType [b c])
   (getDesc [])
   (getType [])
@@ -26,13 +27,29 @@
   (init
     [this colNames]
     (set! col-keys (map keyword colNames))
-    (set! col-dsp (zipmap col-keys (map vector col-keys))))
+    (set! col-dsp (zipmap col-keys (map vector (map vector col-keys)))))
   (operate
     [this operation col]
     (if (contains? col-dsp col)
-      (set! col-dsp (assoc col-dsp col (conj (col col-dsp) operation)))
-      (set! col-dsp (assoc col-dsp col (conj [col] operation))) ;; would not come here otherwise deprecate
+      (do
+        (set! col-dsp (assoc col-dsp col (conj (col col-dsp) operation)))
+        "success")
+      (str col " is not an existing column name") ;; would not come here otherwise deprecate
       ))
+  (operate
+   [this operation col newCol]
+   (let [col (if (seq? col)
+               col
+               [col])
+         external (vec (filter (fn [_] (not (contains? col-dsp _))) col))]
+     (if (= (count external) 0)
+       (if (contains? col-dsp newCol)
+         (str newCol " is already exist")
+         (do 
+           (set! col-keys (conj col-keys newCol))
+           (set! col-dsp (assoc col-dsp newCol (conj [(vec col)] operation)))))
+       (do
+         (str external " are not existing column names")))))
   (setType
     [this operation col]
     (if (contains? col-dsp col)

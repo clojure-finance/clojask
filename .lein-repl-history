@@ -336,3 +336,31 @@ exit
 (compute x 2 "resources/test.csv" :exception false)
 (def x (dataframe "resources/Employees.csv"))
 exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 1 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception true)
+(.setType x "int" :Salary)
+(compute x 1 "resources/test.csv" :exception true)
+(compute x 1 "resources/test.csv" :exception false)
+(.operate x - :Salary)
+(compute x 1 "resources/test.csv" :exception false)
+(.operate x - :Salar)
+(.operate x - [:Salary])
+(.operate x - [:Salary] :dsf)
+(.operate x - [:Salary :sd] :dsf)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(.operate x - [:Salary :sd] :dsf)
+(.operate x - :Salary :dsf)
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 1 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x - :Salary :dsf)
+(compute x 1 "resources/test.csv" :exception true)
+exit
