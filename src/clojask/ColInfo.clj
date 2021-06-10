@@ -26,7 +26,7 @@
   ;;   (set! col-dsp (zipmap col-keys (map (fn [_] (wrap-res _ row)) col-keys))))
   (init
     [this colNames]
-    (set! col-keys (map keyword colNames))
+    (set! col-keys (vec (map keyword colNames)))
     (set! col-dsp (zipmap col-keys (map vector (map vector col-keys)))))
   (operate
     [this operation col]
@@ -38,7 +38,7 @@
       ))
   (operate
    [this operation col newCol]
-   (let [col (if (seq? col)
+   (let [col (if (coll? col)
                col
                [col])
          external (vec (filter (fn [_] (not (contains? col-dsp _))) col))]

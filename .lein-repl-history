@@ -364,3 +364,45 @@ exit
 (.operate x - :Salary :dsf)
 (compute x 1 "resources/test.csv" :exception true)
 exit
+(def x (dataframe "resources/Employees.csv"))
+(.setType x "int" :Salary)
+(.operate x - :Salary :dsf)
+(compute x 1 "resources/test.csv" :exception true)
+(compute x 1 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x - :Salary :dsf)
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 1 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 4 "resources/test.csv" :exception false)
+(.operate x + [:Salary :Department] :new]
+(.operate x + [:Salary :Department] :new])
+(.operate x + [:Salary :Department] :new)
+(.operate x + :Salary :Department :new)
+(.operate x + :Salary  :new)
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception false)
+(compute x 1 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception true)
+(.operate x identity :Salary :new)
+(compute x 1 "resources/test.csv" :exception true)
+(.operate x str [:Employee :Department] :new)
+(seq? [:Employee :Department])
+(conj [1 2] 3)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(compute x 1 "resources/test.csv" :exception true)
+(.operate x identity :Salary :new)
+(compute x 1 "resources/test.csv" :exception true)
+(compute x 1 "resources/test.csv" :exception false)
+(.operate x str [:Employee :Department] :new)
+(.operate x str [:Employee :Department] :new2)
+(compute x 1 "resources/test.csv" :exception false)
+exit

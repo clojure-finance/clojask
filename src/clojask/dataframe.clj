@@ -63,27 +63,29 @@
      (try
        (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
       ;; (with-open [rdr (io/reader path) wtr (io/output-stream "test.txt")]
-         (.write wtr (str (clojure.string/join "," (map name (.getKeys col-info))) "\n"))
-         (if exception
-           (doseq [line (rest (csv/read-csv rdr))]
-             (let [keys (.getKeys col-info)
-                   row (zipmap (map keyword (first (csv/read-csv rdr))) line)]
-               (doseq [key keys]
-                 (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                 (if (not= key (last keys))(.write wtr ",")))
-               (.write wtr "\n")))
-           (doseq [line (rest (csv/read-csv rdr))]
-             (let [keys (.getKeys col-info)
-                   row (zipmap (map keyword (first (csv/read-csv rdr))) line)]
-               (doseq [key keys]
-                 (try
+         (let [o-keys (map keyword (first (csv/read-csv rdr)))
+               keys (.getKeys col-info)]
+           (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
+           (if exception
+             (doseq [line (csv/read-csv rdr)]
+               (let [row (zipmap o-keys line)]
+                 (doseq [key keys]
+                   (println row)
+                   (println (key (.getDesc col-info)))
                    (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                   (catch Exception e nil))
-                 (.write wtr ","))
-               (.write wtr "\n"))))
+                   (if (not= key (last keys)) (.write wtr ",")))
+                 (.write wtr "\n")))
+             (doseq [line (csv/read-csv rdr)]
+               (let [row (zipmap o-keys line)]
+                 (doseq [key keys]
+                   (try
+                     (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+                     (catch Exception e nil))
+                   (if (not= key (last keys)) (.write wtr ",")))
+                 (.write wtr "\n")))))
          (.flush wtr)
          "success")
-       (catch Exception e (str "failed: " (.getMessage e))))
+       (catch Exception e e))
      (try
        (let [res (start-onyx num-worker batch-size this output-dir exception)]
          (if (= res "success")
@@ -106,7 +108,14 @@
         (println "No such file or directory")
         nil))))
 
+(defn operate
+  [this operation colName]
+  (.operate this operation colName))
+
+(defn operate
+  [this operation colName newCol]
+  (.operate this operation colName newCol))
+
 (defn compute 
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-  ;;  "success"))
    (.compute this num-worker output-dir exception))
