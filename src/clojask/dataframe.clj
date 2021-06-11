@@ -1,11 +1,13 @@
 (ns clojask.DataFrame
   (:require [clojask.ColInfo :refer [->ColInfo]]
+            [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :refer :all]
             [clojask.onyx-comps :refer [start-onyx]]
             )
-  (:import [clojask.ColInfo ColInfo]))
+  (:import [clojask.ColInfo ColInfo]
+           [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
 
 (definterface DFIntf
@@ -17,6 +19,7 @@
   (colDesc [])
   (colTypes [])
   (head [n])
+  (filter [predicate])
 
   (assoc [dataframe])  ;; combine another dataframe with the current
   )
@@ -28,7 +31,8 @@
    ;;  ...
    ;; more fields to add
    ;;  ...
-            ^ColInfo col-info]
+            ^ColInfo col-info
+            ^RowInfo row-info]
   DFIntf
   (operate
    [this operation colName]
@@ -37,6 +41,9 @@
    [this operation colNames newCol]
    (assert (= clojure.lang.Keyword (type newCol)))
    (.operate col-info operation colNames newCol))
+  (filter
+   [this predicate]
+   (.filter row-info predicate))
   (colDesc
    [this]
    (.getDesc col-info))
@@ -69,18 +76,22 @@
            (if exception
              (doseq [line (csv/read-csv rdr)]
                (let [row (zipmap o-keys line)]
-                 (doseq [key keys]
-                   (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                   (if (not= key (last keys)) (.write wtr ",")))
-                 (.write wtr "\n")))
+                 (if (filter-check (.getFilters row-info) row)
+                  (do
+                    (doseq [key keys]
+                      (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+                      (if (not= key (last keys)) (.write wtr ",")))
+                    (.write wtr "\n")))))
              (doseq [line (csv/read-csv rdr)]
                (let [row (zipmap o-keys line)]
-                 (doseq [key keys]
-                   (try
-                     (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                     (catch Exception e nil))
-                   (if (not= key (last keys)) (.write wtr ",")))
-                 (.write wtr "\n")))))
+                 (if (filter-check (.getFilters row-info) row)
+                  (do
+                    (doseq [key keys]
+                      (try
+                        (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+                        (catch Exception e nil))
+                      (if (not= key (last keys)) (.write wtr ",")))
+                    (.write wtr "\n")))))))
          (.flush wtr)
          "success")
        (catch Exception e e))
@@ -97,10 +108,11 @@
     (let [reader (io/reader path)
           colNames (doall (first (csv/read-csv reader)))
           ;; colNames ["test"]
-          col-info (ColInfo. (doall (map keyword colNames)) {} {})]
+          col-info (ColInfo. (doall (map keyword colNames)) {} {})
+          row-info (RowInfo. [])]
       (.close reader)
       (.init col-info colNames)
-      (DataFrame. path 10 col-info))
+      (DataFrame. path 10 col-info row-info))
     (catch Exception e
       (do
         (println "No such file or directory")
