@@ -4,7 +4,8 @@
             [onyx.api :refer :all]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
-            [clojure.data.csv :as csv])
+            [clojure.data.csv :as csv]
+            [clojask.utils :refer [eval-res]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 
@@ -47,7 +48,6 @@
 
 (def dataframe (atom nil))
 
-
 ;; the body of the worker function
 ;; (defn worker-body
 ;;   [seg]
@@ -57,15 +57,30 @@
 (defn worker-func-gen
   [df exception]
   (reset! dataframe df)
+  
   (if exception
     (defn worker-func
       [seg]
-      seg)
+      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
+        (loop [res seg
+               keys allKeys]
+          (if (= (first keys) nil)
+            res
+            (let [key (first keys)
+                  rem (rest keys)]
+              (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))))
     (defn worker-func
       [seg]
-      (try
-        seg
-        (catch Exception e e)))) ;; biggest problem:
+      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
+        (loop [res seg
+               keys allKeys]
+          (if (= (first keys) nil)
+            res
+            (let [key (first keys)
+                  value (try (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))
+                             (catch Exception e nil))
+                  rem (rest keys)]
+              (recur (assoc res key value) rem))))))) ;; biggest problem:
   ;;  how to get body from dataframe
   )
 
@@ -250,6 +265,13 @@
 
   (def v-peers (onyx.api/start-peers n-peers peer-group)))
 
+(defn shutdown
+  []
+  (doseq [v-peer v-peers]
+    (onyx.api/shutdown-peer v-peer))
+  (onyx.api/shutdown-peer-group peer-group)
+  (onyx.api/shutdown-env env))
+
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist exception]
@@ -273,12 +295,11 @@
       ;; (println submission)
       (assert job-id "Job was not successfully submitted")
       (feedback-exception! peer-config job-id))
-    (catch Exception e (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e)))))))
   (try
-    (doseq [v-peer v-peers]
-      (onyx.api/shutdown-peer v-peer))
-    (onyx.api/shutdown-peer-group peer-group)
-    (onyx.api/shutdown-env env)
+    (shutdown)
     (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
   "success")
 

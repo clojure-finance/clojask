@@ -70,8 +70,6 @@
              (doseq [line (csv/read-csv rdr)]
                (let [row (zipmap o-keys line)]
                  (doseq [key keys]
-                   (println row)
-                   (println (key (.getDesc col-info)))
                    (.write wtr (str (eval-res row (key (.getDesc col-info)))))
                    (if (not= key (last keys)) (.write wtr ",")))
                  (.write wtr "\n")))

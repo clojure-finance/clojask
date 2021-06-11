@@ -406,3 +406,17 @@ exit
 (.operate x str [:Employee :Department] :new2)
 (compute x 1 "resources/test.csv" :exception false)
 exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x str [:Employee :Department] :new2)
+(compute x 2 "resources/test.csv" :exception true)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x str [:Employee :Department] :new2)
+(compute x 2 "resources/test.csv" :exception false)
+(.operate x - :Salary)
+(compute x 2 "resources/test.csv" :exception true)
+(compute x 2 "resources/test.csv" :exception false)
+exit
+(def x (dataframe "resources/Employees.csv"))
+(.operate x - :Salary)
+(compute x 2 "resources/test.csv" :exception false)
