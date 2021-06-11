@@ -118,6 +118,10 @@
         (println "No such file or directory")
         nil))))
 
+(defn filter
+  [this predicate]
+  (.filter this predicate))
+
 (defn operate
   [this operation colName]
   (.operate this operation colName))

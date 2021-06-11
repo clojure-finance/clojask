@@ -1,5 +1,5 @@
 (ns clojask.debug
-  (:require [clojask.DataFrame :refer [dataframe compute]]))
+  (:require [clojask.DataFrame :refer :all]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main
