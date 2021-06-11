@@ -5,7 +5,7 @@
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
-            [clojask.utils :refer [eval-res]])
+            [clojask.utils :refer [eval-res filter-check]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 
@@ -62,26 +62,29 @@
     (defn worker-func
       [seg]
       (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (loop [res seg
-               keys allKeys]
-          (if (= (first keys) nil)
-            res
-            (let [key (first keys)
-                  rem (rest keys)]
-              (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))))
+        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
+         (loop [res seg
+                keys allKeys]
+           (if (= (first keys) nil)
+             res
+             (let [key (first keys)
+                   rem (rest keys)]
+               (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))
+          nil)))
     (defn worker-func
       [seg]
       (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (loop [res seg
-               keys allKeys]
-          (if (= (first keys) nil)
-            res
-            (let [key (first keys)
-                  value (try (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))
-                             (catch Exception e nil))
-                  rem (rest keys)]
-              (recur (assoc res key value) rem))))))) ;; biggest problem:
-  ;;  how to get body from dataframe
+        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
+          (loop [res seg
+                 keys allKeys]
+            (if (= (first keys) nil)
+              res
+              (let [key (first keys)
+                    value (try (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))
+                               (catch Exception e nil))
+                    rem (rest keys)]
+                (recur (assoc res key value) rem))))
+          nil)))) 
   )
 
 (defn catalog-gen

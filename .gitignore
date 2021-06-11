@@ -2,5 +2,5 @@
 onyx.log
 resources/test.csv
 .lein-repl-history
-.nlein-port
+.nrepl-port
 target/*
