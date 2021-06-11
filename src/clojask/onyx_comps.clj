@@ -63,6 +63,7 @@
       [seg]
       (let [allKeys (.getKeys (:col-info (deref dataframe)))]
         (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
+        ;; (if (>= (Integer/parseInt (:Salary seg)) 700)
          (loop [res seg
                 keys allKeys]
            (if (= (first keys) nil)
@@ -70,7 +71,7 @@
              (let [key (first keys)
                    rem (rest keys)]
                (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))
-          nil)))
+          {})))
     (defn worker-func
       [seg]
       (let [allKeys (.getKeys (:col-info (deref dataframe)))]
@@ -84,7 +85,7 @@
                                (catch Exception e nil))
                     rem (rest keys)]
                 (recur (assoc res key value) rem))))
-          nil)))) 
+          {})))) 
   )
 
 (defn catalog-gen

@@ -66,10 +66,11 @@
     ;; In this case we are conjoining elements onto a collection.
     (loop [batch write-batch]
       (if-let [msg (first batch)]
-        (do
+          (do
           ;; (swap! example-datasink conj msg)
-          (.write wtr (str msg "\n"))
-          (recur (rest batch)))))
+            (if (not= msg {})
+              (.write wtr (str msg "\n")))
+              (recur (rest batch)))))
     true))
 
 ;; Builder function for your output plugin.
