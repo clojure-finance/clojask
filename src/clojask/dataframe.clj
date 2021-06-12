@@ -112,6 +112,11 @@
           row-info (RowInfo. [])]
       (.close reader)
       (.init col-info colNames)
+
+      ;; 
+      ;; type detection
+      ;; 
+
       (DataFrame. path 10 col-info row-info))
     (catch Exception e
       (do
@@ -123,12 +128,10 @@
   (.filter this predicate))
 
 (defn operate
-  [this operation colName]
-  (.operate this operation colName))
-
-(defn operate
-  [this operation colName newCol]
-  (.operate this operation colName newCol))
+  ([this operation colName]
+   (.operate this operation colName))
+  ([this operation colName newCol]
+   (.operate this operation colName newCol)))
 
 (defn compute 
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]

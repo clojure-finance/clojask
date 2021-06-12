@@ -62,6 +62,7 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr]} replica messenger]
+              ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
     (loop [batch write-batch]
@@ -69,7 +70,9 @@
           (do
           ;; (swap! example-datasink conj msg)
             (if (not= msg {})
+              ;; angel
               (.write wtr (str msg "\n")))
+            
               (recur (rest batch)))))
     true))
 
