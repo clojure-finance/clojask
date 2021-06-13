@@ -80,9 +80,9 @@
                 (let [output-filename (str (name groupby-key) "-" (groupby-key msg) ".csv")]
                   (def groupby-wrtr (io/writer output-filename :append true))
                   ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
-                  ;(.write groupby-wrtr (str msg "\n"))
+                  (.write groupby-wrtr (str msg "\n"))
                   ;; write as csv format e.g. Tim,62,0.1,12
-                  (.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))
+                  ;(.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))
                   ;; close writer
                   (.close groupby-wrtr)
                 )

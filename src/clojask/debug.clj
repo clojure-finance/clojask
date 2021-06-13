@@ -4,7 +4,7 @@
 
 (defn -main
   []
-  (def x (dataframe "./resources/Employees.csv"))
+  (def x (dataframe "./resources/Employees-large.csv"))
   (time (compute x 2 "./resources/test.csv" :exception true))
   (println "\nDone\n"))
 
