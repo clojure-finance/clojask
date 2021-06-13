@@ -11,4 +11,4 @@
   :repl-options {:init-ns clojask.debug
                  :timeout 60000}
   :plugins [[lein-update-dependency "0.1.2"]]
-  :main ^:skip-aot clojask.demo/-main)
+  :main ^:skip-aot clojask.debug/-main)
