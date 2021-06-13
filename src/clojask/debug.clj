@@ -4,8 +4,8 @@
 
 (defn -main
   []
-  (def x (dataframe "./resources/Employees.csv"))
-  (compute x 2 "./resources/test.csv" :exception true)
+  (def x (dataframe "./resources/Employees-large.csv"))
+  (time (compute x 2 "./resources/test.csv" :exception true))
   (println "\nDone\n"))
 
 ;; (ns clojask.debug
