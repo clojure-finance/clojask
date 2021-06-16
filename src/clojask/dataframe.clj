@@ -18,6 +18,8 @@
   (setType [type colName] "types supported: int double string date")
   (colDesc [])
   (colTypes [])
+  (groupby [a] "group the dataframe by the key(s)")
+  (aggregate [a b] "aggregate the group-by result by the function")
   (head [n])
   (filter [predicate])
 
@@ -41,6 +43,15 @@
    [this operation colNames newCol]
    (assert (= clojure.lang.Keyword (type newCol)))
    (.operate col-info operation colNames newCol))
+  (groupby
+   [this key]
+   (let [keys (if (coll? key)
+               key
+               [key])]
+     (.groupby row-info keys)))
+  (aggregate
+   [this func new-key]
+   (.aggregate row-info func new-key))
   (filter
    [this predicate]
    (.filter row-info predicate))
@@ -109,7 +120,7 @@
           colNames (doall (first (csv/read-csv reader)))
           ;; colNames ["test"]
           col-info (ColInfo. (doall (map keyword colNames)) {} {})
-          row-info (RowInfo. [])]
+          row-info (RowInfo. [] [] nil nil)]
       (.close reader)
       (.init col-info colNames)
 
