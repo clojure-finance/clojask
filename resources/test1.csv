@@ -1,4 +1,6 @@
-Employee,EmployeeName,Department,Salary,new,new2
-3,Carla,12,900,3Carla,
-4,Daniel,12,1000,4Daniel,
-5,Evelyn,13,800,5Evelyn,
+{:clojask-id 2, :Employee "2", :EmployeeName "Bob", :Department "11", :Salary "600"}
+{:clojask-id 4, :Employee "4", :EmployeeName "Daniel", :Department "12", :Salary "1000"}
+{:clojask-id 6, :Employee "6", :EmployeeName "Ferdinand", :Department "21", :Salary "700"}
+{:clojask-id 1, :Employee "1", :EmployeeName "Alice", :Department "11", :Salary "300"}
+{:clojask-id 3, :Employee "3", :EmployeeName "Carla", :Department "12", :Salary "900"}
+{:clojask-id 5, :Employee "5", :EmployeeName "Evelyn", :Department "13", :Salary "800"}

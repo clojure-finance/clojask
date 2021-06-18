@@ -1,7 +1,8 @@
 (ns clojask.utils
   (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
             [clojure.java.io :refer [resource]]
-            [onyx.plugin.core-async :refer [take-segments!]])
+            [onyx.plugin.core-async :refer [take-segments!]]
+            [tech.v3.dataset :as ds])
   (:import (java.util Date)))
 "Utility function used in dataframe"
 
@@ -50,3 +51,21 @@
    toDouble "double"
    toString "string"
    toDate "date"})
+
+(def type-operation-map
+  {"Integer" toInt
+   "float64" toDouble
+   "string" toString
+   "packed-local-date" toDate})
+
+(defn get-key
+  "Gets value of key from a map"
+  [key row col-info]
+  (if (contains? (:col-type col-info) key)
+    ((key (:col-type col-info)) (key row))
+    (key row)))
+
+(defn type-detection
+ [file]
+ (let [sample (take 5 file)]
+   ))

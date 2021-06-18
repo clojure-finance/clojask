@@ -22,7 +22,7 @@
   (aggregate [a b] "aggregate the group-by result by the function")
   (head [n])
   (filter [predicate])
-
+  (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (assoc [dataframe])  ;; combine another dataframe with the current
   )
 
@@ -37,90 +37,97 @@
             ^RowInfo row-info]
   DFIntf
   (operate
-   [this operation colName]
-   (.operate col-info operation colName))
+    [this operation colName]
+    (.operate col-info operation colName))
   (operate
-   [this operation colNames newCol]
-   (assert (= clojure.lang.Keyword (type newCol)))
-   (.operate col-info operation colNames newCol))
+    [this operation colNames newCol]
+    (assert (= clojure.lang.Keyword (type newCol)))
+    (.operate col-info operation colNames newCol))
   (groupby
-   [this key]
-   (let [keys (if (coll? key)
-               key
-               [key])]
-     (.groupby row-info keys)))
+    [this key]
+    (let [keys (if (coll? key)
+                 key
+                 [key])]
+      (.groupby row-info keys)))
   (aggregate
-   [this func new-key]
-   (.aggregate row-info func new-key))
+    [this func new-key]
+    (.aggregate row-info func new-key))
   (filter
-   [this predicate]
-   (.filter row-info predicate))
+    [this predicate]
+    (.filter row-info predicate))
   (colDesc
-   [this]
-   (.getDesc col-info))
+    [this]
+    (.getDesc col-info))
   (colTypes
-   [this]
-   (.getType col-info))
+    [this]
+    (.getType col-info))
   (head
-   [this n]
-   ())
+    [this n]
+    ())
   (setType
-   [this type colName]
-   (case type
-     "int" (.setType col-info toInt colName)
-     "double" (.setType col-info toDouble colName)
-     "string" (.setType col-info toString colName)
-     "date" (.setType col-info toDate colName)
-     "No such type. You could instead write your parsing function as the first operation to this column."))
+    [this type colName]
+    (case type
+      "int" (.setType col-info toInt colName)
+      "double" (.setType col-info toDouble colName)
+      "string" (.setType col-info toString colName)
+      "date" (.setType col-info toDate colName)
+      "No such type. You could instead write your parsing function as the first operation to this column."))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
-   [this ^int num-worker ^String output-dir ^boolean exception]
+    [this ^int num-worker ^String output-dir ^boolean exception]
   ;;  "success"))
-   (if (<= num-worker 1)
-     (try
-       (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
+    (if (<= num-worker 1)
+      (try
+        (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
       ;; (with-open [rdr (io/reader path) wtr (io/output-stream "test.txt")]
-         (let [o-keys (map keyword (first (csv/read-csv rdr)))
-               keys (.getKeys col-info)]
-           (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
-           (if exception
-             (doseq [line (csv/read-csv rdr)]
-               (let [row (zipmap o-keys line)]
-                 (if (filter-check (.getFilters row-info) row)
-                  (do
-                    (doseq [key keys]
-                      (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                      (if (not= key (last keys)) (.write wtr ",")))
-                    (.write wtr "\n")))))
-             (doseq [line (csv/read-csv rdr)]
-               (let [row (zipmap o-keys line)]
-                 (if (filter-check (.getFilters row-info) row)
-                  (do
-                    (doseq [key keys]
-                      (try
+          (let [o-keys (map keyword (first (csv/read-csv rdr)))
+                keys (.getKeys col-info)]
+            (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
+            (if exception
+              (doseq [line (csv/read-csv rdr)]
+                (let [row (zipmap o-keys line)]
+                  (if (filter-check (.getFilters row-info) row)
+                    (do
+                      (doseq [key keys]
                         (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                        (catch Exception e nil))
-                      (if (not= key (last keys)) (.write wtr ",")))
-                    (.write wtr "\n")))))))
-         (.flush wtr)
-         "success")
-       (catch Exception e e))
-     (try
-       (let [res (start-onyx num-worker batch-size this output-dir exception)]
-         (if (= res "success")
-           "success"
-           "failed"))
-       (catch Exception e e)))))
+                        (if (not= key (last keys)) (.write wtr ",")))
+                      (.write wtr "\n")))))
+              (doseq [line (csv/read-csv rdr)]
+                (let [row (zipmap o-keys line)]
+                  (if (filter-check (.getFilters row-info) row)
+                    (do
+                      (doseq [key keys]
+                        (try
+                          (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+                          (catch Exception e nil))
+                        (if (not= key (last keys)) (.write wtr ",")))
+                      (.write wtr "\n")))))))
+          (.flush wtr)
+          "success")
+        (catch Exception e e))
+      (try
+        (let [res (start-onyx num-worker batch-size this output-dir exception)]
+          (if (= res "success")
+            "success"
+            "failed"))
+        (catch Exception e e))))
+  (computeAggre
+   [this ^int num-worker ^String output-dir ^boolean exception]
+   (if (< num-worker 2)
+     nil
+     nil)))
 
 (defn dataframe
   [path]
   (try
     (let [reader (io/reader path)
-          colNames (doall (first (csv/read-csv reader)))
+          file (csv/read-csv reader)
+          colNames (doall (first file))
           ;; colNames ["test"]
           col-info (ColInfo. (doall (map keyword colNames)) {} {})
           row-info (RowInfo. [] [] nil nil)]
+      ;; (type-detection file)
       (.close reader)
       (.init col-info colNames)
 
@@ -146,4 +153,7 @@
 
 (defn compute 
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-   (.compute this num-worker output-dir exception))
+   (if (= (:aggre-func (:row-info this)) nil)
+     (.compute this num-worker output-dir exception)
+    ;;  (.compute-aggre this num-worker output-dir exception)
+     ))
