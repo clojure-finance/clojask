@@ -1,5 +1,7 @@
 (ns clojask.groupby
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [clojure-csv.core :as csv])
+  )
 "contains the utility functions to group by and aggregate"
 
 (defn compute-groupby
@@ -11,19 +13,20 @@
   "aggregate the output files to the final destination"
   [dateframe output-dir exp])
 
+(defn gen-groupby-filenames
+  "internal function to generate files csv line with groupby key(s)"
+  [msg groupby-keys]
+  (def output-filename "./_grouped/")
+  (doseq [groupby-key groupby-keys]
+    (def output-filename (str output-filename "_" (name groupby-key) "-" (groupby-key msg))))
+  (str output-filename ".csv"))
+
 (defn output-groupby
   "internal function called by output when aggregation is applied"
   [msg groupby-keys]
-  ;; generate output file name
-  (def output-filename "")
-  (doseq [groupby-key groupby-keys]
-    (def output-filename (str output-filename "_" (name groupby-key) "-" (groupby-key msg))))
-  (def output-filename (str output-filename ".csv"))
-
-  ;; !! debugging
-  (println output-filename)
-
-  (let [groupby-wrtr (io/writer output-filename :append true)]
+  
+  (let [output-filename (gen-groupby-filenames msg groupby-keys) ;; generate output filename
+        groupby-wrtr (io/writer output-filename :append true)]
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
     (.write groupby-wrtr (str msg "\n"))
 
@@ -37,3 +40,21 @@
   ;(println (clojure.string/join "," (map msg (keys msg))))
   ;(println (apply str (map msg (keys msg))))
   )
+
+(defn take-csv
+  "takes file name and reads data"
+  [filename]
+  (with-open [file (io/reader filename)]
+    (-> file
+        (slurp)
+        (csv/parse-csv))))
+
+(defn readin-groupby
+  "internal function to read in grouped csv files"
+  [groupby-keys]
+  (def directory (clojure.java.io/file "./_grouped/"))
+  (def files (file-seq directory))
+  (doseq [file (rest files)]
+    ;(println (take-csv file)) ;; debugging
+    (take-csv file)))
+
