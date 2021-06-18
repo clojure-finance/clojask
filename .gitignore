@@ -4,4 +4,4 @@ resources/test.csv
 .lein-repl-history
 .nrepl-port
 target/*
-_*.csv
+# _*.csv
