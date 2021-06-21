@@ -1,12 +1,14 @@
 (ns clojask.debug
   (:require [clojask.DataFrame :refer :all]
-            [clojask.utils :refer :all]))
+            [clojask.utils :refer :all]
+            [clojask.groupby :refer :all]))s
 "For debugging purposes only, will not be used in production."
 
 (defn -main
   []
   (def x (dataframe "./resources/Employees-large.csv"))
   (time (compute x 2 "./resources/test.csv" :exception true))
+  (readin-groupby [:Department :EmployeeName])
   (println "\nDone\n"))
 
 ;; (ns clojask.debug
