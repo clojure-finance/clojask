@@ -14,7 +14,7 @@
 ;; the example of how to write a set of aggregate function
 (defn min-pre
   []
-  (reset! memo 1))
+  (def memo (atom 1)))
 
 (defn min
   [row]
@@ -23,11 +23,12 @@
 (defn min-result
   []
   (deref memo))
+
 (defn output-groupby
   "internal function called by output when aggregation is applied"
   [msg groupby-keys]
   ;; generate output file name
-  (def output-filename "")
+  (def output-filename "tmp/")
   (doseq [groupby-key groupby-keys]
     (def output-filename (str output-filename "_" (name groupby-key) "-" (groupby-key msg))))
   (def output-filename (str output-filename ".csv"))

@@ -3,6 +3,8 @@
 
 (definterface RowIntf
   (getFilters [])
+  (getAggreKey [])
+  (getGroupbyKeys [])
   (filter [predicate])
   (groupby [a])
   (aggregate [func new-key]))
@@ -24,6 +26,12 @@
     [self key]
     (set! groupby-key key)
     "success")
+  (getGroupbyKeys
+   [self]
+   groupby-key)
+  (getAggreKey
+   [self]
+   aggre-key)
   (aggregate
     [self func new-key]
     (if (not= groupby-key [])

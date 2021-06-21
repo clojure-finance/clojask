@@ -4,7 +4,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :refer :all]
-            [clojask.onyx-comps :refer [start-onyx]]
+            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre start-onyx-groupby]]
             )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
@@ -116,7 +116,14 @@
    [this ^int num-worker ^String output-dir ^boolean exception]
    (if (< num-worker 2)
      nil
-     nil)))
+     (try
+       (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
+         (if (= res "success")
+           (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
+             "success"
+             "failed at aggregate stage")
+           "failed at group by stage"))
+       (catch Exception e e)))))
 
 (defn dataframe
   [path]
@@ -153,7 +160,7 @@
 
 (defn compute 
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-   (if (= (:aggre-func (:row-info this)) nil)
+   (if (= (.getAggreKey (:row-info this)) nil)
      (.compute this num-worker output-dir exception)
-    ;;  (.compute-aggre this num-worker output-dir exception)
+     (.computeAggre this num-worker output-dir exception)
      ))
