@@ -1,7 +1,6 @@
 (ns clojask.groupby
   (:require [clojure.java.io :as io]
-            [clojure-csv.core :as csv])
-  )
+            [clojure-csv.core :as csv]))
 "contains the utility functions to group by and aggregate"
 
 (defn compute-groupby
@@ -13,18 +12,18 @@
   "aggregate the output files to the final destination"
   [dateframe output-dir exp])
 
-;; the example of how to write a set of aggregate function
-(defn min-pre
-  []
-  (def memo (atom 1)))
+;; ;; the example of how to write a set of aggregate function
+;; (defn min-pre
+;;   []
+;;   (def memo (atom 1)))
 
-(defn min
-  [row]
-  (reset! memo (min (deref memo) row)))
+;; (defn min
+;;   [row]
+;;   (reset! memo (min (deref memo) row)))
 
-(defn min-result
-  []
-  (deref memo))
+;; (defn min-result
+;;   []
+;;   (deref memo))
 
 (defn gen-groupby-filenames
   "internal function to generate files csv line with groupby key(s)"
@@ -54,20 +53,63 @@
   ;(println (apply str (map msg (keys msg))))
   )
 
-(defn take-csv
+(defn read-csv-seq
   "takes file name and reads data"
   [filename]
-  (with-open [file (io/reader filename)]
-    (-> file
-        (slurp)
-        (csv/parse-csv))))
+  (let [file (io/reader filename)]
+    (->> file
+         (line-seq)
+         (map read-string)
+         )))
 
-(defn readin-groupby
-  "internal function to read in grouped csv files"
-  [groupby-keys]
-  (def directory (clojure.java.io/file "./_grouped/"))
-  (def files (file-seq directory))
-  (doseq [file (rest files)]
-    ;(println (take-csv file)) ;; debugging
-    (take-csv file)))
+
+(defn write-file
+ [dir seq]
+  (with-open [wtr (io/writer dir :append true)]
+    (doseq [row seq]
+    (if (not= row nil)
+      (.write wtr (str row "\n"))))))
+
+(defn internal-aggregate
+  "aggregate one group use the function"
+  [func out-dir groupby-keys keys & [new-keys]]
+  (let [directory (clojure.java.io/file "./_grouped/")
+        files (file-seq directory)]
+    (doseq [file (rest files)]
+      (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys)))
+    "success"))
+
+;; below are example aggregate functions
+
+(defn aggre-min
+  "get the min of some keys"
+  [seq groupby-keys keys new-keys]
+  (def _min (atom {}))
+  (let [new-keys (if (= new-keys nil)
+                   (vec (map (fn [_] (keyword (str "min(" _ ")"))) keys))
+                   new-keys)
+        a-old-keys (concat groupby-keys keys)
+        a-new-keys (concat groupby-keys new-keys)]
+    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+    (reset! _min (zipmap a-new-keys nil))
+    ;; do one iteration to find the min
+    (doseq [row seq]
+      ;; (println row)
+      (doseq [i (range (count a-old-keys))]
+        (let [old-key (nth a-old-keys i)
+              new-key (nth a-new-keys i)]
+         (if (or (= (get (deref _min) new-key) nil) (<  (Integer/parseInt (get row old-key)) (get (deref _min) new-key)))
+          (swap! _min assoc new-key (Integer/parseInt (get row old-key)))))))
+    [(deref _min)]
+    )
+)
+
+(defn template
+  "The template for aggregate functions"
+  ;; seq: is a seq of maps (lazy) of the data from one of the file
+  ;; groupby-keys: is a vector of the group by keys
+  ;; old-keys: the columns to which this function applies
+  ;; new-keys: the new-keys to replace the old-keys and receive the aggregation result
+  [seq groupby-keys old-keys new-keys])
+;; the return should be an vector of map (better lazy)
 

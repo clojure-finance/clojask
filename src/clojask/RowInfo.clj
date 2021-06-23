@@ -3,17 +3,20 @@
 
 (definterface RowIntf
   (getFilters [])
-  (getAggreKey [])
+  (getAggreOldKeys [])
+  (getAggreNewKeys [])
+  (getAggreFunc [])
   (getGroupbyKeys [])
   (filter [predicate])
   (groupby [a])
-  (aggregate [func new-key]))
+  (aggregate [func old-key new-key]))
 
 (deftype RowInfo
          [^:unsynchronized-mutable filters
           ^:unsynchronized-mutable groupby-key
           ^:unsynchronized-mutable aggre-func
-          ^:unsynchronized-mutable aggre-key]
+          ^:unsynchronized-mutable aggre-old-key
+          ^:unsynchronized-mutable aggre-new-key]
   RowIntf
   (getFilters
     [self]
@@ -29,14 +32,21 @@
   (getGroupbyKeys
    [self]
    groupby-key)
-  (getAggreKey
+  (getAggreOldKeys
    [self]
-   aggre-key)
+   aggre-old-key)
+  (getAggreNewKeys
+   [self]
+   aggre-new-key)
+  (getAggreFunc
+   [self]
+   aggre-func)
   (aggregate
-    [self func new-key]
+    [self func old-key new-key]
     (if (not= groupby-key [])
       (do
         (set! aggre-func func)
-        (set! aggre-key new-key)
+        (set! aggre-old-key old-key)
+        (set! aggre-new-key new-key)
         "success")
       "failed: you must first group the dataframe by some keys then aggregate")))

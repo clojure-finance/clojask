@@ -4,6 +4,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :refer :all]
+            [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-aggre start-onyx-groupby]]
             )
   (:import [clojask.ColInfo ColInfo]
@@ -19,7 +20,7 @@
   (colDesc [])
   (colTypes [])
   (groupby [a] "group the dataframe by the key(s)")
-  (aggregate [a b] "aggregate the group-by result by the function")
+  (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
   (filter [predicate])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
@@ -50,8 +51,8 @@
                  [key])]
       (.groupby row-info keys)))
   (aggregate
-    [this func new-key]
-    (.aggregate row-info func new-key))
+    [this func old-key new-key]
+    (.aggregate row-info func old-key new-key))
   (filter
     [this predicate]
     (.filter row-info predicate))
@@ -119,7 +120,8 @@
      (try
        (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
          (if (= res "success")
-           (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
+          ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
+           (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
              "success"
              "failed at aggregate stage")
            "failed at group by stage"))
@@ -133,7 +135,7 @@
           colNames (doall (first file))
           ;; colNames ["test"]
           col-info (ColInfo. (doall (map keyword colNames)) {} {})
-          row-info (RowInfo. [] [] nil nil)]
+          row-info (RowInfo. [] [] nil nil nil)]
       ;; (type-detection file)
       (.close reader)
       (.init col-info colNames)
@@ -158,9 +160,20 @@
   ([this operation colName newCol]
    (.operate this operation colName newCol)))
 
-(defn compute 
+(defn compute
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-   (if (= (.getAggreKey (:row-info this)) nil)
-     (.compute this num-worker output-dir exception)
-     (.computeAggre this num-worker output-dir exception)
-     ))
+  ;; delete the files in output-dir and /_grouped
+  (io/delete-file output-dir true)
+  (io/delete-file "./_grouped" true)
+  (io/make-parents "./_grouped/a.txt")
+  (if (= (.getAggreOldKeys (:row-info this)) nil)
+    (.compute this num-worker output-dir exception)
+    (.computeAggre this num-worker output-dir exception)))
+
+(defn group-by
+  [this key]
+  (.groupby this key))
+
+(defn aggregate
+  [this func old-key & [new-key]]
+  (.aggregate this func old-key new-key))

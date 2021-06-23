@@ -1,15 +1,19 @@
 (ns clojask.debug
   (:require [clojask.DataFrame :refer :all]
             [clojask.utils :refer :all]
-            [clojask.groupby :refer :all]))s
+            [clojask.groupby :refer :all]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main
   []
-  (def x (dataframe "./resources/Employees-large.csv"))
-  (time (compute x 2 "./resources/test.csv" :exception true))
-  (readin-groupby [:Department :EmployeeName])
-  (println "\nDone\n"))
+  ;; (def x (dataframe "./resources/Employees-large.csv"))
+  ;; (time (compute x 2 "./resources/test.csv" :exception true))
+  ;; ;; (readin-groupby [:Department :EmployeeName])
+  ;; (println "\nDone\n")
+  (def y (dataframe "resources/Employees.csv"))
+  (.groupby y :Department)
+  (.aggregate y min :min)
+  (compute y 2 "resources/test.csv" :exception true))
 
 ;; (ns clojask.debug
 ;;   (:require [clojure.core.async :refer [chan >!! <!! close!]]
