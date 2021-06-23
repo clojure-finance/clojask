@@ -77,6 +77,8 @@
         files (file-seq directory)]
     (doseq [file (rest files)]
       (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys)))
+    (doseq [file (rest (file-seq (clojure.java.io/file "./_grouped/")))]
+      (io/delete-file file))
     "success"))
 
 ;; below are example aggregate functions

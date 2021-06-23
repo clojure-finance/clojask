@@ -164,7 +164,9 @@
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
   ;; delete the files in output-dir and /_grouped
   (io/delete-file output-dir true)
-  (io/delete-file "./_grouped" true)
+  ;; (io/delete-file "./_grouped" true)
+  (doseq [file (rest (file-seq (clojure.java.io/file "./_grouped/")))]
+    (io/delete-file file))
   (io/make-parents "./_grouped/a.txt")
   (if (= (.getAggreOldKeys (:row-info this)) nil)
     (.compute this num-worker output-dir exception)
