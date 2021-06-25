@@ -1,6 +1,6 @@
 .DS_Store
 onyx.log
-resources/test.csv
+resources/*
 .lein-repl-history
 .nrepl-port
 target/*
