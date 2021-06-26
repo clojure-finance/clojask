@@ -106,6 +106,28 @@
     )
 )
 
+(defn aggre-max
+  "get the max of some keys"
+  [seq groupby-keys keys new-keys]
+  (def _max (atom {}))
+  (let [new-keys (if (= new-keys nil)
+                   (vec (map (fn [_] (keyword (str "max(" _ ")"))) keys))
+                   new-keys)
+        a-old-keys (concat groupby-keys keys)
+        a-new-keys (concat groupby-keys new-keys)]
+    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+    (reset! _max (zipmap a-new-keys nil))
+    ;; do one iteration to find the max
+    (doseq [row seq]
+      (doseq [i (range (count a-old-keys))]
+        (let [old-key (nth a-old-keys i)
+              new-key (nth a-new-keys i)]
+         (if (or (= (get (deref _max) new-key) nil) (>  (Integer/parseInt (get row old-key)) (get (deref _max) new-key)))
+          (swap! _max assoc new-key (Integer/parseInt (get row old-key)))))))
+    [(deref _max)]
+    )
+)
+
 (defn template
   "The template for aggregate functions"
   ;; seq: is a seq of maps (lazy) of the data from one of the file
