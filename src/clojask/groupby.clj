@@ -128,6 +128,78 @@
     )
 )
 
+(defn square [n] (* n n))
+
+(defn mean [a] (/ (reduce + a) (count a)))
+
+(defn standard-deviation
+  [a]
+  (let [mn (mean a)]
+    (Math/sqrt
+      (/ (reduce #(+ %1 (square (- %2 mn))) 0 a)
+         (dec (count a))))))
+
+;; !! to-debug
+(defn aggre-sum
+"get the sum of some keys"
+[seq groupby-keys keys new-keys]
+(def _sum (atom {}))
+(let [new-keys (if (= new-keys nil)
+                  (vec (map (fn [_] (keyword (str "sum(" _ ")"))) keys))
+                  new-keys)
+      a-old-keys (concat groupby-keys keys)
+      a-new-keys (concat groupby-keys new-keys)]
+  (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+  (reset! _sum (zipmap a-new-keys nil))
+  ;; do one iteration to find the standard deviation
+  (doseq [row seq]
+    (doseq [i (range (count a-old-keys))]
+      (let [old-key (nth a-old-keys i)
+            new-key (nth a-new-keys i)]
+          ;; debugging
+          (println "Calculating sum")
+          (println (map old-key seq))
+          (let [vec (map old-key seq)]
+            (println (reduce #(+ %1 (:count %2)) 0 vec))
+          )
+          ;; (swap! _sum assoc new-key (reduce #(+ %1 (:count %2)) 0 vec))
+          (println "Done")
+          ;(swap! _sd assoc new-key (Float/parsefloat (get row old-key)))
+        ))
+      )
+  [(deref _sum)]
+  )
+)
+
+;; !! to-debug
+(defn aggre-sd
+  "get the standard deviation (sd) of some keys"
+  [seq groupby-keys keys new-keys]
+  (def _sd (atom {}))
+  (let [new-keys (if (= new-keys nil)
+                   (vec (map (fn [_] (keyword (str "sd(" _ ")"))) keys))
+                   new-keys)
+        a-old-keys (concat groupby-keys keys)
+        a-new-keys (concat groupby-keys new-keys)]
+    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+    (reset! _sd (zipmap a-new-keys nil))
+    ;; do one iteration to find the standard deviation
+    (doseq [row seq]
+      (doseq [i (range (count a-old-keys))]
+        (let [old-key (nth a-old-keys i)
+              new-key (nth a-new-keys i)]
+            ;; debugging
+            (println "Calculating sd")
+            (println (map old-key seq))
+            ;(println (standard-deviation (map old-key seq)))
+            (println "Done")
+            ;(swap! _sd assoc new-key (Float/parsefloat (get row old-key)))
+          ))
+        )
+    [(deref _sd)]
+    )
+)
+
 (defn template
   "The template for aggregate functions"
   ;; seq: is a seq of maps (lazy) of the data from one of the file

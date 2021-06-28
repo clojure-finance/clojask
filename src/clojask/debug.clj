@@ -10,9 +10,9 @@
   ;; (time (compute x 2 "./resources/test.csv" :exception true))
   ;; ;; (readin-groupby [:Department :EmployeeName])
   ;; (println "\nDone\n")
-  (def y (dataframe "resources/Employees.csv"))
+  (def y (dataframe "resources/Employees-large.csv"))
   (.groupby y :Department)
-  (.aggregate y min :min)
+  (.aggregate y aggre-min [:Department] [:min])
   (compute y 2 "resources/test.csv" :exception true))
 
 ;; (ns clojask.debug
