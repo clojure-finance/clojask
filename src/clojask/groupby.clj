@@ -139,7 +139,7 @@
       (/ (reduce #(+ %1 (square (- %2 mn))) 0 a)
          (dec (count a))))))
 
-;; !! check if new-keys are float cols
+;; !! check if new-keys are float/int cols
 (defn aggre-sum
 "get the sum of some keys"
 [seq groupby-keys keys new-keys]
@@ -161,25 +161,25 @@
   )
 )
 
-;; !! to-debug
-(defn aggre-sd
+;; !! check if new-keys are float/int cols
+(defn aggre-avg
   "get the standard deviation (sd) of some keys"
   [seq groupby-keys keys new-keys]
-  (def _sd (atom {}))
+  (def _avg (atom {}))
   (let [new-keys (if (= new-keys nil)
-                   (vec (map (fn [_] (keyword (str "sd(" _ ")"))) keys))
+                   (vec (map (fn [_] (keyword (str "avg(" _ ")"))) keys))
                    new-keys)]
     (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _sd (zipmap (concat groupby-keys new-keys) nil))
+    (reset! _avg (zipmap (concat groupby-keys new-keys) nil))
     ;; do one iteration to find the sum
     (doseq [row seq]
       (doseq [i (range (count groupby-keys))]
         (let [old-key (nth keys i)
               new-key (nth new-keys i)]
-            (swap! _sd assoc old-key (get row old-key))
-            (swap! _sd assoc new-key (reduce standard-deviation (doall (map #(Float/parseFloat (old-key %)) seq))))
+            (swap! _avg assoc old-key (get row old-key))
+            (swap! _avg assoc new-key (/ (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))) (count seq)))
           )))
-    [(deref _sd)]
+    [(deref _avg)]
     )
 )
 

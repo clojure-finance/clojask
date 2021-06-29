@@ -12,7 +12,7 @@
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
   (.groupby y :Department)
-  (.aggregate y aggre-sum [:Department] [:sum])
+  (.aggregate y aggre-avg [:Department] [:avg])
   (compute y 2 "resources/test.csv" :exception true)
   )
 
