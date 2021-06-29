@@ -12,8 +12,9 @@
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
   (.groupby y :Department)
-  (.aggregate y aggre-min [:Department] [:min])
-  (compute y 2 "resources/test.csv" :exception true))
+  (.aggregate y aggre-sum [:Department] [:sum])
+  (compute y 2 "resources/test.csv" :exception true)
+  )
 
 ;; (ns clojask.debug
 ;;   (:require [clojure.core.async :refer [chan >!! <!! close!]]
