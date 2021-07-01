@@ -24,7 +24,6 @@
   (head [n])
   (filter [predicate])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
-  (assoc [dataframe])  ;; combine another dataframe with the current
   )
 
 ;; each dataframe can have a delayed object

@@ -8,7 +8,8 @@
                  [org.clojure/math.numeric-tower "0.0.4"]
                  ^{:voom {:repo "git@github.com:onyx-platform/onyx.git" :branch "master"}}
                  [org.onyxplatform/onyx "0.14.5"]
-                 [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]]
+                 [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
+                 [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]]
   :repl-options {:init-ns clojask.debug
                  :timeout 60000}
   :plugins [[lein-update-dependency "0.1.2"]]

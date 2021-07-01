@@ -1,7 +1,10 @@
 (ns clojask.sort
   (:require [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [clojask.groupby :as gb]))
+            [clojask.groupby :as gb])
+  (:import [com.google.code.externalsorting.csv  CsvExternalSort]
+           [com.google.code.externalsorting.csv  CsvSortOptions CsvSortOptions$Builder]
+           [java.io File]))
 
 (defn template-compare?
   ;; row1 is the first row
@@ -71,3 +74,16 @@
       (.wtr (str row "\n"))))
   "success"
   )
+
+(defn comp
+  [a b]
+  (compare (.get a 0) (.get b 0)))
+
+(defn use-external-sort
+  [input output comp]
+  (let 
+   [sort-option (.build (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory)))
+    header []
+    file-list (CsvExternalSort/sortInBatch input nil sort-option header)]
+    (println header)
+    (CsvExternalSort/mergeSortedFiles file-list output sort-option true header)))
