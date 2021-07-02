@@ -12,8 +12,8 @@
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
   (.groupby y :Department)
-  (.aggregate y aggre-avg [:Department] [:avg])
-  (compute y 2 "resources/test.csv" :exception true)
+  (time (.aggregate y aggre-sum [:Department] [:sum]))
+  (compute y 8 "resources/test.csv" :exception true)
   )
 
 ;; (ns clojask.debug

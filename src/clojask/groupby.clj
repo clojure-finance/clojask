@@ -1,6 +1,7 @@
 (ns clojask.groupby
   (:require [clojure.java.io :as io]
-            [clojure-csv.core :as csv]))
+            [clojure-csv.core :as csv]
+            [clojure.core.async :as async]))
 "contains the utility functions to group by and aggregate"
 
 (defn compute-groupby
@@ -161,6 +162,34 @@
   )
 )
 
+; !! multi-threading testing
+(defn get-sum
+  [row seq groupby-keys keys new-keys _sum]
+  (async/thread 
+    (doseq [i (range (count groupby-keys))]
+      (let [old-key (nth keys i)
+            new-key (nth new-keys i)]
+          (swap! _sum assoc old-key (get row old-key))
+          (swap! _sum assoc new-key (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))))
+        ))))
+
+(defn aggre-sum-threading
+  "get the sum of some keys"
+  [seq groupby-keys keys new-keys]
+  (def _sum (atom {}))
+  (let [new-keys (if (= new-keys nil)
+                    (vec (map (fn [_] (keyword (str "sum(" _ ")"))) keys))
+                    new-keys)]
+    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+    (reset! _sum (zipmap (concat groupby-keys new-keys) nil))
+    ;; do one iteration to find the sum
+    (doseq [row seq]
+      (async/go (async/<! (get-sum row seq groupby-keys keys new-keys _sum)))
+      )
+    [(deref _sum)]
+    )
+  )
+
 ;; !! check if new-keys are float/int cols
 (defn aggre-avg
   "get the standard deviation (sd) of some keys"
@@ -180,6 +209,28 @@
             (swap! _avg assoc new-key (/ (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))) (count seq)))
           )))
     [(deref _avg)]
+    )
+)
+
+;; !! check if new-keys are float/int cols
+(defn aggre-sd
+  "get the standard deviation (sd) of some keys"
+  [seq groupby-keys keys new-keys]
+  (def _sd (atom {}))
+  (let [new-keys (if (= new-keys nil)
+                   (vec (map (fn [_] (keyword (str "sd(" _ ")"))) keys))
+                   new-keys)]
+    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+    (reset! _sd (zipmap (concat groupby-keys new-keys) nil))
+    ;; do one iteration to find the sum
+    (doseq [row seq]
+      (doseq [i (range (count groupby-keys))]
+        (let [old-key (nth keys i)
+              new-key (nth new-keys i)]
+            (swap! _sd assoc old-key (get row old-key))
+            (swap! _sd assoc new-key (standard-deviation (doall (map #(Float/parseFloat (old-key %)) seq))))
+          )))
+    [(deref _sd)]
     )
 )
 
