@@ -11,10 +11,11 @@
   ;; (time (compute x 2 "./resources/test.csv" :exception true))
   ;; ;; (readin-groupby [:Department :EmployeeName])
   ;; (println "\nDone\n")
-  (def y (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
-  ;; (.groupby y :Department)
-  ;; (.aggregate y min :min)
-  (compute y 2 "resources/test.csv" :exception true))
+  (def y (dataframe "resources/Employees-large.csv"))
+  (.groupby y :Department)
+  (time (.aggregate y aggre-sum [:Department] [:sum]))
+  (compute y 8 "resources/test.csv" :exception true)
+  )
 
 ;; (ns clojask.debug
 ;;   (:require [clojure.core.async :refer [chan >!! <!! close!]]
