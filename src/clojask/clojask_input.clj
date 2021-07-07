@@ -2,7 +2,9 @@
   (:require [clojure.core.async :refer [poll! timeout chan close!]]
             [clojure.set :refer [join]]
             [onyx.plugin.protocols :as p]
-            [taoensso.timbre :refer [fatal info debug] :as timbre]))
+            [clojure.data.csv :as csv]
+            [taoensso.timbre :refer [fatal info debug] :as timbre])
+  (:import (java.io BufferedReader)))
 
 (defn mem-usage
   []
@@ -16,7 +18,11 @@
   []
   (quot (.freeMemory (Runtime/getRuntime)) 1048576))
 
-(defrecord AbsSeqReader [event sequential rst completed? checkpoint? offset]
+(defn mem-max
+  []
+  (quot (.maxMemory (Runtime/getRuntime)) 1048576))
+
+(defrecord AbsSeqReader [event reader rst completed? checkpoint? offset]
   p/Plugin
 
   (start [this event]
@@ -31,14 +37,25 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (if (nil? checkpoint)
-      (do
-        (vreset! rst sequential)
-        (vreset! offset 0))
-      (do
-        (info "clojask.clojask-input is recovering state by dropping" checkpoint "elements.")
-        (vreset! rst (drop checkpoint sequential))
-        (vreset! offset checkpoint))))
+    (let [csv-data (csv/read-csv (BufferedReader. reader))]
+      (if (nil? checkpoint)
+        (do
+          (vreset! rst (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
+                            (->> (first csv-data) ;; take the first row of the csv-data
+                                 (cons "clojask-id")
+                                 (map keyword) ;; make the header be the "key" in the map 
+                                 repeat)      ;; repeat the process for all the headers
+                            (map cons (iterate inc 1) (rest csv-data))))
+          (vreset! offset 0))
+        (do
+          (info "clojask.clojask-input is recovering state by dropping" checkpoint "elements.")
+          (vreset! rst (drop checkpoint (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
+                                             (->> (first csv-data) ;; take the first row of the csv-data
+                                                  (cons "clojask-id")
+                                                  (map keyword) ;; make the header be the "key" in the map 
+                                                  repeat)      ;; repeat the process for all the headers
+                                             (map cons (iterate inc 1) (rest csv-data)))))
+          (vreset! offset checkpoint)))))
 
   (checkpointed! [this epoch])
 
@@ -51,8 +68,8 @@
 
   p/Input
   (poll! [this _ _]
-    (if (> (mem-usage) 1500)
-      (Thread/sleep 1))
+    ;; (if (> (mem-usage) 500)
+    ;;   (Thread/sleep 10))
     (if-let [seg (first @rst)]
       (do (vswap! rst rest)
           (vswap! offset inc)
@@ -61,8 +78,10 @@
           nil))))
 
 (defn input [{:keys [onyx.core/task-map] :as event}]
+  ;; (println (:seq/rdr event))
   (map->AbsSeqReader {:event event
-                      :sequential (:seq/seq event)
+                      ;; :sequential (:seq/seq event)
+                      :reader (:seq/rdr event)
                       :rst (volatile! nil)
                       :completed? (volatile! false)
                       :checkpoint? (not (false? (:seq/checkpoint? task-map)))

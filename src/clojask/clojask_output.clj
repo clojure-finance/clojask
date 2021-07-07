@@ -1,6 +1,5 @@
 (ns clojask.clojask-output
-  (:require [clojask.groupby :refer :all]
-            [onyx.peer.function :as function]
+  (:require [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
             [taoensso.timbre :refer [debug info] :as timbre])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
@@ -72,10 +71,8 @@
           ;; (swap! example-datasink conj msg)
             (if (not= msg {})
               (do
-                ;(.write wtr (str msg "\n"))
+                (.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
-                (def groupby-keys [:Department :EmployeeName]) 
-                (output-groupby msg groupby-keys)
                 ))
             
               (recur (rest batch)))))

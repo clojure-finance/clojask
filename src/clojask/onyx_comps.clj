@@ -214,14 +214,16 @@
 
 (defn inject-in-reader [event lifecycle]
   (let [rdr (FileReader. (:buffered-reader/filename lifecycle))
-        csv-data (csv/read-csv (BufferedReader. rdr))]
+        ;; csv-data (csv/read-csv (BufferedReader. rdr))
+        ]
     {:seq/rdr rdr
-     :seq/seq (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
-                   (->> (first csv-data) ;; take the first row of the csv-data
-                        (cons "clojask-id")
-                        (map keyword) ;; make the header be the "key" in the map 
-                        repeat)      ;; repeat the process for all the headers
-                   (map cons (iterate inc 1) (rest csv-data)))}))
+    ;;  :seq/seq (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
+    ;;                (->> (first csv-data) ;; take the first row of the csv-data
+    ;;                     (cons "clojask-id")
+    ;;                     (map keyword) ;; make the header be the "key" in the map 
+    ;;                     repeat)      ;; repeat the process for all the headers
+    ;;                (map cons (iterate inc 1) (rest csv-data)))
+     }))
 
 (defn close-reader [event lifecycle]
   (.close (:seq/rdr event)))

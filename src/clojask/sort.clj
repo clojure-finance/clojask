@@ -82,8 +82,10 @@
 (defn use-external-sort
   [input output comp]
   (let 
-   [sort-option (.build (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory)))
+   [input (File. input)
+    output (File. output)
+    sort-option (.build (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory)))
     header []
     file-list (CsvExternalSort/sortInBatch input nil sort-option header)]
-    (println header)
-    (CsvExternalSort/mergeSortedFiles file-list output sort-option true header)))
+    ;; (println header)
+    (str "Sorted in total "(CsvExternalSort/mergeSortedFiles file-list output sort-option true header) " rows.")))

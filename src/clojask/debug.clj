@@ -11,9 +11,9 @@
   ;; (time (compute x 2 "./resources/test.csv" :exception true))
   ;; ;; (readin-groupby [:Department :EmployeeName])
   ;; (println "\nDone\n")
-  (def y (dataframe "resources/Employees.csv"))
-  (.groupby y :Department)
-  (.aggregate y min :min)
+  (def y (dataframe "/Users/lyc/Desktop/RA clojure/data-sorted-cleaned/data-CRSP.csv"))
+  ;; (.groupby y :Department)
+  ;; (.aggregate y min :min)
   (compute y 2 "resources/test.csv" :exception true))
 
 ;; (ns clojask.debug
