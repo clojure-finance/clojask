@@ -6,7 +6,7 @@
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
-            [clojask.utils :refer [eval-res filter-check]])
+            [clojask.utils :refer [eval-res eval-res-ne filter-check]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 
@@ -58,69 +58,36 @@
 (defn worker-func-gen
   [df exception]
   (reset! dataframe df)
-  
   (if exception
     (defn worker-func
       [seg]
-      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
-        ;; (if (>= (Integer/parseInt (:Salary seg)) 700)
-         (loop [res seg
-                keys allKeys]
-           (if (= (first keys) nil)
-             res
-             (let [key (first keys)
-                   rem (rest keys)]
-               (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))
+      (let [operations (.getDesc (:col-info (deref dataframe)))
+            types (.getType (:col-info (deref dataframe)))
+            data (:data seg)]
+        ;; (doseq [index (take (count operations) (iterate inc 0))]
+        ;;   )
+        ;; (spit "resources/debug.txt" (str seg "\n") :append true)
+        ;; (spit "resources/debug.txt" (str types) :append true)
+        ;; (spit "resources/debug.txt" (str operations) :append true)
+        ;; (spit "resources/debug.txt" index :append true)
+        (if (filter-check (.getFilters (:row-info (deref dataframe))) data)
+          {:data (mapv (fn [_] (eval-res data types operations _)) (take (count operations) (iterate inc 0)))}
           {})))
     (defn worker-func
       [seg]
-      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
-          (loop [res seg
-                 keys allKeys]
-            (if (= (first keys) nil)
-              res
-              (let [key (first keys)
-                    value (try (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))
-                               (catch Exception e nil))
-                    rem (rest keys)]
-                (recur (assoc res key value) rem))))
+      (let [operations (.getDesc (:col-info (deref dataframe)))
+            types (.getType (:col-info (deref dataframe)))
+            data (:data seg)]
+        ;; (doseq [index (take (count operations) (iterate inc 0))]
+        ;;   )
+        ;; (spit "resources/debug.txt" (str seg "\n") :append true)
+        ;; (spit "resources/debug.txt" (str types) :append true)
+        ;; (spit "resources/debug.txt" (str operations) :append true)
+        ;; (spit "resources/debug.txt" index :append true)
+        (if (filter-check (.getFilters (:row-info (deref dataframe))) data)
+          {:data (mapv (fn [_] (eval-res-ne data types operations _)) (take (count operations) (iterate inc 0)))}
           {})))) 
   )
-
-(defn worker-func-aggre-gen
-  [df exception]
-  (reset! dataframe df)
-
-  (if exception
-    (defn worker-func
-      [seg]
-      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
-        ;; (if (>= (Integer/parseInt (:Salary seg)) 700)
-          (loop [res seg
-                 keys allKeys]
-            (if (= (first keys) nil)
-              res
-              (let [key (first keys)
-                    rem (rest keys)]
-                (recur (assoc res key (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))) rem))))
-          {})))
-    (defn worker-func
-      [seg]
-      (let [allKeys (.getKeys (:col-info (deref dataframe)))]
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) seg)
-          (loop [res seg
-                 keys allKeys]
-            (if (= (first keys) nil)
-              res
-              (let [key (first keys)
-                    value (try (eval-res seg (key (.getDesc (:col-info (deref dataframe)))))
-                               (catch Exception e nil))
-                    rem (rest keys)]
-                (recur (assoc res key value) rem))))
-          {})))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
@@ -257,7 +224,7 @@
       :lifecycle/calls ::writer-calls}]))
 
 (defn lifecycle-aggre-gen
-  [source dist keys]
+  [source dist keys key-index]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename source
@@ -267,12 +234,14 @@
      {:lifecycle/task :output
       :buffered-wtr/filename dist
       :clojask/groupby-keys keys
+      :clojask/key-index key-index
       :lifecycle/calls ::writer-aggre-calls}]))
 
 (def num-workers (atom 1))
 
 (defn rem0?
   [event old-segment new-segment all-new-segment]
+  ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
   (= (mod (:clojask-id new-segment) (deref num-workers)) 0))
 
 (defn rem1?
@@ -403,16 +372,12 @@
 (defn start-onyx-groupby
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist groupby-keys exception]
-
-  ;;empty the ./tmp/ directory first
-
-
   (try
     (workflow-gen num-work)
     (config-env)
     (worker-func-gen dataframe exception) ;;need some work
     (catalog-aggre-gen num-work batch-size)
-    (lifecycle-aggre-gen (.path dataframe) dist groupby-keys)
+    (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
 
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
@@ -433,37 +398,6 @@
   (try
     (shutdown)
     (catch Exception e (throw (Exception. (str "[terminate-node stage (group by)] " (.getMessage e))))))
-  "success")
-
-(defn start-onyx-aggre
-  "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist groupby-keys exception]
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
-    (catalog-aggre-gen num-work batch-size)
-    (lifecycle-aggre-gen (.path dataframe) dist groupby-keys)
-    (flow-cond-gen num-work)
-
-    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e)))))))
-  (try
-    (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
   "success")
 
 

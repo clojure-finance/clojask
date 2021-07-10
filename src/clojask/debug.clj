@@ -12,8 +12,8 @@
   ;; ;; (readin-groupby [:Department :EmployeeName])
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
-  (.groupby y :Department)
-  (time (.aggregate y aggre-sum [:Department] [:sum]))
+  (.groupby y "Department")
+  (time (.aggregate y aggre-sum ["Department"] ["sum"]))
   (compute y 8 "resources/test.csv" :exception true)
   )
 

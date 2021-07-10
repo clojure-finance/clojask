@@ -28,17 +28,21 @@
 
 (defn gen-groupby-filenames
   "internal function to generate files csv line with groupby key(s)"
-  [msg groupby-keys]
+  [msg groupby-keys key-index]
   (def output-filename "./_grouped/")
   (doseq [groupby-key groupby-keys]
-    (def output-filename (str output-filename "_" (name groupby-key) "-" (groupby-key msg))))
+    (def output-filename (str output-filename "_" (name groupby-key) "-" (nth msg (get key-index groupby-key)))))
   (str output-filename ".csv"))
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"
-  [msg groupby-keys]
-  
-  (let [output-filename (gen-groupby-filenames msg groupby-keys) ;; generate output filename
+  [msg groupby-keys key-index]
+  ;; msg this time is a vector
+
+  ;; key-index contains the one to one correspondence of key value to index value, it is a map
+  ;; eg "Salary" -> 3
+  (spit "resources/debug.txt" (str msg "\n" key-index) :append true)
+  (let [output-filename (gen-groupby-filenames msg groupby-keys key-index) ;; generate output filename
         groupby-wrtr (io/writer output-filename :append true)]
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
     (.write groupby-wrtr (str msg "\n"))

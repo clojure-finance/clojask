@@ -2,22 +2,53 @@
   (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
             [clojure.java.io :refer [resource]]
             [onyx.plugin.core-async :refer [take-segments!]]
-            [tech.v3.dataset :as ds])
+            [tech.v3.dataset :as ds]
+            )
   (:import (java.util Date)))
 "Utility function used in dataframe"
 
+(defn get-val
+  [row types index]
+  (map (fn [_] (if (contains? types _)
+                 ((get types _) (nth row _))
+                 (nth row _)))
+       index))
 
 (defn eval-res
-  [row opr-vec]
-  ;; (println row)
+  [row types operations index]
+  ;; (spit "resources/debug.txt" (str row "\n") :append true)
+  ;; (spit "resources/debug.txt" (str types) :append true)
+  ;; (spit "resources/debug.txt" operations :append true)
+  ;; (spit "resources/debug.txt" (str index "\n") :append true)
   ;; (println opr-vec)
-  (let [vals (vals (select-keys row (first opr-vec)))]
-   (loop [res vals oprs (rest opr-vec)]
+  (let [opr-vec (get operations index)
+        vals (get-val row types (first opr-vec))]
+    ;; (println [vals])
+    (loop [res vals oprs (rest opr-vec)]
       (let [opr (first oprs)
             rest (rest oprs)]
         (if (= (count oprs) 0)
           (first res)
           (recur [(apply opr res)] rest))))))
+
+(defn eval-res-ne
+  [row types operations index]
+  ;; (spit "resources/debug.txt" (str row "\n") :append true)
+  ;; (spit "resources/debug.txt" (str types) :append true)
+  ;; (spit "resources/debug.txt" operations :append true)
+  ;; (spit "resources/debug.txt" (str index "\n") :append true)
+  ;; (println opr-vec)
+  (try
+    (let [opr-vec (get operations index)
+        vals (get-val row types (first opr-vec))]
+    ;; (println [vals])
+    (loop [res vals oprs (rest opr-vec)]
+      (let [opr (first oprs)
+            rest (rest oprs)]
+        (if (= (count oprs) 0)
+          (first res)
+          (recur [(apply opr res)] rest)))))
+    (catch Exception e nil)))
 
 (defn filter-check
   [filters row]

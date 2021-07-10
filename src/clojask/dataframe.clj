@@ -5,7 +5,7 @@
             [clojure.java.io :as io]
             [clojask.utils :refer :all]
             [clojask.groupby :refer [internal-aggregate aggre-min]]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre start-onyx-groupby]]
+            [clojask.onyx-comps :refer [start-onyx start-onyx-groupby]]
             )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
@@ -41,7 +41,7 @@
     (.operate col-info operation colName))
   (operate
     [this operation colNames newCol]
-    (assert (= clojure.lang.Keyword (type newCol)))
+    (assert (= java.lang.String (type newCol)) "new column should be a string")
     (.operate col-info operation colNames newCol))
   (groupby
     [this key]
@@ -63,7 +63,8 @@
     (.getType col-info))
   (head
     [this n]
-    ())
+    (with-open [reader (io/reader path)]
+      (doall (take n (csv/read-csv reader)))))
   (setType
     [this type colName]
     (case type
@@ -77,45 +78,45 @@
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
     [this ^int num-worker ^String output-dir ^boolean exception]
   ;;  "success"))
-    (if (<= num-worker 1)
-      (try
-        (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
-      ;; (with-open [rdr (io/reader path) wtr (io/output-stream "test.txt")]
-          (let [o-keys (map keyword (first (csv/read-csv rdr)))
-                keys (.getKeys col-info)]
-            (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
-            (if exception
-              (doseq [line (csv/read-csv rdr)]
-                (let [row (zipmap o-keys line)]
-                  (if (filter-check (.getFilters row-info) row)
-                    (do
-                      (doseq [key keys]
-                        (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                        (if (not= key (last keys)) (.write wtr ",")))
-                      (.write wtr "\n")))))
-              (doseq [line (csv/read-csv rdr)]
-                (let [row (zipmap o-keys line)]
-                  (if (filter-check (.getFilters row-info) row)
-                    (do
-                      (doseq [key keys]
-                        (try
-                          (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-                          (catch Exception e nil))
-                        (if (not= key (last keys)) (.write wtr ",")))
-                      (.write wtr "\n")))))))
-          (.flush wtr)
-          "success")
-        (catch Exception e e))
+    (if (<= num-worker 8)
+      ;; (try
+      ;;   (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
+      ;; ;; (with-open [rdr (io/reader path) wtr (io/output-stream "test.txt")]
+      ;;     (let [o-keys (map keyword (first (csv/read-csv rdr)))
+      ;;           keys (.getKeys col-info)]
+      ;;       (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
+      ;;       (if exception
+      ;;         (doseq [line (csv/read-csv rdr)]
+      ;;           (let [row (zipmap o-keys line)]
+      ;;             (if (filter-check (.getFilters row-info) row)
+      ;;               (do
+      ;;                 (doseq [key keys]
+      ;;                   (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+      ;;                   (if (not= key (last keys)) (.write wtr ",")))
+      ;;                 (.write wtr "\n")))))
+      ;;         (doseq [line (csv/read-csv rdr)]
+      ;;           (let [row (zipmap o-keys line)]
+      ;;             (if (filter-check (.getFilters row-info) row)
+      ;;               (do
+      ;;                 (doseq [key keys]
+      ;;                   (try
+      ;;                     (.write wtr (str (eval-res row (key (.getDesc col-info)))))
+      ;;                     (catch Exception e nil))
+      ;;                   (if (not= key (last keys)) (.write wtr ",")))
+      ;;                 (.write wtr "\n")))))))
+      ;;     (.flush wtr)
+      ;;     "success")
+      ;;   (catch Exception e e))
       (try
         (let [res (start-onyx num-worker batch-size this output-dir exception)]
           (if (= res "success")
             "success"
             "failed"))
-        (catch Exception e e))))
+        (catch Exception e e))
+      "Max worker node number is 8."))
   (computeAggre
    [this ^int num-worker ^String output-dir ^boolean exception]
-   (if (< num-worker 2)
-     nil
+   (if (<= num-worker 8)
      (try
        (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
          (if (= res "success")
@@ -124,7 +125,8 @@
              "success"
              "failed at aggregate stage")
            "failed at group by stage"))
-       (catch Exception e e)))))
+       (catch Exception e e))
+     "Max worker node number is 8.")))
 
 (defn dataframe
   [path]
@@ -133,7 +135,7 @@
           file (csv/read-csv reader)
           colNames (doall (first file))
           ;; colNames ["test"]
-          col-info (ColInfo. (doall (map keyword colNames)) {} {})
+          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {})
           row-info (RowInfo. [] [] nil nil nil)]
       ;; (type-detection file)
       (.close reader)

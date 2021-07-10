@@ -37,24 +37,15 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (let [csv-data (csv/read-csv (BufferedReader. reader))]
+    (let [csv-data (rest (csv/read-csv (BufferedReader. reader)))
+          data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) csv-data))]
       (if (nil? checkpoint)
         (do
-          (vreset! rst (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
-                            (->> (first csv-data) ;; take the first row of the csv-data
-                                 (cons "clojask-id")
-                                 (map keyword) ;; make the header be the "key" in the map 
-                                 repeat)      ;; repeat the process for all the headers
-                            (map cons (iterate inc 1) (rest csv-data))))
+          (vreset! rst data)
           (vreset! offset 0))
         (do
           (info "clojask.clojask-input is recovering state by dropping" checkpoint "elements.")
-          (vreset! rst (drop checkpoint (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
-                                             (->> (first csv-data) ;; take the first row of the csv-data
-                                                  (cons "clojask-id")
-                                                  (map keyword) ;; make the header be the "key" in the map 
-                                                  repeat)      ;; repeat the process for all the headers
-                                             (map cons (iterate inc 1) (rest csv-data)))))
+          (vreset! rst (drop checkpoint data))
           (vreset! offset checkpoint)))))
 
   (checkpointed! [this epoch])
@@ -73,6 +64,7 @@
     (if-let [seg (first @rst)]
       (do (vswap! rst rest)
           (vswap! offset inc)
+          ;; (spit "resources/debug.txt" (str seg) :append true)
           seg)
       (do (vreset! completed? true)
           nil))))
