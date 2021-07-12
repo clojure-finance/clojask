@@ -7,7 +7,14 @@
   (:import (java.util Date)))
 "Utility function used in dataframe"
 
-(defn get-val
+(defn get-key
+  [row types key-index key]
+  (let [index (get key-index key)]
+    (if (contains? types index)
+      ((get types index) (.get row index))
+      (.get row index))))
+
+(defn- get-val
   [row types index]
   (map (fn [_] (if (contains? types _)
                  ((get types _) (nth row _))
@@ -63,11 +70,15 @@
 
 (defn toInt
   [string]
-  (Integer/parseInt string))
+  (if (not= string "")
+    (Integer/parseInt string)
+    nil))
 
 (defn toDouble
   [string]
-  (Double/parseDouble string))
+  (if (not= string "")
+    (Double/parseDouble string)
+    nil))
 
 (defn toString
   [string]
@@ -75,7 +86,9 @@
 
 (defn toDate
   [string]
-  (Date. string))
+  (if (not= string "")
+    (Date. string)
+    nil))
 
 (def operation-type-map
   {toInt "int"
@@ -88,13 +101,6 @@
    "float64" toDouble
    "string" toString
    "packed-local-date" toDate})
-
-(defn get-key
-  "Gets value of key from a map"
-  [key row col-info]
-  (if (contains? (:col-type col-info) key)
-    ((key (:col-type col-info)) (key row))
-    (key row)))
 
 (defn type-detection
  [file]

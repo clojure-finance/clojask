@@ -6,6 +6,7 @@
             [clojask.utils :refer :all]
             [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby]]
+            [clojask.sort :as sort]
             )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
@@ -24,6 +25,7 @@
   (head [n])
   (filter [predicate])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
+  (sort [a b] "sort the dataframe based on columns")
   )
 
 ;; each dataframe can have a delayed object
@@ -126,7 +128,39 @@
              "failed at aggregate stage")
            "failed at group by stage"))
        (catch Exception e e))
-     "Max worker node number is 8.")))
+     "Max worker node number is 8."))
+  (sort
+   [this list output-dir]
+   (assert (and (not (empty? list)) (loop [list list key false]
+                                      (if (and (not key) (= list '()))
+                                        true
+                                        (let [_ (first list)
+                                              res (rest list)]
+                                          (if key
+                                            (if (and (contains? (.getKeyIndex col-info) _) (= (type _) java.lang.String))
+                                              (recur res false)
+                                              false)
+                                            (if (or (= _ "+") (= _ "-"))
+                                              (recur res true)
+                                              false))))))
+           "The order list is not in the correct format.")
+   (defn clojask-compare
+     "a and b are two rows"
+     [a b]
+     (loop [list list key false sign +]
+       (if (= list '())
+         0
+         (let [_ (first list)
+               res (rest list)]
+           (if key
+             (let [tmp (compare (get-key a (.getType col-info) (.getKeyIndex col-info) _) (get-key b (.getType col-info) (.getKeyIndex col-info) _))]
+               (if (not= tmp 0)
+                 (sign tmp)
+                 (recur res false nil)))
+             (if (= _ "+")
+               (recur res true +)
+               (recur res true -)))))))
+   (sort/use-external-sort path output-dir clojask-compare)))
 
 (defn dataframe
   [path]

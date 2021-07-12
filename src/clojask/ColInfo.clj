@@ -60,15 +60,11 @@
   (setType
     [this operation col]
     (if (.contains col-keys col)
-      (if true  ;; if this column has been assigned a type
-        (do
-          (set! col-type (assoc col-type (get key-index col)  operation))
+      ;; if this column has been assigned a type
+      (do
+        (set! col-type (assoc col-type (get key-index col)  operation))
           ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
-          "success")
-        (do
-          (set! col-type (assoc col-type col (get operation-type-map operation)))
-          ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (col col-dsp))))))
-          "success"))
+        "success")
       "There is no such column name."))
   (getDesc
     [this]

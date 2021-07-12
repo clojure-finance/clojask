@@ -84,8 +84,14 @@
   (let 
    [input (File. input)
     output (File. output)
-    sort-option (.build (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory)))
-    header []
-    file-list (CsvExternalSort/sortInBatch input nil sort-option header)]
-    ;; (println header)
+    sort-option (let [builder (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory))]
+                  (.numHeader builder 1)
+                  (.skipHeader builder false)
+                  (.build builder))
+    ;; header (vec (first (csv/read-csv (io/reader input))))
+    header (java.util.ArrayList.)
+    file-list (CsvExternalSort/sortInBatch input nil sort-option header)
+    ]
+    ;; (println sort-option)
+    (println header)
     (str "Sorted in total "(CsvExternalSort/mergeSortedFiles file-list output sort-option true header) " rows.")))
