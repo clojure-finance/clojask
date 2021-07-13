@@ -18,6 +18,7 @@
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [type colName] "types supported: int double string date")
+  (addParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
   (groupby [a] "group the dataframe by the key(s)")
@@ -73,6 +74,9 @@
       (if (= opr nil)
         "No such type. You could instead write your parsing function as the first operation to this column."
         (.setType col-info opr colName))))
+  (addParser
+   [this parser colName]
+   (.setType col-info parser colName))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
@@ -220,3 +224,7 @@
 (defn set-type
   [this type col]
   (.setType this type col))
+
+(defn add-parser
+  [this parser col]
+  (.addParser this parser col))
