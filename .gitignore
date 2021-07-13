@@ -4,5 +4,5 @@ resources/*
 .lein-repl-history
 .nrepl-port
 target/*
-_grouped/*
+_clojask/*
 # _*.csv

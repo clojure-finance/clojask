@@ -69,12 +69,10 @@
       (doall (take n (csv/read-csv reader)))))
   (setType
     [this type colName]
-    (case type
-      "int" (.setType col-info toInt colName)
-      "double" (.setType col-info toDouble colName)
-      "string" (.setType col-info toString colName)
-      "date" (.setType col-info toDate colName)
-      "No such type. You could instead write your parsing function as the first operation to this column."))
+    (let [opr (get type-operation-map type)]
+      (if (= opr nil)
+        "No such type. You could instead write your parsing function as the first operation to this column."
+        (.setType col-info opr colName))))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
@@ -117,50 +115,50 @@
         (catch Exception e e))
       "Max worker node number is 8."))
   (computeAggre
-   [this ^int num-worker ^String output-dir ^boolean exception]
-   (if (<= num-worker 8)
-     (try
-       (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
-         (if (= res "success")
+    [this ^int num-worker ^String output-dir ^boolean exception]
+    (if (<= num-worker 8)
+      (try
+        (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
+          (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-           (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             "success"
-             "failed at aggregate stage")
-           "failed at group by stage"))
-       (catch Exception e e))
-     "Max worker node number is 8."))
+            (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
+              "success"
+              "failed at aggregate stage")
+            "failed at group by stage"))
+        (catch Exception e e))
+      "Max worker node number is 8."))
   (sort
-   [this list output-dir]
-   (assert (and (not (empty? list)) (loop [list list key false]
-                                      (if (and (not key) (= list '()))
-                                        true
-                                        (let [_ (first list)
-                                              res (rest list)]
-                                          (if key
-                                            (if (and (contains? (.getKeyIndex col-info) _) (= (type _) java.lang.String))
-                                              (recur res false)
-                                              false)
-                                            (if (or (= _ "+") (= _ "-"))
-                                              (recur res true)
-                                              false))))))
-           "The order list is not in the correct format.")
-   (defn clojask-compare
-     "a and b are two rows"
-     [a b]
-     (loop [list list key false sign +]
-       (if (= list '())
-         0
-         (let [_ (first list)
-               res (rest list)]
-           (if key
-             (let [tmp (compare (get-key a (.getType col-info) (.getKeyIndex col-info) _) (get-key b (.getType col-info) (.getKeyIndex col-info) _))]
-               (if (not= tmp 0)
-                 (sign tmp)
-                 (recur res false nil)))
-             (if (= _ "+")
-               (recur res true +)
-               (recur res true -)))))))
-   (sort/use-external-sort path output-dir clojask-compare)))
+    [this list output-dir]
+    (assert (and (not (empty? list)) (loop [list list key false]
+                                       (if (and (not key) (= list '()))
+                                         true
+                                         (let [_ (first list)
+                                               res (rest list)]
+                                           (if key
+                                             (if (and (contains? (.getKeyIndex col-info) _) (= (type _) java.lang.String))
+                                               (recur res false)
+                                               false)
+                                             (if (or (= _ "+") (= _ "-"))
+                                               (recur res true)
+                                               false))))))
+            "The order list is not in the correct format.")
+    (defn clojask-compare
+      "a and b are two rows"
+      [a b]
+      (loop [list list key false sign +]
+        (if (= list '())
+          0
+          (let [_ (first list)
+                res (rest list)]
+            (if key
+              (let [tmp (compare (get-key a (.getType col-info) (.getKeyIndex col-info) _) (get-key b (.getType col-info) (.getKeyIndex col-info) _))]
+                (if (not= tmp 0)
+                  (sign tmp)
+                  (recur res false nil)))
+              (if (= _ "+")
+                (recur res true +)
+                (recur res true -)))))))
+    (sort/use-external-sort path output-dir clojask-compare)))
 
 (defn dataframe
   [path]
@@ -197,12 +195,12 @@
 
 (defn compute
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-  ;; delete the files in output-dir and /_grouped
+  ;; delete the files in output-dir and /_clojask/grouped
   (io/delete-file output-dir true)
-  ;; (io/delete-file "./_grouped" true)
-  (doseq [file (rest (file-seq (clojure.java.io/file "./_grouped/")))]
+  ;; (io/delete-file "./_clojask/grouped" true)
+  (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
     (io/delete-file file))
-  (io/make-parents "./_grouped/a.txt")
+  (io/make-parents "./_clojask/grouped/a.txt")
   (if (= (.getAggreOldKeys (:row-info this)) nil)
     (.compute this num-worker output-dir exception)
     (.computeAggre this num-worker output-dir exception)))
@@ -214,3 +212,11 @@
 (defn aggregate
   [this func old-key & [new-key]]
   (.aggregate this func old-key new-key))
+
+(defn sort
+  [this list output-dir]
+  (.sort this list output-dir))
+
+(defn set-type
+  [this type col]
+  (.setType this type col))

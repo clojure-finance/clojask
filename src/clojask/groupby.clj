@@ -29,7 +29,7 @@
 (defn gen-groupby-filenames
   "internal function to generate files csv line with groupby key(s)"
   [msg groupby-keys key-index]
-  (def output-filename "./_grouped/")
+  (def output-filename "./_clojask/grouped/")
   (doseq [groupby-key groupby-keys]
     (def output-filename (str output-filename "_" (name groupby-key) "-" (nth msg (get key-index groupby-key)))))
   (str output-filename ".csv"))
@@ -78,11 +78,11 @@
 (defn internal-aggregate
   "aggregate one group use the function"
   [func out-dir groupby-keys keys & [new-keys]]
-  (let [directory (clojure.java.io/file "./_grouped/")
+  (let [directory (clojure.java.io/file "./_clojask/grouped/")
         files (file-seq directory)]
     (doseq [file (rest files)]
       (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys)))
-    (doseq [file (rest (file-seq (clojure.java.io/file "./_grouped/")))]
+    (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
       (io/delete-file file))
     "success"))
 

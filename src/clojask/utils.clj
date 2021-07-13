@@ -90,17 +90,17 @@
     (Date. string)
     nil))
 
-(def operation-type-map
-  {toInt "int"
-   toDouble "double"
-   toString "string"
-   toDate "date"})
+;; (def operation-type-map
+;;   {toInt "int"
+;;    toDouble "double"
+;;    toString "string"
+;;    toDate "date"})
 
 (def type-operation-map
-  {"Integer" toInt
-   "float64" toDouble
+  {"int" toInt
+   "double" toDouble
    "string" toString
-   "packed-local-date" toDate})
+   "date" toDate})
 
 (defn type-detection
  [file]

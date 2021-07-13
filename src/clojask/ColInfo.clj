@@ -1,5 +1,5 @@
 (ns clojask.ColInfo
-  (:require [clojask.utils :refer [operation-type-map]]))
+  (:require [clojask.utils :refer []]))
 
 (definterface ColIntf
   (init [colNames])
