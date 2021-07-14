@@ -5,4 +5,6 @@ resources/*
 .nrepl-port
 target/*
 _clojask/*
+.lsp
+.calva
 # _*.csv

@@ -3,6 +3,7 @@
             [clojure.set :refer [join]]
             [onyx.plugin.protocols :as p]
             [clojure.data.csv :as csv]
+            [clojask.utils :refer [filter-check]]
             [taoensso.timbre :refer [fatal info debug] :as timbre])
   (:import (java.io BufferedReader)))
 
@@ -22,7 +23,7 @@
   []
   (quot (.maxMemory (Runtime/getRuntime)) 1048576))
 
-(defrecord AbsSeqReader [event reader rst completed? checkpoint? offset]
+(defrecord AbsSeqReader [event reader filters types rst completed? checkpoint? offset]
   p/Plugin
 
   (start [this event]
@@ -61,19 +62,34 @@
   (poll! [this _ _]
     ;; (if (> (mem-usage) 500)
     ;;   (Thread/sleep 10))
+    (while (not (filter-check filters types (:data (first @rst))))
+      (vswap! rst rest))
     (if-let [seg (first @rst)]
-      (do (vswap! rst rest)
-          (vswap! offset inc)
-          ;; (spit "resources/debug.txt" (str seg) :append true)
-          seg)
+      (do
+        (vswap! rst rest)
+        seg)
       (do (vreset! completed? true)
-          nil))))
+          nil))
+    ;; (if-let [seg (first @rst)]
+    ;;   (do (vswap! rst rest)
+    ;;       (vswap! offset inc)
+    ;;       ;; (spit "resources/debug.txt" (str seg) :append true)
+    ;;       seg)
+    ;;   (do (vreset! completed? true)
+    ;;       nil))
+         ))
+
+(defn inject-dataframe
+  [dataframe]
+  (def df dataframe))
 
 (defn input [{:keys [onyx.core/task-map] :as event}]
   ;; (println (:seq/rdr event))
   (map->AbsSeqReader {:event event
                       ;; :sequential (:seq/seq event)
                       :reader (:seq/rdr event)
+                      :filters (.getFilters (:row-info  df))
+                      :types (.getType (:col-info df))
                       :rst (volatile! nil)
                       :completed? (volatile! false)
                       :checkpoint? (not (false? (:seq/checkpoint? task-map)))

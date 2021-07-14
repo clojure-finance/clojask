@@ -24,7 +24,7 @@
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
-  (filter [predicate])
+  (filter [cols predicate])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
   )
@@ -56,8 +56,13 @@
     [this func old-key new-key]
     (.aggregate row-info func old-key new-key))
   (filter
-    [this predicate]
-    (.filter row-info predicate))
+   [this cols predicate]
+   (let [cols (if (coll? cols)
+                cols
+                (vector cols))
+         indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
+     (assert (not (.contains indices nil)) "Some columns do not exist")
+     (.filter row-info indices predicate)))
   (colDesc
     [this]
     (.getDesc col-info))
@@ -188,8 +193,8 @@
         nil))))
 
 (defn filter
-  [this predicate]
-  (.filter this predicate))
+  [this cols predicate]
+  (.filter this cols predicate))
 
 (defn operate
   ([this operation colName]

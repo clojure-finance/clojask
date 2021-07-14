@@ -7,7 +7,7 @@
   (getAggreNewKeys [])
   (getAggreFunc [])
   (getGroupbyKeys [])
-  (filter [predicate])
+  (filter [cols predicate])
   (groupby [a])
   (aggregate [func old-key new-key]))
 
@@ -22,9 +22,9 @@
     [self]
     filters)
   (filter
-    [self predicate]
-    (set! filters (conj filters predicate))
-    "success")
+   [self cols predicate]
+   (set! filters (conj filters [predicate cols]))
+   "success")
   (groupby
     [self key]
     (set! groupby-key key)

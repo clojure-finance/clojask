@@ -84,7 +84,7 @@
         ;; (spit "resources/debug.txt" (str types) :append true)
         ;; (spit "resources/debug.txt" (str operations) :append true)
         ;; (spit "resources/debug.txt" index :append true)
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) data)
+        (if (not= data nil)
           {:data (mapv (fn [_] (eval-res-ne data types operations _)) (take (count operations) (iterate inc 0)))}
           {})))) 
   )
@@ -190,6 +190,8 @@
     ;;                     (map keyword) ;; make the header be the "key" in the map 
     ;;                     repeat)      ;; repeat the process for all the headers
     ;;                (map cons (iterate inc 1) (rest csv-data)))
+    ;;  :seq/filters (:clojask/filters lifecycle)
+    ;;  :seq/types (:clojask/types lifecycle)
      }))
 
 (defn close-reader [event lifecycle]
@@ -216,6 +218,8 @@
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename source
+      ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
+      ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
@@ -348,6 +352,7 @@
     (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
+    (inject-dataframe dataframe)
 
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
@@ -379,6 +384,7 @@
     (catalog-aggre-gen num-work batch-size)
     (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
+    (inject-dataframe dataframe)
 
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try

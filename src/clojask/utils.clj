@@ -14,7 +14,7 @@
       ((get types index) (.get row index))
       (.get row index))))
 
-(defn- get-val
+(defn get-val
   [row types index]
   (map (fn [_] (if (contains? types _)
                  ((get types _) (nth row _))
@@ -58,15 +58,29 @@
     (catch Exception e nil)))
 
 (defn filter-check
-  [filters row]
-  (loop [filters filters]
-    (let [filter (first filters)
-          rem (rest filters)]
-      (if (= filter nil)
-        true
-        (if (not= (filter row) true)
-          false
-          (recur rem))))))
+  [filters types row]
+  ;; (loop [filters filters]
+  ;;   (let [filter (first filters)
+  ;;         rem (rest filters)]
+  ;;     (if (= filter nil)
+  ;;       true
+  ;;       (if (not= (filter row) true)
+  ;;         false
+  ;;         (recur rem)))))
+  (if (= row nil)
+    true
+    (loop [filters filters]
+      (let [com (first filters)
+            rem (rest filters)]
+        ;; (println com)
+        (if (= com nil)
+          true
+          (do
+            ;; (println row)
+            ;; (println (nth com 1))
+            (if (apply (first com) (get-val row types (nth com 1)))
+              (recur rem)
+              false)))))))
 
 (defn toInt
   [string]
