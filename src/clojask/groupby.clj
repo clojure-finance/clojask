@@ -75,38 +75,67 @@
     (if (not= row nil)
       (.write wtr (str row "\n"))))))
 
+(defn internal-aggregate-write
+  "called by child thread function"
+  [func out-dir groupby-keys keys file & [new-keys]]
+  (async/thread
+    (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys))))
+
 (defn internal-aggregate
   "aggregate one group use the function"
   [func out-dir groupby-keys keys & [new-keys]]
   (let [directory (clojure.java.io/file "./_clojask/grouped/")
         files (file-seq directory)]
     (doseq [file (rest files)]
-      (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys)))
-    (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
-      (io/delete-file file))
+      ;; w/o multi-threading
+      (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys))
+      ;; multi-threading
+      ;(async/go (async/<! (internal-aggregate-write func out-dir groupby-keys keys file [new-keys])))
+      )
+    (doseq [file (rest (file-seq (clojure.java.io/file "./_grouped/")))]
+       (io/delete-file file))
     "success"))
+
+
 
 ;; below are example aggregate functions
 
 (defn aggre-min
   "get the min of some keys"
   [seq groupby-keys keys new-keys]
-  (def _min (atom {}))
-  (let [new-keys (if (= new-keys nil)
-                   (vec (map (fn [_] (keyword (str "min(" _ ")"))) keys))
-                   new-keys)
-        a-old-keys (concat groupby-keys keys)
-        a-new-keys (concat groupby-keys new-keys)]
+  ;(def _min (atom []))
+  (let [_min (atom [])]
+        ;; new-keys (if (= new-keys nil)
+        ;;            (vec (map (fn [_] (keyword (str "min(" _ ")"))) keys))
+        ;;            new-keys)
+        ;; a-old-keys (concat groupby-keys keys)
+        ;; a-new-keys (concat groupby-keys new-keys)
+        
     (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _min (zipmap a-new-keys nil))
+    ;(reset! _min (zipmap a-new-keys nil))
+    
+    ;; !! key-index for debug only
+    (let [key-index {"Employee" 0, "EmployeeName" 1, "Department" 2, "Salary" 3}]
+      (doseq [groupby-key keys]
+        (let [vec-index (get key-index groupby-key)] ;; get index number in vector
+          ;; initialise min with first value
+          (swap! _min assoc (.indexOf keys groupby-key) (nth (first seq) vec-index))
+          (doseq [row seq]
+            ;; do one iteration to find the min
+            (let [curr-val (Integer/parseInt (nth row vec-index))
+                  curr-min (Integer/parseInt (nth (deref _min) (.indexOf keys groupby-key)))]
+              (if (< curr-val curr-min)
+                (swap! _min assoc (.indexOf keys groupby-key) (nth row vec-index))))
+          ))))
+    (println (deref _min))
+    ;; below: DEPRECATED
     ;; do one iteration to find the min
-    (doseq [row seq]
-      ;; (println row)
-      (doseq [i (range (count a-old-keys))]
-        (let [old-key (nth a-old-keys i)
-              new-key (nth a-new-keys i)]
-         (if (or (= (get (deref _min) new-key) nil) (<  (Integer/parseInt (get row old-key)) (get (deref _min) new-key)))
-          (swap! _min assoc new-key (Integer/parseInt (get row old-key)))))))
+    ;; (doseq [row seq]
+    ;;   (doseq [i (range (count a-old-keys))]
+    ;;     (let [old-key (nth a-old-keys i)
+    ;;           new-key (nth a-new-keys i)]
+    ;;      (if (or (= (get (deref _min) new-key) nil) (<  (Integer/parseInt (get row old-key)) (get (deref _min) new-key)))
+    ;;       (swap! _min assoc new-key (Integer/parseInt (get row old-key)))))))
     [(deref _min)]
     )
 )
@@ -165,34 +194,6 @@
   [(deref _sum)]
   )
 )
-
-; !! multi-threading testing
-(defn get-sum
-  [row seq groupby-keys keys new-keys _sum]
-  (async/thread 
-    (doseq [i (range (count groupby-keys))]
-      (let [old-key (nth keys i)
-            new-key (nth new-keys i)]
-          (swap! _sum assoc old-key (get row old-key))
-          (swap! _sum assoc new-key (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))))
-        ))))
-
-(defn aggre-sum-threading
-  "get the sum of some keys"
-  [seq groupby-keys keys new-keys]
-  (def _sum (atom {}))
-  (let [new-keys (if (= new-keys nil)
-                    (vec (map (fn [_] (keyword (str "sum(" _ ")"))) keys))
-                    new-keys)]
-    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _sum (zipmap (concat groupby-keys new-keys) nil))
-    ;; do one iteration to find the sum
-    (doseq [row seq]
-      (async/go (async/<! (get-sum row seq groupby-keys keys new-keys _sum)))
-      )
-    [(deref _sum)]
-    )
-  )
 
 ;; !! check if new-keys are float/int cols
 (defn aggre-avg

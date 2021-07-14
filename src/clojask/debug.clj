@@ -13,7 +13,7 @@
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
   (.groupby y "Department")
-  (time (.aggregate y aggre-sum ["Department"] ["sum"]))
+  (.aggregate y aggre-min ["Department" "Salary"] ["dept-min" "salary-min"])
   (compute y 8 "resources/test.csv" :exception true)
   )
 
