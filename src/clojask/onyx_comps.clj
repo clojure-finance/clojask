@@ -70,7 +70,7 @@
         ;; (spit "resources/debug.txt" (str types) :append true)
         ;; (spit "resources/debug.txt" (str operations) :append true)
         ;; (spit "resources/debug.txt" index :append true)
-        (if (filter-check (.getFilters (:row-info (deref dataframe))) data)
+        (if (not= data nil)
           {:data (mapv (fn [_] (eval-res data types operations _)) (take (count operations) (iterate inc 0)))}
           {})))
     (defn worker-func

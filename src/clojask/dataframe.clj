@@ -130,7 +130,7 @@
         (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
+            (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
               "success"
               "failed at aggregate stage")
             "failed at group by stage"))

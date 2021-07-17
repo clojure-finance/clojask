@@ -83,12 +83,12 @@
 
 (defn internal-aggregate
   "aggregate one group use the function"
-  [func out-dir groupby-keys keys & [new-keys]]
+  [func out-dir key-index groupby-keys keys & [new-keys]]
   (let [directory (clojure.java.io/file "./_clojask/grouped/")
         files (file-seq directory)]
     (doseq [file (rest files)]
       ;; w/o multi-threading
-      (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys))
+      (write-file out-dir (func (read-csv-seq file) groupby-keys keys new-keys key-index))
       ;; multi-threading
       ;(async/go (async/<! (internal-aggregate-write func out-dir groupby-keys keys file [new-keys])))
       )
@@ -102,7 +102,7 @@
 
 (defn aggre-min
   "get the min of some keys"
-  [seq groupby-keys keys new-keys]
+  [seq groupby-keys keys new-keys key-index]
   ;(def _min (atom []))
   (let [_min (atom [])]
         ;; new-keys (if (= new-keys nil)
@@ -113,9 +113,9 @@
         
     (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
     ;(reset! _min (zipmap a-new-keys nil))
-    
+    ;; (println seq)
     ;; !! key-index for debug only
-    (let [key-index {"Employee" 0, "EmployeeName" 1, "Department" 2, "Salary" 3}]
+    (let []
       (doseq [groupby-key keys]
         (let [vec-index (get key-index groupby-key)] ;; get index number in vector
           ;; initialise min with first value

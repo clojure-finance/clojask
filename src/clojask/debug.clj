@@ -12,8 +12,8 @@
   ;; ;; (readin-groupby [:Department :EmployeeName])
   ;; (println "\nDone\n")
   (def y (dataframe "resources/Employees-large.csv"))
-  (.groupby y "Department")
-  (.aggregate y aggre-min ["Department" "Salary"] ["dept-min" "salary-min"])
+  (group-by y "Department")
+  (aggregate y aggre-min ["Department" "Salary"] ["dept-min" "salary-min"])
   (compute y 8 "resources/test.csv" :exception true)
   )
 
