@@ -104,61 +104,41 @@
 (defn aggre-min
   "get the min of some keys"
   [seq groupby-keys keys new-keys key-index]
-  ;(def _min (atom []))
-  (let [_min (atom [])]
-        ;; new-keys (if (= new-keys nil)
-        ;;            (vec (map (fn [_] (keyword (str "min(" _ ")"))) keys))
-        ;;            new-keys)
-        ;; a-old-keys (concat groupby-keys keys)
-        ;; a-new-keys (concat groupby-keys new-keys)
-        
+  (let [_min (atom [])] 
     (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    ;(reset! _min (zipmap a-new-keys nil))
-    ;; (println seq)
-    ;; !! key-index for debug only
-    (let []
-      (doseq [groupby-key keys]
-        (let [vec-index (get key-index groupby-key)] ;; get index number in vector
-          ;; initialise min with first value
-          (swap! _min assoc (.indexOf keys groupby-key) (nth (first seq) vec-index))
-          (doseq [row seq]
-            ;; do one iteration to find the min
-            (let [curr-val (Integer/parseInt (nth row vec-index))
-                  curr-min (Integer/parseInt (nth (deref _min) (.indexOf keys groupby-key)))]
-              (if (< curr-val curr-min)
-                (swap! _min assoc (.indexOf keys groupby-key) (nth row vec-index))))
-          ))))
-    (println (deref _min))
-    ;; below: DEPRECATED
-    ;; do one iteration to find the min
-    ;; (doseq [row seq]
-    ;;   (doseq [i (range (count a-old-keys))]
-    ;;     (let [old-key (nth a-old-keys i)
-    ;;           new-key (nth a-new-keys i)]
-    ;;      (if (or (= (get (deref _min) new-key) nil) (<  (Integer/parseInt (get row old-key)) (get (deref _min) new-key)))
-    ;;       (swap! _min assoc new-key (Integer/parseInt (get row old-key)))))))
+    (doseq [groupby-key keys]
+      (let [vec-index (get key-index groupby-key)] ;; get index number in vector
+        ;; initialise min with first value
+        (swap! _min assoc (.indexOf keys groupby-key) (nth (first seq) vec-index))
+        (doseq [row seq]
+          ;; do one iteration to find the min
+          (let [curr-val (Integer/parseInt (nth row vec-index))
+                curr-min (Integer/parseInt (nth (deref _min) (.indexOf keys groupby-key)))]
+            (if (< curr-val curr-min)
+              (swap! _min assoc (.indexOf keys groupby-key) (nth row vec-index))))
+        )))
+    ;(println (deref _min))
     [(deref _min)]
     )
 )
 
 (defn aggre-max
   "get the max of some keys"
-  [seq groupby-keys keys new-keys]
-  (def _max (atom {}))
-  (let [new-keys (if (= new-keys nil)
-                   (vec (map (fn [_] (keyword (str "max(" _ ")"))) keys))
-                   new-keys)
-        a-old-keys (concat groupby-keys keys)
-        a-new-keys (concat groupby-keys new-keys)]
+  [seq groupby-keys keys new-keys key-index]
+  (let [_max (atom [])] 
     (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _max (zipmap a-new-keys nil))
-    ;; do one iteration to find the max
-    (doseq [row seq]
-      (doseq [i (range (count a-old-keys))]
-        (let [old-key (nth a-old-keys i)
-              new-key (nth a-new-keys i)]
-         (if (or (= (get (deref _max) new-key) nil) (>  (Integer/parseInt (get row old-key)) (get (deref _max) new-key)))
-          (swap! _max assoc new-key (Integer/parseInt (get row old-key)))))))
+    (doseq [groupby-key keys]
+      (let [vec-index (get key-index groupby-key)] ;; get index number in vector
+        ;; initialise max with first value
+        (swap! _max assoc (.indexOf keys groupby-key) (nth (first seq) vec-index))
+        (doseq [row seq]
+          ;; do one iteration to find the min
+          (let [curr-val (Integer/parseInt (nth row vec-index))
+                curr-max (Integer/parseInt (nth (deref _max) (.indexOf keys groupby-key)))]
+            (if (> curr-val curr-max)
+              (swap! _max assoc (.indexOf keys groupby-key) (nth row vec-index))))
+        )))
+    ;(println (deref _max))
     [(deref _max)]
     )
 )
@@ -176,68 +156,55 @@
 
 ;; !! check if new-keys are float/int cols
 (defn aggre-sum
-"get the sum of some keys"
-[seq groupby-keys keys new-keys]
-(def _sum (atom {}))
-(let [new-keys (if (= new-keys nil)
-                  (vec (map (fn [_] (keyword (str "sum(" _ ")"))) keys))
-                  new-keys)]
-  (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-  (reset! _sum (zipmap (concat groupby-keys new-keys) nil))
-  ;; do one iteration to find the sum
-  (doseq [row seq]
-    (doseq [i (range (count groupby-keys))]
-      (let [old-key (nth keys i)
-            new-key (nth new-keys i)]
-          (swap! _sum assoc old-key (get row old-key))
-          (swap! _sum assoc new-key (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))))
-        )))
-  [(deref _sum)]
-  )
+  "get the sum of some keys"
+  [seq groupby-keys keys new-keys key-index]
+    (let [_sum (atom [])] 
+      (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+      (doseq [groupby-key keys]
+        (let [vec-index (get key-index groupby-key)] ;; get index number in vector
+          ;; initialise max with zero
+          (swap! _sum assoc (.indexOf keys groupby-key) 0.0)
+          (doseq [row seq]
+            ;; do one iteration to get sum
+            (let [curr-val (Float/parseFloat (nth row vec-index))
+                  curr-sum (nth (deref _sum) (.indexOf keys groupby-key))]
+                (swap! _sum assoc (.indexOf keys groupby-key) (+ curr-val curr-sum)))
+          )))
+      (println (deref _sum))
+      [(deref _sum)]
+      )
 )
 
 ;; !! check if new-keys are float/int cols
 (defn aggre-avg
-  "get the standard deviation (sd) of some keys"
-  [seq groupby-keys keys new-keys]
-  (def _avg (atom {}))
-  (let [new-keys (if (= new-keys nil)
-                   (vec (map (fn [_] (keyword (str "avg(" _ ")"))) keys))
-                   new-keys)]
-    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _avg (zipmap (concat groupby-keys new-keys) nil))
-    ;; do one iteration to find the sum
-    (doseq [row seq]
-      (doseq [i (range (count groupby-keys))]
-        (let [old-key (nth keys i)
-              new-key (nth new-keys i)]
-            (swap! _avg assoc old-key (get row old-key))
-            (swap! _avg assoc new-key (/ (reduce + (doall (map #(Float/parseFloat (old-key %)) seq))) (count seq)))
-          )))
-    [(deref _avg)]
-    )
+  "get the average of some keys"
+  [seq groupby-keys keys new-keys key-index]
+    (let [_avg (atom [])] 
+      (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+      (doseq [groupby-key keys]
+        (let [vec-index (get key-index groupby-key) ;; get index number in vector
+              avg-value (/ (reduce + (doall (map #(Float/parseFloat (nth % vec-index)) seq))) (count seq))] 
+          (swap! _avg assoc (.indexOf keys groupby-key) avg-value)
+          ))
+      ;(println (deref _avg))
+      [(deref _avg)]
+      )
 )
 
 ;; !! check if new-keys are float/int cols
 (defn aggre-sd
   "get the standard deviation (sd) of some keys"
-  [seq groupby-keys keys new-keys]
-  (def _sd (atom {}))
-  (let [new-keys (if (= new-keys nil)
-                   (vec (map (fn [_] (keyword (str "sd(" _ ")"))) keys))
-                   new-keys)]
-    (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
-    (reset! _sd (zipmap (concat groupby-keys new-keys) nil))
-    ;; do one iteration to find the sum
-    (doseq [row seq]
-      (doseq [i (range (count groupby-keys))]
-        (let [old-key (nth keys i)
-              new-key (nth new-keys i)]
-            (swap! _sd assoc old-key (get row old-key))
-            (swap! _sd assoc new-key (standard-deviation (doall (map #(Float/parseFloat (old-key %)) seq))))
-          )))
-    [(deref _sd)]
-    )
+  [seq groupby-keys keys new-keys key-index]
+    (let [_sd (atom [])] 
+      (assert (= (count keys) (count new-keys)) "number of new keys not equal to number of aggregation keys")
+      (doseq [groupby-key keys]
+        (let [vec-index (get key-index groupby-key) ;; get index number in vector
+              sd-value (standard-deviation (doall (map #(Float/parseFloat (nth % vec-index)) seq)))] 
+          (swap! _sd assoc (.indexOf keys groupby-key) sd-value)
+          ))
+      ;(println (deref _sd))
+      [(deref _sd)]
+      )
 )
 
 (defn template
