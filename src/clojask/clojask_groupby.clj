@@ -7,8 +7,9 @@
 
 (defn- inject-into-eventmap
   [event lifecycle]
-  (let [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
-    {:clojask/wtr wtr :clojask/groupby-keys (:clojask/groupby-keys lifecycle) :clojask/key-index (:clojask/key-index lifecycle)}))
+  (let []
+  ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
+    {:clojask/dist (:buffered-wtr/filename lifecycle) :clojask/groupby-keys (:clojask/groupby-keys lifecycle) :clojask/key-index (:clojask/key-index lifecycle)}))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
@@ -17,8 +18,7 @@
 ;; Users will generally always have to include these in their lifecycle calls
 ;; when submitting the job.
 (def writer-aggre-calls
-  {:lifecycle/before-task-start inject-into-eventmap
-   :lifecycle/after-task-stop close-writer})
+  {:lifecycle/before-task-start inject-into-eventmap})
 
 (defrecord ClojaskGroupby []
   p/Plugin
@@ -62,7 +62,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/groupby-keys clojask/key-index  clojask/wtr]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/dist clojask/groupby-keys clojask/key-index]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
@@ -75,7 +75,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-groupby (:data msg) groupby-keys key-index)))
+              (output-groupby dist (:data msg) groupby-keys key-index)))
 
           (recur (rest batch)))))
     true))

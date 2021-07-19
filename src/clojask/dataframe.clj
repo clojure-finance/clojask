@@ -7,6 +7,7 @@
             [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby]]
             [clojask.sort :as sort]
+            [clojask.join :as join]
             )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
@@ -127,7 +128,7 @@
     [this ^int num-worker ^String output-dir ^boolean exception]
     (if (<= num-worker 8)
       (try
-        (let [res (start-onyx-groupby num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception)]
+        (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
@@ -233,3 +234,9 @@
 (defn add-parser
   [this parser col]
   (.addParser this parser col))
+
+(defn inner-join
+  [a b a-keys b-keys]
+  (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
+  (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+  (join/internal-inner-join a b a-keys b-keys))
