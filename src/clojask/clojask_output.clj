@@ -1,7 +1,8 @@
 (ns clojask.clojask-output
   (:require [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
-            [taoensso.timbre :refer [debug info] :as timbre])
+            [taoensso.timbre :refer [debug info] :as timbre]
+            [clojure.string :as string])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (defn- inject-into-eventmap
@@ -71,7 +72,7 @@
           ;; (swap! example-datasink conj msg)
             (if (not= msg {})
               (do
-                (.write wtr (str msg "\n"))
+                (.write wtr (str (string/join "," (:data msg)) "\n"))
                 ;; !! define argument (debug)
                 ))
             
