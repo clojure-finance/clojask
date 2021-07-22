@@ -2,6 +2,7 @@
   (:require [clojask.clojask-input :refer :all]
             [clojask.clojask-output :refer :all]
             [clojask.clojask-groupby :refer :all]
+            [clojask.clojask-join :refer :all]
             [onyx.api :refer :all]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
@@ -178,6 +179,50 @@
     ;; (println catalog) ;; !! debugging
   )
 
+(defn catalog-join-gen
+  "Generate the catalog for running Onyx"
+  [num-work batch-size]
+  ;; initialisation
+  (def catalog [])
+
+  ;; input
+  (def catalog
+    (conj catalog
+          {:onyx/name :in
+           :onyx/plugin :clojask.clojask-input/input
+           :onyx/type :input
+           :onyx/medium :seq
+           :seq/checkpoint? true
+           :onyx/batch-size batch-size
+           :onyx/max-peers 1
+           :input/doc "Reads segments from a core.async channel"}))
+
+    ;; for loop for sample workers
+  (doseq [x (range 1 (+ num-work 1))]
+    (let [worker-name (keyword (str "sample-worker" x))
+          worker-function (keyword "clojask.onyx-comps" "worker-func")]
+      (def catalog
+        (conj catalog
+              {:onyx/name worker-name
+               :onyx/fn worker-function
+               :onyx/type :function
+               :onyx/batch-size batch-size
+               :worker/doc "This is a worker node"}))))
+
+    ;; output
+  (def catalog
+    (conj catalog
+          {:onyx/name :output
+           :onyx/plugin :clojask.clojask-join/join
+           :onyx/type :output
+           :onyx/medium :core.async  ;; this is maked up
+           :onyx/max-peers 1
+           :onyx/batch-size batch-size
+           :output/doc "Writes segments to the file"}))
+
+    ;; (println catalog) ;; !! debugging
+  )
+
 
 (defn inject-in-reader [event lifecycle]
   (let [rdr (FileReader. (:buffered-reader/filename lifecycle))
@@ -240,6 +285,23 @@
       :clojask/groupby-keys keys
       :clojask/key-index key-index
       :lifecycle/calls ::writer-aggre-calls}]))
+
+(defn lifecycle-join-gen
+  [source dist keys key-index a b a-keys b-keys join-type]
+  (def lifecycles
+    [{:lifecycle/task :in
+      :buffered-reader/filename source
+      :lifecycle/calls ::in-calls}
+     {:lifecycle/task :in
+      :lifecycle/calls :clojask.clojask-input/reader-calls}
+     {:lifecycle/task :output
+      :buffered-wtr/filename dist
+      :clojask/a-keys a-keys
+      :clojask/b-keys b-keys 
+      :clojask/a-map (.getKeyIndex (.col-info a)) 
+      :clojask/b-map (.getKeyIndex (.col-info b))
+      :clojask/join-type join-type
+      :lifecycle/calls ::writer-join-calls}]))
 
 (def num-workers (atom 1))
 
@@ -404,6 +466,39 @@
   (try
     (shutdown)
     (catch Exception e (throw (Exception. (str "[terminate-node stage (group by)] " (.getMessage e))))))
+  "success")
+
+(defn start-onyx-join
+  "start the onyx cluster with the specification inside dataframe"
+  [num-work batch-size dataframe dist groupby-keys exception b a-keys b-keys join-type]
+  ;; dataframe means a
+  (try
+    (workflow-gen num-work)
+    (config-env)
+    (worker-func-gen dataframe exception) ;;need some work
+    (catalog-join-gen num-work batch-size)
+    (lifecycle-join-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)) dataframe b a-keys b-keys join-type)
+    (flow-cond-gen num-work)
+    (inject-dataframe dataframe)
+
+    (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
+  (try
+    (let [submission (onyx.api/submit-job peer-config
+                                          {:workflow workflow
+                                           :catalog catalog
+                                           :lifecycles lifecycles
+                                           :flow-conditions flow-conditions
+                                           :task-scheduler :onyx.task-scheduler/balanced})
+          job-id (:job-id submission)]
+      ;; (println submission)
+      (assert job-id "Job was not successfully submitted")
+      (feedback-exception! peer-config job-id))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (Exception. (str "[submit-to-onyx stage (join)] " (.getMessage e)))))))
+  (try
+    (shutdown)
+    (catch Exception e (throw (Exception. (str "[terminate-node stage (join)] " (.getMessage e))))))
   "success")
 
 

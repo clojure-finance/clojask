@@ -82,13 +82,14 @@
 (defn use-external-sort
   [input output comp]
   ;; clean the output file
+  (println (CsvExternalSort/estimateAvailableMemory))
   (with-open [wtr (io/writer output)]
     (.write wtr ""))
   (io/make-parents "./_clojask/sort/a.txt")
   (let
    [input (File. input)
     output (File. output)
-    sort-option (let [builder (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (CsvExternalSort/estimateAvailableMemory))]
+    sort-option (let [builder (CsvSortOptions$Builder. comp CsvExternalSort/DEFAULTMAXTEMPFILES (* 5 (CsvExternalSort/estimateAvailableMemory)))]
                   (.numHeader builder 1)
                   (.skipHeader builder false)
                   (.build builder))

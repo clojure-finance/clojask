@@ -55,7 +55,7 @@
   | Argument    | Type              | Function                                                     | Remarks                                                      |
   | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
   | `dataframe` | Clojask.DataFrame | The operated object                                          |                                                              |
-  | `parser `   | function          | The parser function that will parse a string to other types (or even string) | The function should take only one argument which is a string |
+  | `parser `   | function          | The parser function that will parse a string to other types (or even string) | The function should take only one argument which is a string, and the parsed type should be serializable. |
   | `column`    | String            | Target columns                                               | Should be existing columns within the dataframe              |
 
   **Example**
@@ -146,3 +146,40 @@
   
   
 
+- inner-join / left-join / right-join
+
+  Inner / left / right join two dataframes by some columns
+
+  *Remarks:*
+
+  *Join functions are immediate actions, which will be executed at once.*
+
+  *Will automatically pipeline the registered operations and filters.*
+
+  | Argument            | Type               | Function                                                     | Remarks                                           |
+  | ------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
+  | `dataframe a`       | Clojask.DataFrame  | The operated object                                          |                                                   |
+  | `dataframe b`       | Clojask.DataFrame  | The operated object                                          |                                                   |
+  | `a columns`         | Clojure.collection | The keys of a to be aligned                                  | Should be existing headers in dataframe a         |
+  | `b columns`         | Clojure.collection | The keys of b to be aligned                                  | Should be existing headers in dataframe b         |
+  | `number of workers` | int (max 8)        | Number of worker nodes doing the joining                     |                                                   |
+  | `distination file`  | string             | The file path to the distination                             | Will be emptied first                             |
+  | [`exception`]       | boolean            | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields |
+
+  **Example**
+
+  ```clojure
+  (def x (dataframe "path/to/a"))
+  (def y (dataframe "path/to/b"))
+  
+  (inner-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
+  ;; inner join x and y
+  
+  (left-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
+  ;; left join x and y
+  
+  (right-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
+  ;; right join x and y
+  ```
+
+  

@@ -5,7 +5,7 @@
             [clojure.java.io :as io]
             [clojask.utils :refer :all]
             [clojask.groupby :refer [internal-aggregate aggre-min]]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-groupby]]
+            [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [clojask.join :as join]
             )
@@ -236,7 +236,37 @@
   (.addParser this parser col))
 
 (defn inner-join
-  [a b a-keys b-keys]
+  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
-  (join/internal-inner-join a b a-keys b-keys))
+  ;; (internal-inner-join a b a-keys b-keys)
+  (io/make-parents "./_clojask/join/a/a.txt")
+  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; first group b by keys
+  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+  (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys true))
+
+(defn left-join
+  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
+  (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+  ;; (internal-inner-join a b a-keys b-keys)
+  (io/make-parents "./_clojask/join/a/a.txt")
+  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; first group b by keys
+  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+  (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys false))
+
+(defn right-join
+  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
+  (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+  ;; (internal-inner-join a b a-keys b-keys)
+  (io/make-parents "./_clojask/join/a/a.txt")
+  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; first group b by keys
+  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+  (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
+  (start-onyx-join num-worker 10 b dist b-keys exception a b-keys a-keys false))
