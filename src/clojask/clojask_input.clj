@@ -38,7 +38,7 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (let [csv-data (rest (csv/read-csv (BufferedReader. reader)))
+    (let [csv-data (rest (line-seq (BufferedReader. reader)))
           data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) csv-data))]
       (if (nil? checkpoint)
         (do
@@ -62,8 +62,8 @@
   (poll! [this _ _]
     ;; (if (> (mem-usage) 500)
     ;;   (Thread/sleep 10))
-    (while (not (filter-check filters types (:data (first @rst))))
-      (vswap! rst rest))
+    ;; (while (not (filter-check filters types (:data (first @rst))))
+    ;;   (vswap! rst rest))
     (if-let [seg (first @rst)]
       (do
         (vswap! rst rest)

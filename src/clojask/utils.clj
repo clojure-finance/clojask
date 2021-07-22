@@ -67,7 +67,7 @@
   ;;       (if (not= (filter row) true)
   ;;         false
   ;;         (recur rem)))))
-  (if (= row nil)
+  (if (= filters [])
     true
     (loop [filters filters]
       (let [com (first filters)

@@ -4,6 +4,7 @@
             [clojask.clojask-groupby :refer :all]
             [clojask.clojask-join :refer :all]
             [onyx.api :refer :all]
+            [clojure.string :as string]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
@@ -59,35 +60,29 @@
 (defn worker-func-gen
   [df exception]
   (reset! dataframe df)
-  (if exception
-    (defn worker-func
-      [seg]
-      (let [operations (.getDesc (:col-info (deref dataframe)))
-            types (.getType (:col-info (deref dataframe)))
-            data (:data seg)]
+  (let [operations (.getDesc (:col-info (deref dataframe)))
+        types (.getType (:col-info (deref dataframe)))
+        filters (.getFilters (:row-info df))
+        indices (vec (take (count operations) (iterate inc 0)))]
+    (if exception
+      (defn worker-func
+        [seg]
+        (let [data (string/split (:data seg) #"," -1)] ;; -1 is very important here!
         ;; (doseq [index (take (count operations) (iterate inc 0))]
         ;;   )
         ;; (spit "resources/debug.txt" (str seg "\n") :append true)
         ;; (spit "resources/debug.txt" (str types) :append true)
         ;; (spit "resources/debug.txt" (str operations) :append true)
         ;; (spit "resources/debug.txt" index :append true)
-        (if (not= data nil)
-          {:data (mapv (fn [_] (eval-res data types operations _)) (take (count operations) (iterate inc 0)))}
-          {})))
-    (defn worker-func
-      [seg]
-      (let [operations (.getDesc (:col-info (deref dataframe)))
-            types (.getType (:col-info (deref dataframe)))
-            data (:data seg)]
-        ;; (doseq [index (take (count operations) (iterate inc 0))]
-        ;;   )
-        ;; (spit "resources/debug.txt" (str seg "\n") :append true)
-        ;; (spit "resources/debug.txt" (str types) :append true)
-        ;; (spit "resources/debug.txt" (str operations) :append true)
-        ;; (spit "resources/debug.txt" index :append true)
-        (if (not= data nil)
-          {:data (mapv (fn [_] (eval-res-ne data types operations _)) (take (count operations) (iterate inc 0)))}
-          {})))) 
+          (if (filter-check filters types data)
+            {:data (mapv (fn [_] (eval-res data types operations _)) indices)}
+            {})))
+      (defn worker-func
+        [seg]
+        (let [data (string/split (:data seg) #"," -1)]
+          (if (filter-check filters types data)
+            {:data (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
+            {})))))
   )
 
 (defn catalog-gen
