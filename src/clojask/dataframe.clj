@@ -8,7 +8,8 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [clojask.join :as join]
-            )
+            
+            [clojure.string :as string])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -245,7 +246,7 @@
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys true))
+  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys nil nil "inner"))
 
 (defn left-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
@@ -257,7 +258,7 @@
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys false))
+  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys nil nil "left"))
 
 (defn right-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
@@ -269,4 +270,22 @@
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
-  (start-onyx-join num-worker 10 b dist b-keys exception a b-keys a-keys false))
+  (start-onyx-join num-worker 10 b dist b-keys exception a b-keys a-keys nil nil "left"))
+
+(defn rolling-join-forward
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception] :or {exception false}}]
+  (assert (= (type a-roll) java.lang.String))
+  (assert (= (type b-roll) java.lang.String))
+  (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+  (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
+    (do
+      (assert (and (not= a-roll nil) (not= b-roll nil)) "rolling key should be existing header")
+      (io/make-parents "./_clojask/join/a/a.txt")
+      (io/make-parents "./_clojask/join/b/a.txt")
+      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+  ;; (join/internal-rolling-join-forward a-keys b-keys a-roll b-roll)
+      (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys a-roll b-roll "forward"))
+    )
+  ;; (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys exception)
+  
+  )

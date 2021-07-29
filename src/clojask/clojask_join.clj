@@ -1,5 +1,5 @@
 (ns clojask.clojask-join
-  (:require [clojask.join :refer :all]
+  (:require [clojask.join :as join]
             [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
             [taoensso.timbre :refer [debug info] :as timbre])
@@ -9,7 +9,7 @@
   [event lifecycle]
   (let 
    [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
-    {:clojask/wtr wtr :clojask/a-keys (:clojask/a-keys lifecycle) :clojask/b-keys (:clojask/b-keys lifecycle) :clojask/a-map (:clojask/a-map lifecycle) :clojask/b-map (:clojask/b-map lifecycle) :clojask/join-type (:clojask/join-type lifecycle)}))
+    {:clojask/wtr wtr :clojask/a-keys (:clojask/a-keys lifecycle) :clojask/b-keys (:clojask/b-keys lifecycle) :clojask/a-roll (:clojask/a-roll lifecycle) :clojask/b-roll (:clojask/b-roll lifecycle) :clojask/a-map (:clojask/a-map lifecycle) :clojask/b-map (:clojask/b-map lifecycle) :clojask/join-type (:clojask/join-type lifecycle)}))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
@@ -63,35 +63,47 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-map clojask/b-map clojask/join-type]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/join-type]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (if join-type
-     (loop [batch write-batch]
-      (if-let [msg (first batch)]
-        (do
+    (case join-type
+      "inner" (loop [batch write-batch]
+                (if-let [msg (first batch)]
+                  (do
           ;; (swap! example-datasink conj msg)
-          (if (not= msg {})
-            (do
+                    (if (not= msg {})
+                      (do
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-join wtr (:data msg) a-keys a-map b-keys)))
+                        (join/output-join wtr (:data msg) a-keys a-map b-keys)))
 
-          (recur (rest batch)))))
-      (loop [batch write-batch]
-        (if-let [msg (first batch)]
-          (do
+                    (recur (rest batch)))))
+      "left" (loop [batch write-batch]
+               (if-let [msg (first batch)]
+                 (do
           ;; (swap! example-datasink conj msg)
-            (if (not= msg {})
-              (do
+                   (if (not= msg {})
+                     (do
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-                (output-join-loo wtr (:data msg) a-keys a-map b-keys (count b-map))))
+                       (join/output-join-loo wtr (:data msg) a-keys a-map b-keys (count b-map))))
 
-            (recur (rest batch))))))
+                   (recur (rest batch)))))
+      "forward" (loop [batch write-batch]
+                  (if-let [msg (first batch)]
+                    (do
+          ;; (swap! example-datasink conj msg)
+                      (if (not= msg {})
+                        (do
+                ;(.write wtr (str msg "\n"))
+                ;; !! define argument (debug)
+            ;;   (def groupby-keys [:Department :EmployeeName])
+                          (join/output-join-forward wtr (:data msg) a-keys a-map b-keys (count b-map) a-roll b-roll)))
+
+                      (recur (rest batch))))))
     true))
 
 ;; Builder function for your output plugin.

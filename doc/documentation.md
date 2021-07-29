@@ -31,12 +31,12 @@
 
 - set-type
 
-  Calculate the result and store in a new column
+  Set the type of a column. So when using the value of that column, it would be in that type.
 
   | Argument    | Type              | Function            | Remarks                                                      |
   | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
   | `dataframe` | Clojask.DataFrame | The operated object |                                                              |
-  | `type`      | String            | Type of the column  | The native support types are: int, double, string, datetime. Note that by default all the column types are string. If you need special parsing function, see `add-parser`. |
+  | `type`      | String            | Type of the column  | The native support types are: int, double, string, date. Note that by default all the column types are string. If you need special parsing function, see `add-parser`. |
   | `column`    | String            | Target columns      | Should be existing columns within the dataframe              |
 
   **Example**
@@ -50,7 +50,7 @@
 
 - add-parser
 
-  Calculate the result and store in a new column
+  A more flexible way to set type.
 
   | Argument    | Type              | Function                                                     | Remarks                                                      |
   | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -65,7 +65,9 @@
   ;; parse all the values in Salary with this function
   ```
 
-  
+#### Remark
+
+**If you have set type of some columns, do not forget to convert it back to int/double/string at the end using the last operation!**
 
 - operate
 

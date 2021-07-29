@@ -101,7 +101,8 @@
 (defn toDate
   [string]
   (if (not= string "")
-    (Date. string)
+    ;; (Date. string)
+    (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
     nil))
 
 ;; (def operation-type-map

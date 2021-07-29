@@ -35,6 +35,7 @@
         (.write writer (str (vec (concat a-row b-row)) "\n"))))))
 
 (defn output-join-loo
+  "used for left join right join or outter join"
   [writer a-row a-keys a-map b-keys count] 
   (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys a-map b-keys)]
     ;; (println writer)
@@ -44,4 +45,50 @@
       (doseq [b-row (read-csv-seq filename)]
         ;; (spit "_clojask/join/test.txt" (str a-row b-row "\n") :append true)
         (.write writer (str (vec (concat a-row b-row)) "\n")))
+      (.write writer (str (vec (concat a-row (replicate count ""))) "\n")))))
+
+(defn roll-join-get-line-forward
+  "get the max of all the smaller"
+  [bench filename index]
+  (def memo (volatile! nil))
+  (def res (volatile! nil))
+  (doseq [row (read-csv-seq filename)]
+    (let [val (nth row index)]
+      (if (and (> (compare val bench) 0) (or (= @memo nil) (< (compare val @memo) 0)))
+        (do (vreset! memo val)
+            (vreset! res row)))))
+  @res)
+
+(defn roll-join-get-line-backward
+  "get the max of all the smaller"
+  [bench filename index]
+  (def memo (volatile! nil))
+  (doseq [row (read-csv-seq filename)]
+    (let [val (nth row index)]
+      (if (and (> (compare val bench) 0) (< (compare val @memo) 0))
+        (vreset! memo val))))
+  @memo)
+
+(doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
+  (io/delete-file file))
+
+;; (defn internal-rolling-join-forward
+;;   [a b a-dir b-dir a-keys b-keys a-roll b-roll]
+;;   ;; (let [a-reader (io/reader (:path a))]
+;;   ;;   ())
+;;   (s))
+
+
+(defn output-join-forward
+  ""
+  [writer a-row a-keys a-map b-keys count a-roll b-roll]
+  (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys a-map b-keys)]
+    ;; (println writer)
+    ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
+    (if (.exists (io/file filename))
+      ;; (spit "_clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
+      (if-let [b-row (roll-join-get-line-forward (str (nth a-row a-roll)) filename b-roll)] ;; bench is a string
+        (.write writer (str (vec (concat a-row b-row)) "\n"))
+        (.write writer (str (vec (concat a-row (replicate count ""))) "\n"))
+        )
       (.write writer (str (vec (concat a-row (replicate count ""))) "\n")))))

@@ -282,7 +282,7 @@
       :lifecycle/calls ::writer-aggre-calls}]))
 
 (defn lifecycle-join-gen
-  [source dist keys key-index a b a-keys b-keys join-type]
+  [source dist keys key-index a b a-keys b-keys a-roll b-roll join-type]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename source
@@ -293,6 +293,8 @@
       :buffered-wtr/filename dist
       :clojask/a-keys a-keys
       :clojask/b-keys b-keys 
+      :clojask/a-roll a-roll
+      :clojask/b-roll b-roll
       :clojask/a-map (.getKeyIndex (.col-info a)) 
       :clojask/b-map (.getKeyIndex (.col-info b))
       :clojask/join-type join-type
@@ -465,14 +467,14 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist groupby-keys exception b a-keys b-keys join-type]
+  [num-work batch-size dataframe dist groupby-keys exception b a-keys b-keys a-roll  b-roll join-type]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
     (config-env)
     (worker-func-gen dataframe exception) ;;need some work
     (catalog-join-gen num-work batch-size)
-    (lifecycle-join-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)) dataframe b a-keys b-keys join-type)
+    (lifecycle-join-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)) dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (inject-dataframe dataframe)
 
