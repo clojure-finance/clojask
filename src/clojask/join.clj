@@ -121,11 +121,15 @@
                       (if-let [format (get b-format index)]
                         (format (nth b-row index))
                         (nth b-row index)))]
-         (.write writer (str (concat a-row b-row)) "\n"))
+         (.write writer (str (vec (concat a-row b-row)) "\n")))
         (let [a-row (for [index a-index]
                       (if-let [format (get a-format index)]
                         (format (nth a-row index))
                         (nth a-row index)))]
-          (.write writer (str (concat a-row (replicate count ""))) "\n"))
+          (.write writer (str (vec (concat a-row (replicate count ""))) "\n")))
         )
-      (.write writer (str (concat a-row (replicate count ""))) "\n"))))
+      (let [a-row (for [index a-index]
+                    (if-let [format (get a-format index)]
+                      (format (nth a-row index))
+                      (nth a-row index)))]
+        (.write writer (str (vec (concat a-row (replicate count ""))) "\n"))))))
