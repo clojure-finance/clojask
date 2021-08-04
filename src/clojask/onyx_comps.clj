@@ -282,7 +282,7 @@
       :lifecycle/calls :clojask.clojask-groupby/writer-aggre-calls}]))
 
 (defn lifecycle-join-gen
-  [source dist keys key-index a b a-keys b-keys a-roll b-roll join-type]
+  [source dist a b a-keys b-keys a-roll b-roll join-type]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename source
@@ -467,14 +467,14 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist groupby-keys exception b a-keys b-keys a-roll  b-roll join-type]
+  [num-work batch-size dataframe b dist exception  a-keys b-keys a-roll b-roll join-type]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
     (config-env)
     (worker-func-gen dataframe exception) ;;need some work
     (catalog-join-gen num-work batch-size)
-    (lifecycle-join-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)) dataframe b a-keys b-keys a-roll b-roll join-type)
+    (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (join/inject-dataframe dataframe b)

@@ -29,10 +29,13 @@
 (defn gen-groupby-filenames
   "internal function to generate files csv line with groupby key(s)"
   [dist msg groupby-keys key-index]
-  (def output-filename dist)
-  (doseq [groupby-key groupby-keys]
-    (def output-filename (str output-filename "_" (name groupby-key) "-" (nth msg (get key-index groupby-key)))))
-  (str output-filename ".csv"))
+  ;; (def output-filename dist)
+  ;; (doseq [groupby-key groupby-keys]
+  ;;   (def output-filename (str output-filename "_" (name groupby-key) "-" (nth msg (get key-index groupby-key)))))
+  ;; (str output-filename ".csv")
+  (let [index (map (fn [_] (get key-index _)) groupby-keys)
+        val (mapv (fn [_] (nth msg _)) index)]
+    (str dist val)))
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"

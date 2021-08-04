@@ -8,7 +8,6 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [clojask.join :as join]
-            
             [clojure.string :as string])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
@@ -266,7 +265,10 @@
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-  (start-onyx-join num-worker 10 a dist a-keys exception b a-keys b-keys nil nil "inner"))
+  (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
+        b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
+    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil "inner"))
+  )
 
 (defn left-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]

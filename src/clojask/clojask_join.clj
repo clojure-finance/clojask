@@ -1,5 +1,6 @@
 (ns clojask.clojask-join
   (:require [clojask.join :as join]
+            [clojure.set :as set]
             [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
             [taoensso.timbre :refer [debug info] :as timbre])
@@ -16,7 +17,11 @@
 (defn- inject-into-eventmap
   [event lifecycle]
   (let 
-   [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
+   [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))
+    a-map (.getKeyIndex (.col-info (deref a)))
+    a-format (set/rename-keys (.getFormatter (.col-info (deref a))) a-map)
+    b-map (.getKeyIndex (.col-info (deref b)))
+    b-format (set/rename-keys (.getFormatter (.col-info (deref b))) b-map)]
     {:clojask/wtr wtr
      :clojask/a-keys (:clojask/a-keys lifecycle)
      :clojask/b-keys (:clojask/b-keys lifecycle)
@@ -24,8 +29,8 @@
      :clojask/b-roll (:clojask/b-roll lifecycle)
      :clojask/a-map (:clojask/a-map lifecycle)
      :clojask/b-map (:clojask/b-map lifecycle)
-     :clojask/a-format (.getFormatter (.col-info (deref a)))
-     :clojask/b-format (.getFormatter (.col-info (deref b)))
+     :clojask/a-format a-format
+     :clojask/b-format b-format
      :clojask/a-index (take (count (:clojask/a-map lifecycle)) (iterate inc 0))
      :clojask/b-index (take (count (:clojask/b-map lifecycle)) (iterate inc 0))
      :clojask/join-type (:clojask/join-type lifecycle)}))
