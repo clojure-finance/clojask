@@ -1,9 +1,17 @@
 (ns clojask.clojask-groupby
-  (:require [clojask.groupby :refer :all]
+  (:require [clojask.groupby :refer [output-groupby]]
             [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
             [taoensso.timbre :refer [debug info] :as timbre])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+
+(def a (atom nil))
+(def b (atom nil))
+
+(defn inject-dataframe
+  [d-a d-b]
+  (reset! a d-a)
+  (reset! b d-b))
 
 (defn- inject-into-eventmap
   [event lifecycle]

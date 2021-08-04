@@ -2,6 +2,28 @@
 
 #### Dataframe
 
+##### Features
+
+- Unlimited size
+
+  Theoretically speaking, it supports dataset larger than memory to infinity!
+
+- All native types
+
+  All the datatypes used to store data is native Clojure (or Java) types!
+
+- From file to file
+
+  Integrate IO inside the dataframe. No need to write your own read-in and output functions!
+
+- Distributed (coming soon)
+
+  Most operations could be distributed to different computers in a clusters. See the principle in [Onyx](http://www.onyxplatform.org/)
+
+- Lazy operations
+
+  Some operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
+
 ##### Basic Information
 
 - Most operations to the dataframe is performed lazily and all at once with `compute` except `sort`. 

@@ -1,8 +1,8 @@
 (ns clojask.onyx-comps
-  (:require [clojask.clojask-input :refer :all]
-            [clojask.clojask-output :refer :all]
-            [clojask.clojask-groupby :refer :all]
-            [clojask.clojask-join :refer :all]
+  (:require [clojask.clojask-input :as input]
+            [clojask.clojask-output :as output]
+            [clojask.clojask-groupby :as groupby]
+            [clojask.clojask-join :as join]
             [onyx.api :refer :all]
             [clojure.string :as string]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
@@ -265,7 +265,7 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      :lifecycle/calls ::writer-calls}]))
+      :lifecycle/calls :clojask.clojask-output/writer-calls}]))
 
 (defn lifecycle-aggre-gen
   [source dist keys key-index]
@@ -279,7 +279,7 @@
       :buffered-wtr/filename dist
       :clojask/groupby-keys keys
       :clojask/key-index key-index
-      :lifecycle/calls ::writer-aggre-calls}]))
+      :lifecycle/calls :clojask.clojask-groupby/writer-aggre-calls}]))
 
 (defn lifecycle-join-gen
   [source dist keys key-index a b a-keys b-keys a-roll b-roll join-type]
@@ -298,7 +298,7 @@
       :clojask/a-map (.getKeyIndex (.col-info a)) 
       :clojask/b-map (.getKeyIndex (.col-info b))
       :clojask/join-type join-type
-      :lifecycle/calls ::writer-join-calls}]))
+      :lifecycle/calls :clojask.clojask-join/writer-join-calls}]))
 
 (def num-workers (atom 1))
 
@@ -411,7 +411,7 @@
     (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
-    (inject-dataframe dataframe)
+    (input/inject-dataframe dataframe)
 
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
@@ -443,8 +443,8 @@
     (catalog-aggre-gen num-work batch-size)
     (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
-    (inject-dataframe dataframe)
-
+    (input/inject-dataframe dataframe)
+    
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -476,8 +476,8 @@
     (catalog-join-gen num-work batch-size)
     (lifecycle-join-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)) dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
-    (inject-dataframe dataframe)
-
+    (input/inject-dataframe dataframe)
+    (join/inject-dataframe dataframe b)
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config

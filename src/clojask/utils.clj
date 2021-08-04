@@ -84,15 +84,15 @@
 
 (defn toInt
   [string]
-  (if (not= string "")
+  (try
     (Integer/parseInt string)
-    nil))
+    (catch Exception e nil)))
 
 (defn toDouble
   [string]
-  (if (not= string "")
+  (try
     (Double/parseDouble string)
-    nil))
+    (catch Exception e nil)))
 
 (defn toString
   [string]
@@ -100,10 +100,16 @@
 
 (defn toDate
   [string]
-  (if (not= string "")
+  (try
     ;; (Date. string)
     (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-    nil))
+    (catch Exception e nil)))
+
+(defn fromDate
+  [date]
+  (if (= (type date) java.util.Date)
+    (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
+    date))
 
 ;; (def operation-type-map
 ;;   {toInt "int"
@@ -112,12 +118,34 @@
 ;;    toDate "date"})
 
 (def type-operation-map
-  {"int" toInt
-   "double" toDouble
-   "string" toString
-   "date" toDate})
+  {"int" [toInt str]
+   "double" [toDouble str]
+   "string" [toString str]
+   "date" [toDate fromDate]})
 
 (defn type-detection
  [file]
  (let [sample (take 5 file)]
    ))
+
+(defn is-in
+  [col dataframe]
+  (if (contains? (.getKeyIndex (:col-info dataframe)) col)
+    true
+    false))
+
+(defn is-out
+  [col dataframe]
+  (if (contains? (.getKeyIndex (:col-info dataframe)) col)
+    false
+    true))
+
+(defn are-in
+  "return should be [] if all in"
+  [cols dataframe]
+  (filter (fn [col] (is-out col dataframe)) cols))
+
+(defn are-out
+  "return should be [] if all out"
+  [cols dataframe]
+  (filter (fn [col] (is-in col dataframe)) cols))

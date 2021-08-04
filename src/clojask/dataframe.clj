@@ -3,7 +3,7 @@
             [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
-            [clojask.utils :refer :all]
+            [clojask.utils :as u]
             [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
@@ -29,6 +29,8 @@
   (filter [cols predicate])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
+  (addFormatter [a b] "format the column as the last step of the computation")
+  (final [] "prepare the dataframe for computation")
   )
 
 ;; each dataframe can have a delayed object
@@ -41,7 +43,7 @@
             ^ColInfo col-info
             ^RowInfo row-info]
   DFIntf
-  (operate
+  (operate ;; has assert
     [this operation colName]
     (.operate col-info operation colName))
   (operate
@@ -53,18 +55,21 @@
     (let [keys (if (coll? key)
                  key
                  [key])]
+      (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
       (.groupby row-info keys)))
   (aggregate
     [this func old-key new-key]
+    (assert (= 0 (count (u/are-in old-key this))) "input is not existing column names")
+    (assert (= 0 (count (u/are-out new-key this))) "new keys should not be existing column names")
     (.aggregate row-info func old-key new-key))
   (filter
-   [this cols predicate]
-   (let [cols (if (coll? cols)
-                cols
-                (vector cols))
-         indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
-     (assert (not (.contains indices nil)) "Some columns do not exist")
-     (.filter row-info indices predicate)))
+    [this cols predicate]
+    (let [cols (if (coll? cols)
+                 cols
+                 (vector cols))
+          indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
+      (assert (u/are-in cols this) "input is not existing column names")
+      (.filter row-info indices predicate)))
   (colDesc
     [this]
     (.getDesc col-info))
@@ -77,13 +82,27 @@
       (doall (take n (csv/read-csv reader)))))
   (setType
     [this type colName]
-    (let [opr (get type-operation-map type)]
-      (if (= opr nil)
+    (let [oprs (get u/type-operation-map type)
+          parser (nth oprs 0)
+          format (nth oprs 1)]
+      (if (= oprs nil)
         "No such type. You could instead write your parsing function as the first operation to this column."
-        (.setType col-info opr colName))))
+        (do
+          (.setType col-info parser colName)
+          (.addFormatter this format colName)
+          "success"))))
   (addParser
-   [this parser colName]
-   (.setType col-info parser colName))
+    [this parser colName]
+    (.setType col-info parser colName))
+  (addFormatter
+   [this format col]
+   (assert (u/is-in col this) "input is not existing column names")
+   (.setFormatter col-info format col))
+  (final
+   [this]
+   (doseq [tmp (.getFormatter (:col-info this))]
+     (.operate this (nth tmp 1) (nth tmp 0)))
+   )
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
@@ -119,6 +138,7 @@
       ;;     "success")
       ;;   (catch Exception e e))
       (try
+        (.final this)
         (let [res (start-onyx num-worker batch-size this output-dir exception)]
           (if (= res "success")
             "success"
@@ -162,7 +182,7 @@
           (let [_ (first list)
                 res (rest list)]
             (if key
-              (let [tmp (compare (get-key a (.getType col-info) (.getKeyIndex col-info) _) (get-key b (.getType col-info) (.getKeyIndex col-info) _))]
+              (let [tmp (compare (u/get-key a (.getType col-info) (.getKeyIndex col-info) _) (u/get-key b (.getType col-info) (.getKeyIndex col-info) _))]
                 (if (not= tmp 0)
                   (sign tmp)
                   (recur res false nil)))
@@ -178,7 +198,7 @@
           file (csv/read-csv reader)
           colNames (doall (first file))
           ;; colNames ["test"]
-          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {})
+          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
           row-info (RowInfo. [] [] nil nil nil)]
       ;; (type-detection file)
       (.close reader)

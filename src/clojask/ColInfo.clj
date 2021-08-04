@@ -9,7 +9,9 @@
   (getDesc [])
   (getType [])
   (getKeys [])
-  (getKeyIndex []))
+  (getKeyIndex [])
+  (setFormatter [b c])
+  (getFormatter []))
 
 
 (deftype ColInfo
@@ -18,7 +20,8 @@
           ^:unsynchronized-mutable key-index
           ^:unsynchronized-mutable index-key
           ^:unsynchronized-mutable col-dsp
-          ^:unsynchronized-mutable col-type]
+          ^:unsynchronized-mutable col-type
+          ^:unsynchronized-mutable col-format]
 
   ;; method
    ;; method
@@ -66,6 +69,12 @@
           ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
         "success")
       "There is no such column name."))
+  (setFormatter
+   [this format col]
+   (set! col-format (assoc col-format col format)))
+  (getFormatter
+   [this]
+   col-format)
   (getDesc
     [this]
     col-dsp)
