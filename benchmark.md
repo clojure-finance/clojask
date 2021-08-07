@@ -1,10 +1,12 @@
 ## Benchmarks
 
-| Operation | Dask (N=1,800,000) (s) | Clojask (N=1,800,000) (ms) |
+Number of workers = 4
+
+| Operation | Dask (N=1,800,000) (s) | Clojask (N=1,800,000) (s) |
 | :---:   | :-: | :-: |
-| Element-wise operation | 58.1 |  |
-| Row-wise selection | 48.5 |  |
-| Aggregation | 49.0 |  |
+| Element-wise operation | 58.1 | 89.1 |
+| Row-wise selection | 48.5 | 89.6 |
+| Aggregation | 49.0 | |
 | Groupby-aggregate | 49.6 |  |
 
 Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputing the processed dataframe to csv format.
