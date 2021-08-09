@@ -207,7 +207,7 @@
       ;; type detection
       ;; 
 
-      (DataFrame. path 10 col-info row-info))
+      (DataFrame. path 300 col-info row-info))
     (catch Exception e
       (do
         (println "No such file or directory")
