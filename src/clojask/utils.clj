@@ -16,8 +16,8 @@
 
 (defn get-val
   [row types index]
-  (map (fn [_] (if (contains? types _)
-                 ((get types _) (nth row _))
+  (map (fn [_] (if-let [parser (get types _)]
+                 (parser (nth row _))
                  (nth row _)))
        index))
 
@@ -32,10 +32,10 @@
         vals (get-val row types (first opr-vec))]
     ;; (println [vals])
     (loop [res vals oprs (rest opr-vec)]
-      (let [opr (first oprs)
-            rest (rest oprs)]
-        (if (= (count oprs) 0)
-          (first res)
+      (if (= (count oprs) 0)
+        (first res)
+        (let [opr (first oprs)
+              rest (rest oprs)]
           (recur [(apply opr res)] rest))))))
 
 (defn eval-res-ne
