@@ -10,6 +10,7 @@ Number of workers = 4
 | Groupby-aggregate | 49.6 |  |
 | Left join | |
 | Inner join | |
+| Rolling join | |
 
 Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputing the processed dataframe to csv format.
 
