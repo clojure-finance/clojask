@@ -8,6 +8,8 @@ Number of workers = 4
 | Row-wise selection | 48.5 | 72.8 |
 | Aggregation | 49.0 | |
 | Groupby-aggregate | 49.6 |  |
+| Left join | |
+| Inner join | |
 
 Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputing the processed dataframe to csv format.
 
