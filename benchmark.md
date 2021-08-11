@@ -4,8 +4,8 @@ Number of workers = 4
 
 | Operation | Dask (N=1,800,000) (s) | Clojask (N=1,800,000) (s) |
 | :---:   | :-: | :-: |
-| Element-wise operation | 58.1 | 89.1 |
-| Row-wise selection | 48.5 | 89.6 |
+| Element-wise operation | 58.1 | 71.3 |
+| Row-wise selection | 48.5 | 72.8 |
 | Aggregation | 49.0 | |
 | Groupby-aggregate | 49.6 |  |
 
