@@ -23,6 +23,10 @@
   []
   (quot (.maxMemory (Runtime/getRuntime)) 1048576))
 
+(defn -drop
+  [list n]
+  (drop n list))
+
 (defrecord AbsSeqReader [event reader filters types rst completed? checkpoint? offset]
   p/Plugin
 
@@ -39,7 +43,7 @@
   (recover! [this _ checkpoint]
     (vreset! completed? false)
     (let [csv-data (rest (line-seq (BufferedReader. reader)))
-          data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) csv-data))]
+          data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) (partition 100 100 nil csv-data)))]
       (if (nil? checkpoint)
         (do
           (vreset! rst data)

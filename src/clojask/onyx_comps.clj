@@ -79,10 +79,12 @@
             {})))
       (defn worker-func
         [seg]
-        (let [data (string/split (:data seg) #"," -1)]
-          (if (filter-check filters types data)
-            {:data (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
-            {})))))
+        {:data (map (fn [seg]
+                      (let [data (string/split seg #"," -1)]
+                        (if (filter-check filters types data)
+                          (mapv (fn [_] (eval-res-ne data types operations _)) indices)
+                          [])))
+                    (:data seg))})))
   )
 
 (defn catalog-gen

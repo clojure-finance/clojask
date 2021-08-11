@@ -69,12 +69,14 @@
     (loop [batch write-batch]
       (if-let [msg (first batch)]
           (do
+            (println msg)
           ;; (swap! example-datasink conj msg)
-            (if (not= msg {})
-              (do
-                (.write wtr (str (string/join "," (:data msg)) "\n"))
+            (doseq [msg (:data msg)]
+              (if (not= msg [])
+                (do
+                  (.write wtr (str (string/join "," msg) "\n"))
                 ;; !! define argument (debug)
-                ))
+                  )))
             
               (recur (rest batch)))))
     true))
