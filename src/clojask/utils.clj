@@ -50,10 +50,10 @@
         vals (get-val row types (first opr-vec))]
     ;; (println [vals])
     (loop [res vals oprs (rest opr-vec)]
-      (let [opr (first oprs)
-            rest (rest oprs)]
-        (if (= (count oprs) 0)
-          (first res)
+      (if (= (count oprs) 0)
+        (first res)
+        (let [opr (first oprs)
+              rest (rest oprs)]
           (recur [(apply opr res)] rest)))))
     (catch Exception e nil)))
 

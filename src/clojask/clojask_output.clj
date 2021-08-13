@@ -66,17 +66,15 @@
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (loop [batch write-batch]
-      (if-let [msg (first batch)]
-          (do
+    (doseq [msg write-batch]
+      ;; (if-let [msg (first batch)]
+      (do
           ;; (swap! example-datasink conj msg)
-            (if (not= msg {})
-              (do
-                (.write wtr (str (string/join "," (:data msg)) "\n"))
+        (if (not= msg {})
+          (do
+            (.write wtr (str (string/join "," (:data msg)) "\n"))
                 ;; !! define argument (debug)
-                ))
-            
-              (recur (rest batch)))))
+            ))))
     true))
 
 ;; Builder function for your output plugin.
