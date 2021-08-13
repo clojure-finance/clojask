@@ -82,8 +82,8 @@
         {:data (map (fn [seg]
                       (let [data (string/split seg #"," -1)]
                         (if (filter-check filters types data)
-                          (mapv (fn [_] (eval-res-ne data types operations _)) indices)
-                          [])))
+                          (string/join "," (mapv (fn [_] (eval-res-ne data types operations _)) indices))
+                          "")))
                     (:data seg))})))
   )
 
