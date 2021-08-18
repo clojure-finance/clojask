@@ -8,7 +8,8 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [clojask.join :as join]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -60,7 +61,8 @@
     [this func old-key new-key]
     (assert (= 0 (count (u/are-in old-key this))) "input is not existing column names")
     (assert (= 0 (count (u/are-out new-key this))) "new keys should not be existing column names")
-    (.aggregate row-info func old-key new-key))
+    (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
+      (.aggregate row-info func old-key new-key)))
   (filter
     [this cols predicate]
     (let [cols (if (coll? cols)
@@ -94,14 +96,13 @@
     [this parser colName]
     (.setType col-info parser colName))
   (addFormatter
-   [this format col]
-   (assert (u/is-in col this) "input is not existing column names")
-   (.setFormatter col-info format col))
+    [this format col]
+    (assert (u/is-in col this) "input is not existing column names")
+    (.setFormatter col-info format col))
   (final
-   [this]
-   (doseq [tmp (.getFormatter (:col-info this))]
-     (.operate this (nth tmp 1) (nth tmp 0)))
-   )
+    [this]
+    (doseq [tmp (.getFormatter (:col-info this))]
+      (.operate this (nth tmp 1) (nth tmp 0))))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
@@ -151,8 +152,10 @@
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (if (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-              "success"
+            (if 
+            ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
+             (start-onyx-aggre num-worker 10 this output-dir exception) 
+             "success"
               "failed at aggregate stage")
             "failed at group by stage"))
         (catch Exception e e))
@@ -198,7 +201,7 @@
           colNames (doall (first file))
           ;; colNames ["test"]
           col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
-          row-info (RowInfo. [] [] nil nil nil)]
+          row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
       (.close reader)
       (.init col-info colNames)
@@ -231,7 +234,7 @@
   (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
     (io/delete-file file))
   (io/make-parents "./_clojask/grouped/a.txt")
-  (if (= (.getAggreOldKeys (:row-info this)) nil)
+  (if (= (.getAggreFunc (:row-info this)) [])
     (.compute this num-worker output-dir exception)
     (.computeAggre this num-worker output-dir exception)))
 
@@ -241,7 +244,13 @@
 
 (defn aggregate
   [this func old-key & [new-key]]
-  (.aggregate this func old-key new-key))
+  (let [old-key (if (coll? old-key)
+                  old-key
+                  [old-key])
+        new-key (if new-key   ;; to do
+                  new-key
+                  nil)]
+   (.aggregate this func old-key new-key)))
 
 (defn sort
   [this list output-dir]
