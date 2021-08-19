@@ -56,7 +56,8 @@
                  key
                  [key])]
       (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
-      (.groupby row-info keys)))
+      (let [keys (mapv (fn [_] (get (.getKeyIndex col-info) _)) keys)]
+        (.groupby row-info keys))))
   (aggregate
     [this func old-key new-key]
     (assert (= 0 (count (u/are-in old-key this))) "input is not existing column names")
@@ -154,7 +155,7 @@
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (if 
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             (start-onyx-aggre num-worker 10 this output-dir exception) 
+             (start-onyx-aggre num-worker batch-size this output-dir exception) 
              "success"
               "failed at aggregate stage")
             "failed at group by stage"))

@@ -444,7 +444,7 @@
     (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    
+    (groupby/inject-dataframe dataframe)
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config

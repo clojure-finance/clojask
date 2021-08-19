@@ -9,6 +9,7 @@
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
             [clojask.utils :refer [eval-res eval-res-ne filter-check]]
+            [clojure.set :as set]
             [clojask.groupby :refer [read-csv-seq]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
@@ -39,9 +40,13 @@
 (defn worker-func-gen
   [df exception]
   (reset! dataframe df)
-  (let [aggre-funcs (.getAggreFunc (:row-info (deref dataframe)))]
+  (let [aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
+        formatters (.getFormatter (.col-info (deref dataframe)))
+        key-index (.getKeyIndex (.col-info (deref dataframe)))
+        formatters (set/rename-keys formatters key-index)]
     (defn worker-func
       [seq]
+      ;; (println formatters)
       (let [data (read-csv-seq (:file seq))
             pre (:data seq)
             data-map (-> (iterate inc 0)
@@ -54,11 +59,18 @@
         (loop [aggre-funcs aggre-funcs
                res []]
           (if (= aggre-funcs [])
-            {:data (vec (concat pre res))}
+            ;; {:data (vec (concat pre res))}
+            {:data (mapv concat (repeat pre) (apply map vector res))}
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
                   res-funcs (rest aggre-funcs)
-                  new (func (get data-map index))]
+                  new (func (get data-map index))
+                  new (if (coll? new)
+                        new
+                        (vector new))
+                  new (mapv (fn [_] (if-let [formatter (get formatters index)]
+                                     (formatter _)
+                                     _)) new)]
               (if (or (= res []) (= (count new) (count (last res))))
                 (recur res-funcs (conj res new))
                 (throw (Exception. "aggregation result is not of the same length")))

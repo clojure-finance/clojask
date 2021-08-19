@@ -28,24 +28,29 @@
 
 (defn gen-groupby-filenames
   "internal function to generate files csv line with groupby key(s)"
-  [dist msg groupby-keys key-index]
+  [dist msg groupby-keys key-index formatters]
   ;; (def output-filename dist)
   ;; (doseq [groupby-key groupby-keys]
   ;;   (def output-filename (str output-filename "_" (name groupby-key) "-" (nth msg (get key-index groupby-key)))))
   ;; (str output-filename ".csv")
-  (let [index (map (fn [_] (get key-index _)) groupby-keys)
-        val (mapv (fn [_] (nth msg _)) index)]
+  (let [index groupby-keys
+        ;; (map (fn [_] (get key-index _)) groupby-keys)
+        val (mapv (fn [_] 
+                    (if-let [formatter (get formatters _)]
+                      (formatter (nth msg _))
+                      (nth msg _))) 
+                  index)]
     (str dist val)))
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"
-  [dist msg groupby-keys key-index]
+  [dist msg groupby-keys key-index formatter]
   ;; msg this time is a vector
 
   ;; key-index contains the one to one correspondence of key value to index value, it is a map
   ;; eg "Salary" -> 3
   ;; (spit "resources/debug.txt" (str msg "\n" key-index) :append true)
-  (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index) ;; generate output filename
+  (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index formatter) ;; generate output filename
         groupby-wrtr (io/writer output-filename :append true)]
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
     (.write groupby-wrtr (str msg "\n"))

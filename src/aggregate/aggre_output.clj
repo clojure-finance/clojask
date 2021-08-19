@@ -72,7 +72,8 @@
           ;; (swap! example-datasink conj msg)
         (if (not= msg {})
           (do
-            (.write wtr (str (string/join "," (:data msg)) "\n"))
+            (doseq [data (:data msg)]
+              (.write wtr (str (string/join "," data) "\n")))
                 ;; !! define argument (debug)
             ))))
     true))

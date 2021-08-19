@@ -2,22 +2,25 @@
   (:require [clojask.groupby :refer [output-groupby]]
             [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
+            [clojure.set :as set]
             [taoensso.timbre :refer [debug info] :as timbre])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
-(def a (atom nil))
-(def b (atom nil))
+(def dataframe (atom nil))
 
 (defn inject-dataframe
-  [d-a d-b]
-  (reset! a d-a)
-  (reset! b d-b))
+  [df]
+  (reset! dataframe df))
 
 (defn- inject-into-eventmap
   [event lifecycle]
-  (let []
+  (let [key-index (.getKeyIndex (.col-info (deref dataframe)))
+        formatters (.getFormatter (.col-info (deref dataframe)))]
   ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
-    {:clojask/dist (:buffered-wtr/filename lifecycle) :clojask/groupby-keys (:clojask/groupby-keys lifecycle) :clojask/key-index (:clojask/key-index lifecycle)}))
+    {:clojask/dist (:buffered-wtr/filename lifecycle) 
+     :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
+     :clojask/key-index key-index
+     :clojask/formatter (set/rename-keys formatters key-index)}))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
@@ -70,7 +73,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/dist clojask/groupby-keys clojask/key-index]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/dist clojask/groupby-keys clojask/key-index clojask/formatter]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
@@ -83,7 +86,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-groupby dist (:data msg) groupby-keys key-index)))
+              (output-groupby dist (:data msg) groupby-keys key-index formatter)))
 
           (recur (rest batch)))))
     true))
