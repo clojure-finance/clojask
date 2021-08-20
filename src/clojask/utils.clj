@@ -98,6 +98,10 @@
   [string]
   string)
 
+(defn set-format-string
+  [string]
+  )
+
 (defn toDate
   [string]
   (try

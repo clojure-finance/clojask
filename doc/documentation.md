@@ -26,9 +26,10 @@
 
 ##### Basic Information
 
-- Most operations to the dataframe is performed lazily and all at once with `compute` except `sort`. 
+- Most operations to the dataframe is performed lazily and all at once with `compute` except `sort ` and `join`. 
 - The dataframe process the data in rows, ie one row in one vector.
 - The input dataframe can be larger than memory in size.
+- By default, all columns have the same type: string. You are allowed to set its type, with our predefined type keywords.
 
 ##### API
 
@@ -47,6 +48,8 @@
   ```clojure
   (filter x "Salary" (fn [salary] (<= salary 800)))
   ;; this statement deletes all the rows that have a salary larger than 800
+  (filter x ["Salary" "Department"] (fn [salary dept] (and (<= salary 800) (= dept "computer science"))))
+  ;; keeps only people from computer science department with salary not larger than 800
   ```
 
   
@@ -87,9 +90,7 @@
   ;; parse all the values in Salary with this function
   ```
 
-#### Remark
 
-**If you have set type of some columns, do not forget to convert it back to int/double/string at the end using the last operation!**
 
 - operate
 
@@ -115,18 +116,57 @@
 
   Calculate the result and store in a new column
 
-  | Argument         | Type                            | Function                      | Remarks                                                      |
-  | ---------------- | ------------------------------- | ----------------------------- | ------------------------------------------------------------ |
-  | `dataframe`      | Clojask.DataFrame               | The operated object           |                                                              |
-  | `operation`      | function                        | Function to be applied lazily | Argument number should be complied with the column names below, ie *if operation functions takes two arguments, the length of column names should also be 2, and in the same order to be passed to the function* |
-  | `column name(s)` | Keyword or collection of String | Target columns                | Should be existing columns within the dataframe              |
-  | `new column`     | String                          | Resultant column              | Should be new column other than the dataframe                |
+  | Argument         | Type                           | Function                      | Remarks                                                      |
+  | ---------------- | ------------------------------ | ----------------------------- | ------------------------------------------------------------ |
+  | `dataframe`      | Clojask.DataFrame              | The operated object           |                                                              |
+  | `operation`      | function                       | Function to be applied lazily | Argument number should be complied with the column names below, ie *if operation functions takes two arguments, the length of column names should also be 2, and in the same order to be passed to the function* |
+  | `column name(s)` | String or collection of String | Target columns                | Should be existing columns within the dataframe              |
+  | `new column`     | String                         | Resultant column              | Should be new column other than the dataframe                |
 
   **Example**
 
   ```clojure
   (operate x str ["Employee" "EmployeeName"] "new")
   ;; concats the two columns into the "new" column
+  ```
+
+  
+
+- group-by
+
+  Group by the dataframe with some columns (always use together with `aggregate`)
+
+  | Argument         | Type                           | Function            | Remarks                                         |
+  | ---------------- | ------------------------------ | ------------------- | ----------------------------------------------- |
+  | `dataframe`      | Clojask.DataFrame              | The operated object |                                                 |
+  | `column name(s)` | String or collection of String | Group by columns    | Should be existing columns within the dataframe |
+
+  **Example**
+
+  ```clojure
+  (group-by x ["Department" "DepartmentName"])
+  ;; group by both columns
+  ```
+
+
+
+
+- aggregate
+
+  Aggregate the grouped dataframes with some functions. The aggregation function will be applied to every columns registered in sequence.
+
+  | Argument               | Type                           | Function                              | Remarks                                                      |
+  | ---------------------- | ------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
+  | `dataframe`            | Clojask.DataFrame              | The operated object                   |                                                              |
+  | `aggregation function` | function                       | Function to be applied to each column | Should take one argument as a list. And return one or a collection of predefined type |
+  | `column name(s)`       | String or collection of String | Aggregate columns                     | Should be existing columns within the dataframe              |
+  | `new column`           | String or collection of string | Resultant column                      | Should be new column other than the dataframe                |
+
+  **Example**
+
+  ```clojure
+  (aggregate x clojask/min ["Employee" "EmployeeName"] ["new" "new2"])
+  ;; get the min of the two columns grouped by ...
   ```
 
   
