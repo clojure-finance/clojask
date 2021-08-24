@@ -274,9 +274,9 @@
   (io/make-parents "./_clojask/join/b/a.txt")
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
-  (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
+    (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil "inner"))
   )
 
