@@ -6,10 +6,10 @@ Number of workers = 4
 | :---:   | :-: | :-: | :-: | :-: |
 | Element-wise operation | 58.1 | 92.0 | 71.3 | 133.3 |
 | Row-wise selection | 48.5 | 88.0 | 72.8 | 145.6 |
-| Aggregation | 49.0 | | | |
+| Aggregation | 49.0 | 83.0 | | |
 | Groupby-aggregate | 49.6 | 89.0 | 75.9 | |
-| Left join | 54.1 | | | |
-| Inner join | 49.8 | | 1138.8 | |
+| Left join | 54.1 | 78.0 | | |
+| Inner join | 49.8 | 75.0 | 1138.8 | |
 | Rolling join | - | - | | |
 
 Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputing the processed dataframe to csv format.
