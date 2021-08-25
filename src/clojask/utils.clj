@@ -3,7 +3,7 @@
             [clojure.java.io :refer [resource]]
             [onyx.plugin.core-async :refer [take-segments!]]
             [tech.v3.dataset :as ds]
-            )
+            [clojure.string :as str])
   (:import (java.util Date)))
 "Utility function used in dataframe"
 
@@ -47,14 +47,14 @@
   ;; (println opr-vec)
   (try
     (let [opr-vec (get operations index)
-        vals (get-val row types (first opr-vec))]
+          vals (get-val row types (first opr-vec))]
     ;; (println [vals])
-    (loop [res vals oprs (rest opr-vec)]
-      (if (= (count oprs) 0)
-        (first res)
-        (let [opr (first oprs)
-              rest (rest oprs)]
-          (recur [(apply opr res)] rest)))))
+      (loop [res vals oprs (rest opr-vec)]
+        (if (= (count oprs) 0)
+          (first res)
+          (let [opr (first oprs)
+                rest (rest oprs)]
+            (recur [(apply opr res)] rest)))))
     (catch Exception e nil)))
 
 (defn filter-check
@@ -82,38 +82,61 @@
               (recur rem)
               false)))))))
 
-(defn toInt
-  [string]
-  (try
-    (Integer/parseInt string)
-    (catch Exception e nil)))
+(def toInt
+  (atom (fn [string]
+          (try
+            (Integer/parseInt string)
+            (catch Exception e nil)))))
 
-(defn toDouble
-  [string]
-  (try
-    (Double/parseDouble string)
-    (catch Exception e nil)))
+(def toDouble
+  (atom (fn [string]
+          (try
+            (Double/parseDouble string)
+            (catch Exception e nil)))))
 
-(defn toString
-  [string]
-  string)
+(def toString
+  (atom (fn [string]
+          string)))
+
+(def toDate
+  (atom (fn [string]
+          (try
+            (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
+            (catch Exception e (throw e))))))
+
+(def fromDate
+  (atom (fn [date]
+          (if (= (type date) java.util.Date)
+            (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
+            date))))
 
 (defn set-format-string
   [string]
-  )
+  (if (or (str/starts-with? string "date:") (str/starts-with? string "datetime:"))
+    (let [format-string (subs string (inc (str/index-of string ":")))]
+      (reset! toDate
+        (fn [string]
+          (try
+            (.parse (java.text.SimpleDateFormat. format-string) string)
+            (catch Exception e (throw e)))))
 
-(defn toDate
-  [string]
-  (try
-    ;; (Date. string)
-    (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-    (catch Exception e nil)))
+      (reset! fromDate
+        (fn [date]
+          (if (= (type date) java.util.Date)
+            (.format (java.text.SimpleDateFormat. format-string) date)
+            date))))
+    (do
+      (reset! toDate
+              (fn [string]
+                (try
+                  (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
+                  (catch Exception e (throw e)))))
 
-(defn fromDate
-  [date]
-  (if (= (type date) java.util.Date)
-    (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
-    date))
+      (reset! fromDate
+              (fn [date]
+                (if (= (type date) java.util.Date)
+                  (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
+                  date))))))
 
 ;; (def operation-type-map
 ;;   {toInt "int"
@@ -125,12 +148,12 @@
   {"int" [toInt str]
    "double" [toDouble str]
    "string" [toString str]
-   "date" [toDate fromDate]})
+   "date" [toDate fromDate]
+   "datetime" [toDate fromDate]})
 
 (defn type-detection
- [file]
- (let [sample (take 5 file)]
-   ))
+  [file]
+  (let [sample (take 5 file)]))
 
 (defn is-in
   [col dataframe]

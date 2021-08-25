@@ -8,8 +8,9 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [clojask.join :as join]
-            [clojure.string :as string]
-            [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]])
+            ;; [clojure.string :as str]
+            [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
+            [clojure.string :as str])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -84,9 +85,11 @@
       (doall (take n (csv/read-csv reader)))))
   (setType
     [this type colName]
-    (let [oprs (get u/type-operation-map type)
-          parser (nth oprs 0)
-          format (nth oprs 1)]
+    (u/set-format-string type)
+    (let [type (subs type 0 (if-let [tmp (str/index-of type ":")] tmp (count type)))
+          oprs (get u/type-operation-map type)
+          parser (deref (nth oprs 0))
+          format (deref (nth oprs 1))]
       (if (= oprs nil)
         "No such type. You could instead write your parsing function as the first operation to this column."
         (do
@@ -153,10 +156,10 @@
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (if 
+            (if
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             (start-onyx-aggre num-worker batch-size this output-dir exception) 
-             "success"
+             (start-onyx-aggre num-worker batch-size this output-dir exception)
+              "success"
               "failed at aggregate stage")
             "failed at group by stage"))
         (catch Exception e e))
