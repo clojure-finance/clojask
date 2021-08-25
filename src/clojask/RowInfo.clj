@@ -1,5 +1,6 @@
 (ns clojask.RowInfo
-  (:require [clojask.utils :refer :all]))
+  ;; (:require [clojask.utils :refer :all])
+  )
 
 (definterface RowIntf
   (getFilters [])

@@ -217,7 +217,8 @@
       (DataFrame. path 300 col-info row-info))
     (catch Exception e
       (do
-        (println "No such file or directory")
+        ;; (println "No such file or directory")
+        (throw e)
         nil))))
 
 (defn filter
@@ -251,9 +252,11 @@
   (let [old-key (if (coll? old-key)
                   old-key
                   [old-key])
-        new-key (if new-key   ;; to do
+        new-key (if (coll? new-key)   ;; to do
                   new-key
-                  nil)]
+                  (if (not= new-key nil)
+                    [new-key]
+                    (mapv (fn [_] (str func "(" _ ")")) old-key)))]
    (.aggregate this func old-key new-key)))
 
 (defn sort
