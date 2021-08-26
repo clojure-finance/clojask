@@ -295,9 +295,9 @@
   (io/make-parents "./_clojask/join/b/a.txt")
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
-  (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
+    (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil "left")))
 
 (defn right-join
@@ -309,9 +309,9 @@
   (io/make-parents "./_clojask/join/b/a.txt")
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
-  (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
+    (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil "right")))
 
 (defn rolling-join-forward
@@ -324,10 +324,10 @@
       (assert (and (not= a-roll nil) (not= b-roll nil)) "rolling key should be existing header")
       (io/make-parents "./_clojask/join/a/a.txt")
       (io/make-parents "./_clojask/join/b/a.txt")
-      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
   ;; (join/internal-rolling-join-forward a-keys b-keys a-roll b-roll)
       (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
             b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
+        (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
         (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll "forward")))
     )
   ;; (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys exception)

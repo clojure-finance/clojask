@@ -158,9 +158,9 @@
   | Argument               | Type                           | Function                              | Remarks                                                      |
   | ---------------------- | ------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
   | `dataframe`            | Clojask.DataFrame              | The operated object                   |                                                              |
-  | `aggregation function` | function                       | Function to be applied to each column | Should take one argument as a list. And return one or a collection of predefined type |
+  | `aggregation function` | function                       | Function to be applied to each column | Should take a collection as argument. And return one or a collection of predefined type*. |
   | `column name(s)`       | String or collection of String | Aggregate columns                     | Should be existing columns within the dataframe              |
-  | `new column`           | String or collection of string | Resultant column                      | Should be new column other than the dataframe                |
+  | [`new column`]         | String or collection of string | Resultant column                      | Should be new columns not in the dataframe                   |
 
   **Example**
 
@@ -218,7 +218,7 @@
 
   *Join functions are immediate actions, which will be executed at once.*
 
-  *Will automatically pipeline the registered operations and filters.*
+  *Will automatically pipeline the registered operations and filters like `compute`. You could think of join as first compute the two dataframes then join.*
 
   | Argument            | Type               | Function                                                     | Remarks                                           |
   | ------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
