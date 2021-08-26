@@ -3,7 +3,8 @@
             [clojure.java.io :refer [resource]]
             [onyx.plugin.core-async :refer [take-segments!]]
             [tech.v3.dataset :as ds]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojure.java.io :as io])
   (:import (java.util Date)))
 "Utility function used in dataframe"
 
@@ -190,3 +191,19 @@
                       a
                       b))
           list))
+
+(defn init-file
+  [out-dir]
+  (io/delete-file out-dir true)
+  (doseq [file (rest (file-seq (io/file "./_clojask/grouped/")))]
+    (try
+      (io/delete-file file)
+      (catch Exception e nil)))
+  (doseq [file (rest (file-seq (io/file "./_clojask/join/")))]
+    (try
+      (io/delete-file file)
+      (catch Exception e nil)))
+  (io/make-parents "./_clojask/grouped/a.txt")
+  (io/make-parents "./_clojask/join/a/a.txt")
+  (io/make-parents "./_clojask/join/b/a.txt")
+  (io/make-parents "./_clojask/sort/a.txt"))

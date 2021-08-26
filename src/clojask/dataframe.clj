@@ -234,11 +234,12 @@
 (defn compute
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
   ;; delete the files in output-dir and /_clojask/grouped
-  (io/delete-file output-dir true)
-  ;; (io/delete-file "./_clojask/grouped" true)
-  (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
-    (io/delete-file file))
-  (io/make-parents "./_clojask/grouped/a.txt")
+  ;; (io/delete-file output-dir true)
+  ;; ;; (io/delete-file "./_clojask/grouped" true)
+  ;; (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
+  ;;   (io/delete-file file))
+  ;; (io/make-parents "./_clojask/grouped/a.txt")
+  (u/init-file output-dir)
   (if (= (.getAggreFunc (:row-info this)) [])
     (.compute this num-worker output-dir exception)
     (.computeAggre this num-worker output-dir exception)))
@@ -261,6 +262,7 @@
 
 (defn sort
   [this list output-dir]
+  (u/init-file output-dir)
   (.sort this list output-dir))
 
 (defn set-type
@@ -276,14 +278,15 @@
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
   ;; (internal-inner-join a b a-keys b-keys)
-  (io/make-parents "./_clojask/join/a/a.txt")
-  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; (io/make-parents "./_clojask/join/a/a.txt")
+  ;; (io/make-parents "./_clojask/join/b/a.txt")
+  (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil "inner"))
+    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1))
   )
 
 (defn left-join
@@ -291,28 +294,30 @@
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
   ;; (internal-inner-join a b a-keys b-keys)
-  (io/make-parents "./_clojask/join/a/a.txt")
-  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; (io/make-parents "./_clojask/join/a/a.txt")
+  ;; (io/make-parents "./_clojask/join/b/a.txt")
+  (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil "left")))
+    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 2)))
 
 (defn right-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
   ;; (internal-inner-join a b a-keys b-keys)
-  (io/make-parents "./_clojask/join/a/a.txt")
-  (io/make-parents "./_clojask/join/b/a.txt")
+  ;; (io/make-parents "./_clojask/join/a/a.txt")
+  ;; (io/make-parents "./_clojask/join/b/a.txt")
+  (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
   (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
         b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
     (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
-    (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil "right")))
+    (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
 
 (defn rolling-join-forward
   [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception] :or {exception false}}]
@@ -322,13 +327,14 @@
   (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
     (do
       (assert (and (not= a-roll nil) (not= b-roll nil)) "rolling key should be existing header")
-      (io/make-parents "./_clojask/join/a/a.txt")
-      (io/make-parents "./_clojask/join/b/a.txt")
+      ;; (io/make-parents "./_clojask/join/a/a.txt")
+      ;; (io/make-parents "./_clojask/join/b/a.txt")
+      (u/init-file dist)
   ;; (join/internal-rolling-join-forward a-keys b-keys a-roll b-roll)
       (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
             b-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info b)) _)) b-keys))]
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll "forward")))
+        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4)))
     )
   ;; (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys exception)
   

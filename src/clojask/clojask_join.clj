@@ -92,7 +92,7 @@
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
     (case join-type
-      "inner" (loop [batch write-batch]
+      1 (loop [batch write-batch]
                 (if-let [msg (first batch)]
                   (do
           ;; (swap! example-datasink conj msg)
@@ -104,7 +104,7 @@
                         (join/output-join wtr (:data msg) a-keys a-map b-keys a-format b-format a-index b-index)))
 
                     (recur (rest batch)))))
-      "left" (loop [batch write-batch]
+      2 (loop [batch write-batch]
                (if-let [msg (first batch)]
                  (do
           ;; (swap! example-datasink conj msg)
@@ -116,7 +116,7 @@
                        (join/output-join-loo wtr (:data msg) a-keys a-map b-keys (count b-map) a-format b-format a-index b-index)))
 
                    (recur (rest batch)))))
-      "forward" (loop [batch write-batch]
+      4 (loop [batch write-batch]
                   (if-let [msg (first batch)]
                     (do
           ;; (swap! example-datasink conj msg)
