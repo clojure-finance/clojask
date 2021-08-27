@@ -99,6 +99,9 @@
   (atom (fn [string]
           string)))
 
+(def fromString
+  (atom (fn [_] (str _))))
+
 (def toDate
   (atom (fn [string]
           (try
@@ -146,9 +149,9 @@
 ;;    toDate "date"})
 
 (def type-operation-map
-  {"int" [toInt str]
-   "double" [toDouble str]
-   "string" [toString str]
+  {"int" [toInt fromString]
+   "double" [toDouble fromString]
+   "string" [toString fromString]
    "date" [toDate fromDate]
    "datetime" [toDate fromDate]})
 
