@@ -7,18 +7,22 @@
 
 (defn -main
   []
-  ;; (def y (dataframe "resources/Employees-large.csv"))
-  ;; (group-by y "Department")
-  ;; (aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
-  ;; (time (compute y 8 "resources/test.csv" :exception true))
+  (def y (dataframe "resources/Employees-large.csv"))
+  ;(group-by y "Department")
+  ;(aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
+  (time (compute y 8 "resources/test.csv" :exception true))
 
-  (def y (dataframe "resources/data-Compustat-lohi.csv"))
-  (set-type y "double" "prccq")
+  ;(def y (dataframe "resources/data-Compustat-lohi.csv"))
+  ;(set-type y "double" "prccq")
   ;(operate y - "prccq")
-  (operate y str ["prccq" "itccq"] "new-col")
+  ;(operate y str ["prccq" "itccq"] "new-col")
   ;(group-by y "gvkey")
-  ;(aggregate y aggre-max ["prccq"] ["prccq-max"])
-  (time (compute y 4 "resources/test.csv" :exception false))
+  ;(aggregate y min ["prccq"] ["prccq-min"])
+  ;(time (compute y 4 "resources/test.csv" :exception false))
+
+  ;; (def x (dataframe "resources/CRSP-extract.csv"))
+  ;; (def y (dataframe "resources/data-Compustat-lohi.csv"))
+  ;; (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
   )
 
 ;; (ns clojask.debug
