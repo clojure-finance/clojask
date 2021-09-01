@@ -82,11 +82,8 @@
     (.getType col-info))
   (printCol
     [this output-path]
-    (println output-path)
-    ;(println (str/join "," (keys (.getKeyIndex (.col-info this)))))
-    (with-open [wrtr (io/writer "resources/test-output.csv")]
-      (println "This is a test!!!")
-      (.write wrtr (str/join "," (keys (.getKeyIndex (.col-info this))))))
+    (with-open [wrtr (io/writer output-path)]
+      (.write wrtr (str (str/join "," (keys (.getKeyIndex (.col-info this)))) "\n")))
     )
   (head
     [this n]

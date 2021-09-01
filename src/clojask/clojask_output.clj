@@ -1,13 +1,14 @@
 (ns clojask.clojask-output
   (:require [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
+            [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
             [clojure.string :as string])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (defn- inject-into-eventmap
   [event lifecycle]
-  (let [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
+  (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)]
    {:clojask/wtr wtr}))
 
 (defn- close-writer [event lifecycle]
