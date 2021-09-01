@@ -24,6 +24,7 @@
   (addParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
+  (printCol [output-path] "print column names to output file")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
@@ -79,6 +80,11 @@
   (colTypes
     [this]
     (.getType col-info))
+  (printCol
+    [this output-path]
+    (with-open [wrtr (io/writer output-path)]
+      (.write wrtr (str (str/join "," (keys (.getKeyIndex (.col-info this)))) "\n")))
+    )
   (head
     [this n]
     (with-open [reader (io/reader path)]
@@ -143,6 +149,7 @@
       ;;   (catch Exception e e))
       (try
         (.final this)
+        (.printCol this output-dir) ;; print column names to output-dir
         (let [res (start-onyx num-worker batch-size this output-dir exception)]
           (if (= res "success")
             "success"
