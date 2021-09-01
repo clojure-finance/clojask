@@ -83,7 +83,7 @@
   (printCol
     [this output-path]
     (with-open [wrtr (io/writer output-path)]
-      (.write wrtr (str (str/join "," (keys (.getKeyIndex (.col-info this)))) "\n")))
+      (.write wrtr (str (str/join "," (map last (.getIndexKey (.col-info this)))) "\n")))
     )
   (head
     [this n]
