@@ -10,6 +10,7 @@
   (getType [])
   (getKeys [])
   (getKeyIndex [])
+  (getIndexKey [])
   (setFormatter [b c])
   (getFormatter []))
 
@@ -86,4 +87,7 @@
     col-keys)
   (getKeyIndex
    [this]
-   key-index))
+   key-index)
+  (getIndexKey
+   [this]
+   index-key))
