@@ -2,6 +2,7 @@
   (:require [clojask.join :as join]
             [clojure.set :as set]
             [onyx.peer.function :as function]
+            [clojure.java.io :as io]
             [onyx.plugin.protocols :as p]
             [taoensso.timbre :refer [debug info] :as timbre])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
@@ -17,7 +18,7 @@
 (defn- inject-into-eventmap
   [event lifecycle]
   (let 
-   [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))
+   [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
     a-map (.getKeyIndex (.col-info (deref a)))
     a-format (set/rename-keys (.getFormatter (.col-info (deref a))) a-map)
     b-map (.getKeyIndex (.col-info (deref b)))
