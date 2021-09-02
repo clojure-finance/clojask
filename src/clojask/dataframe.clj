@@ -25,6 +25,7 @@
   (colDesc [])
   (colTypes [])
   (printCol [output-path] "print column names to output file")
+  (printAggreCol [output-path] "print column names to output file for join & aggregate")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
@@ -85,6 +86,14 @@
     (with-open [wrtr (io/writer output-path)]
       (.write wrtr (str (str/join "," (map last (.getIndexKey (.col-info this)))) "\n")))
     )
+  (printAggreCol
+    [this output-path]
+    (let [groupby-key-index (.getGroupbyKeys (:row-info this))
+          groupby-keys (vec (map (.getIndexKey (.col-info this)) groupby-key-index))
+          aggre-new-keys (.getAggreNewKeys (:row-info this))]
+        (with-open [wrtr (io/writer output-path)]
+          (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
+      ))
   (head
     [this n]
     (with-open [reader (io/reader path)]
@@ -161,6 +170,7 @@
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
+          (.printAggreCol this output-dir) ;; print column names to output-dir
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (if
