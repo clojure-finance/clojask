@@ -4,11 +4,11 @@ Number of workers = 4
 
 | Operation | Dask (N=1,800,000) (s) | Dask (N=3,600,000) (s) | Clojask (N=1,800,000) (s) | Clojask (N=3,600,000) (s) |
 | :---:   | :-: | :-: | :-: | :-: |
-| Element-wise operation | 119.3 | 261.3 | 71.3 | 133.3 |
-| Row-wise selection | 115.0 | 232.0 | 72.8 | 145.6 |
-| Aggregation | 49.0 | 226.7 | | |
-| Groupby-aggregate | 116.7 | 229.3 | 75.9 | 681.3 |
-| Left join | 114.7 | 248.7 | | |
+| Element-wise operation | 119.3 | 261.3 | 72.3 | 133.3 |
+| Row-wise selection | 115.0 | 232.0 | 67.9 | 145.6 |
+| Aggregation | 49.0 | 226.7 | 77.5 | |
+| Groupby-aggregate | 116.7 | 229.3 | 459.5 | 681.3 |
+| Left join | 114.7 | 248.7 | 1152.0 | |
 | Inner join | 116.7 | 242.0| 1138.8 | |
 | Rolling join | - | - | | |
 
