@@ -214,23 +214,25 @@
                 (recur res true -)))))))
     (sort/use-external-sort path output-dir clojask-compare)))
 
+(defn generate-col
+  "Generate column names if there are none"
+  [col-count]
+  (vec (map #(str "Col_" %) (range 1 (+ col-count 1)))))
+
 (defn dataframe
-  [path]
+  [path & {:keys [have-col] :or {have-col true}}]
   (try
     (let [reader (io/reader path)
           file (csv/read-csv reader)
-          colNames (doall (first file))
-          ;; colNames ["test"]
+          colNames (if have-col (doall (first file)) (generate-col (count (first file))))
           col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
           row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
       (.close reader)
       (.init col-info colNames)
-
       ;; 
       ;; type detection
       ;; 
-
       (DataFrame. path 300 col-info row-info))
     (catch Exception e
       (do
