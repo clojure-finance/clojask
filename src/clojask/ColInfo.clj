@@ -12,7 +12,8 @@
   (getKeyIndex [])
   (getIndexKey [])
   (setFormatter [b c])
-  (getFormatter []))
+  (getFormatter [])
+  (renameCol [newColNames]))
 
 
 (deftype ColInfo
@@ -90,4 +91,7 @@
    key-index)
   (getIndexKey
    [this]
-   index-key))
+   index-key)
+  (renameCol
+    [this newColNames]
+    (set! col-keys (vec newColNames))))
