@@ -214,6 +214,32 @@
                 (recur res true -)))))))
     (sort/use-external-sort path output-dir clojask-compare)))
 
+
+; (check-duplicate-col ["a" "b" "c" "a"])
+(defn check-duplicate-col
+  "Check for duplicated column names and return a column names list w/o duplicates"
+  [colNames]
+  (if (not= (count (distinct colNames)) (count colNames))
+    (do
+      (println "WARNING: Duplicated columns found")
+      (let [colNames-var (atom colNames)
+            duplicate-list (into (sorted-map) (clojure.core/filter #(> (last %) 1) (frequencies (deref colNames-var))))
+            counter (atom 0)]
+        (doseq [col colNames]
+          (if (contains? duplicate-list col)
+            (do 
+              (reset! colNames-var (map #(if (= % col) 
+                (do
+                  (swap! counter inc)
+                  (str % (deref counter))) 
+                %) (deref colNames-var)))
+                (reset! counter 0))
+            ))
+          (deref colNames-var))
+    )
+    colNames
+    ))
+
 (defn generate-col
   "Generate column names if there are none"
   [col-count]

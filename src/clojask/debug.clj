@@ -7,10 +7,14 @@
 
 (defn -main
   []
-  (def y (dataframe "resources/Employees-large.csv"))
+  (def y (dataframe "resources/Employees-large.csv" :have-col false))
+  (println (.getKeys (.col-info y)))
+  (println "Renaming columns...")
+  (.renameCol (.col-info y) ["Employee" "EmployeeName" "Department" "New-Salary"])
+  (println (.getKeys (.col-info y)))
   ;(group-by y "Department")
   ;(aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
-  (time (compute y 8 "resources/test.csv" :exception true))
+  ;(time (compute y 8 "resources/test.csv" :exception true))
 
   ;(def y (dataframe "resources/data-Compustat-lohi.csv"))
   ;(set-type y "double" "prccq")
