@@ -215,7 +215,6 @@
     (sort/use-external-sort path output-dir clojask-compare)))
 
 
-; (check-duplicate-col ["a" "b" "c" "a"])
 (defn check-duplicate-col
   "Check for duplicated column names and return a column names list w/o duplicates"
   [colNames]
@@ -224,16 +223,16 @@
       (println "WARNING: Duplicated columns found")
       (let [colNames-var (atom colNames)
             duplicate-list (into (sorted-map) (clojure.core/filter #(> (last %) 1) (frequencies (deref colNames-var))))
-            counter (atom 0)]
+            counter (atom {})]
+        (doseq [duplicate-col duplicate-list]
+          (swap! counter assoc (first duplicate-col) (atom 0)))
         (doseq [col colNames]
           (if (contains? duplicate-list col)
-            (do 
-              (reset! colNames-var (map #(if (= % col) 
-                (do
-                  (swap! counter inc)
-                  (str % (deref counter))) 
-                %) (deref colNames-var)))
-                (reset! counter 0))
+            (reset! colNames-var (map #(if (= % col) 
+              (do
+                (swap! (get @counter col) inc)
+                (str % (deref (get @counter col)))) 
+              %) (deref colNames-var)))
             ))
           (deref colNames-var))
     )
@@ -250,7 +249,7 @@
   (try
     (let [reader (io/reader path)
           file (csv/read-csv reader)
-          colNames (if have-col (doall (first file)) (generate-col (count (first file))))
+          colNames (check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
           col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
           row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
