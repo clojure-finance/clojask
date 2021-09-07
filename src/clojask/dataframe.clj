@@ -44,7 +44,8 @@
    ;; more fields to add
    ;;  ...
             ^ColInfo col-info
-            ^RowInfo row-info]
+            ^RowInfo row-info
+            ^Boolean have-col]
   DFIntf
   (operate ;; has assert
     [this operation colName]
@@ -258,7 +259,7 @@
       ;; 
       ;; type detection
       ;; 
-      (DataFrame. path 300 col-info row-info))
+      (DataFrame. path 300 col-info row-info have-col))
     (catch Exception e
       (do
         ;; (println "No such file or directory")
