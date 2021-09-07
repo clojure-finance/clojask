@@ -1,5 +1,6 @@
 .DS_Store
 onyx.log
+*.log
 resources/*
 .lein-repl-history
 .nrepl-port
