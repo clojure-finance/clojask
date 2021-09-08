@@ -13,7 +13,8 @@
   (getIndexKey [])
   (setFormatter [b c])
   (getFormatter [])
-  (renameCol [newColNames]))
+  (renameCol [newColNames])
+  (reorderCol [newColOrder]))
 
 
 (deftype ColInfo
@@ -94,4 +95,23 @@
    index-key)
   (renameCol
     [this newColNames]
-    (set! col-keys (vec newColNames))))
+    (set! col-keys (vec newColNames)))
+  (reorderCol
+    [this newColOrder]
+    (assert (= (set col-keys) (set newColOrder)))
+    (println "BEFORE re-ordering...")
+    (println (.getKeyIndex this))
+    (println (.getIndexKey this))
+    (println (.getDesc this))
+    
+    (println "AFTER re-ordering...")
+    (let [original-key-index (.getKeyIndex this)
+          new-col-dsp (vals (select-keys original-key-index newColOrder))]
+      (set! key-index (zipmap newColOrder (iterate inc 0)))
+      (println (.getKeyIndex this))
+      (set! index-key (zipmap (iterate inc 0) newColOrder))
+      (println (.getIndexKey this))
+      (set! col-dsp (zipmap (take (count col-keys) (iterate inc 0)) (map vector (map vector new-col-dsp))))
+      (println (.getDesc this))
+      )
+    ))
