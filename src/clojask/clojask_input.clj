@@ -23,7 +23,7 @@
   []
   (quot (.maxMemory (Runtime/getRuntime)) 1048576))
 
-(defrecord AbsSeqReader [event reader filters types rst completed? checkpoint? offset]
+(defrecord AbsSeqReader [event reader filters types have-col rst completed? checkpoint? offset]
   p/Plugin
 
   (start [this event]
@@ -38,7 +38,9 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (let [csv-data (rest (line-seq (BufferedReader. reader)))
+    (let [csv-data (if have-col 
+                     (rest (line-seq (BufferedReader. reader)))
+                     (line-seq (BufferedReader. reader)))
           data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) csv-data))]
       (if (nil? checkpoint)
         (do
@@ -90,6 +92,7 @@
                       :reader (:seq/rdr event)
                       :filters (.getFilters (:row-info  df))
                       :types (.getType (:col-info df))
+                      :have-col (:have-col df)
                       :rst (volatile! nil)
                       :completed? (volatile! false)
                       :checkpoint? (not (false? (:seq/checkpoint? task-map)))
