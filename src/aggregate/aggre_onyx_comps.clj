@@ -42,8 +42,9 @@
   (reset! dataframe df)
   (let [aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
         formatters (.getFormatter (.col-info (deref dataframe)))
-        key-index (.getKeyIndex (.col-info (deref dataframe)))
-        formatters (set/rename-keys formatters key-index)]
+        ;; key-index (.getKeyIndex (.col-info (deref dataframe)))
+        ;; formatters (set/rename-keys formatters key-index)
+        ]
     (defn worker-func
       [seq]
       ;; (println formatters)

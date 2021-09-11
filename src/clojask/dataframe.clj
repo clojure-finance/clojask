@@ -122,7 +122,7 @@
   (final
     [this]
     (doseq [tmp (.getFormatter (:col-info this))]
-      (.operate this (nth tmp 1) (nth tmp 0))))
+      (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
     ;; currently put read file here
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]

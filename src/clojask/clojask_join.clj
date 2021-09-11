@@ -19,10 +19,10 @@
   [event lifecycle]
   (let 
    [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
-    a-map (.getKeyIndex (.col-info (deref a)))
-    a-format (set/rename-keys (.getFormatter (.col-info (deref a))) a-map)
-    b-map (.getKeyIndex (.col-info (deref b)))
-    b-format (set/rename-keys (.getFormatter (.col-info (deref b))) b-map)]
+    ;; a-map (.getKeyIndex (.col-info (deref a)))
+    a-format (.getFormatter (.col-info (deref a)))
+    ;; b-map (.getKeyIndex (.col-info (deref b)))
+    b-format (.getFormatter (.col-info (deref b)))]
     {:clojask/wtr wtr
      :clojask/a-keys (:clojask/a-keys lifecycle)
      :clojask/b-keys (:clojask/b-keys lifecycle)
