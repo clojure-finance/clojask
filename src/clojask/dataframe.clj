@@ -10,7 +10,9 @@
             [clojask.join :as join]
             ;; [clojure.string :as str]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojask.preview :as preview]
+            )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -33,6 +35,7 @@
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
+  (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
   (final [] "prepare the dataframe for computation")
   )
 
@@ -124,6 +127,11 @@
     (doseq [tmp (.getFormatter (:col-info this))]
       (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
     ;; currently put read file here
+
+  (preview
+   [this sample-size return-size format]
+   (preview/preview this sample-size return-size format)
+   )
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
     [this ^int num-worker ^String output-dir ^boolean exception]
@@ -317,6 +325,10 @@
 (defn add-parser
   [this parser col]
   (.addParser this parser col))
+
+(defn preview
+  [dataframe sample-size return-size & {:keys [format] :or {format false}}]
+  (.preview dataframe sample-size return-size format))
 
 (defn inner-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
