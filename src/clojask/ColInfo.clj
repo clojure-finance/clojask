@@ -100,26 +100,15 @@
     [this newColOrder]
     (assert (= (set col-keys) (set newColOrder)))
     (set! col-keys (vec newColOrder))
-    (println "BEFORE re-ordering...")
-    (println (.getKeyIndex this))
-    (println (.getIndexKey this))
-    (println (.getDesc this))
-    (println (.getType this))
-    (println (.getFormatter this))
-    
-    (println "AFTER re-ordering...")
     (let [original-key-index (.getKeyIndex this)
           new-col-dsp-vals (vals (select-keys original-key-index newColOrder))
-          original-type (.getType this)]
+          original-type (.getType this)
+          original-format (.getFormatter this)]
       (set! key-index (zipmap newColOrder (iterate inc 0)))
-      (println (.getKeyIndex this))
       (set! index-key (zipmap (iterate inc 0) newColOrder))
-      (println (.getIndexKey this))
       (set! col-dsp (zipmap (take (count col-keys) (iterate inc 0)) (map vector (map vector new-col-dsp-vals))))
-      (println (.getDesc this))
       (if (not (empty? (.getType this)))
           (set! col-type (zipmap (map #(first (first (get col-dsp (first %)))) original-type) (map last original-type))))
-      (println (.getType this))
-
-      (println (.getFormatter this))
+      (if (not (empty? (.getFormatter this)))
+          (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))
     )))
