@@ -46,6 +46,7 @@
         ;; formatters (set/rename-keys formatters key-index)
         ]
     (defn worker-func
+      "refered in preview"
       [seq]
       ;; (println formatters)
       (let [data (read-csv-seq (:file seq))
