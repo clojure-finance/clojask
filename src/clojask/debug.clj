@@ -11,11 +11,14 @@
   (set-type y "double" "Department")
   (println (.getKeys (.col-info y)))
   ;(println "Renaming columns...")
+  (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
+  (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
+  (group-by y "Department")
+  (aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
   (.reorderCol (.col-info y) ["Employee" "Department" "EmployeeName" "Salary"])
+  (.reorderCol (.row-info y) (.getDesc (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"])
   (println (.getKeys (.col-info y)))
-
-  ;(group-by y "Department")
-  ;(aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
+  
   ;(time (compute y 8 "resources/test.csv" :exception true))
 
   ;(def y (dataframe "resources/data-Compustat-lohi.csv"))

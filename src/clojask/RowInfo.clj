@@ -10,7 +10,8 @@
   (getGroupbyKeys [])
   (filter [cols predicate])
   (groupby [a])
-  (aggregate [func old-key new-key]))
+  (aggregate [func old-key new-key])
+  (reorderCol [new-col-desc new-col-order]))
 
 (deftype RowInfo
          [^:unsynchronized-mutable filters
@@ -52,4 +53,26 @@
         (doseq [new-key new-keys]
          (set! aggre-new-key (conj aggre-new-key new-key)))
         "success")
-      "failed: you must first group the dataframe by some keys then aggregate")))
+      "failed: you must first group the dataframe by some keys then aggregate"))
+  (reorderCol
+    [self new-col-desc new-col-order]
+    (println new-col-desc)
+    (println "Before re-ordering...")
+    (println (.getFilters self))
+    (println (.getGroupbyKeys self))
+    (println (.getAggreFunc self))
+    (println (.getAggreNewKeys self))
+    (println "After re-ordering...")
+    (let [original-filter (.getFilters self)
+          original-groupby-keys (.getGroupbyKeys self)
+          new-filter-fns (map #(first %) original-filter)
+          new-filter-cols (map (fn [fcols] (map #(first (first (get new-col-desc %))) fcols)) (doall (map #(last %) original-filter)))]
+      (if (not (empty? (.getFilters self)))
+        (set! filters (vec (map vector new-filter-fns new-filter-cols))))
+      (if (not (empty? (.getGroupbyKeys self)))
+        (set! groupby-key (vec (map #(first (first (get new-col-desc %))) original-groupby-keys))))
+      )
+      (println (.getFilters self))
+      (println (.getGroupbyKeys self))
+      )
+  )
