@@ -4,13 +4,16 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :as u]
-            [clojask.groupby :refer [internal-aggregate aggre-min]]
+            ;; [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
-            [clojask.join :as join]
+            ;; [clojask.join :as join]
             ;; [clojure.string :as str]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [clojask.preview :as preview]
+            [clojure.pprint :as pprint]
+            )
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -33,6 +36,7 @@
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
+  (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
   (final [] "prepare the dataframe for computation")
   )
 
@@ -122,8 +126,13 @@
   (final
     [this]
     (doseq [tmp (.getFormatter (:col-info this))]
-      (.operate this (nth tmp 1) (nth tmp 0))))
+      (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
     ;; currently put read file here
+
+  (preview
+   [this sample-size return-size format]
+   (preview/preview this sample-size return-size format)
+   )
   (compute
   ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
     [this ^int num-worker ^String output-dir ^boolean exception]
@@ -317,6 +326,18 @@
 (defn add-parser
   [this parser col]
   (.addParser this parser col))
+
+(defn preview
+  [dataframe sample-size return-size & {:keys [format] :or {format false}}]
+  (.preview dataframe sample-size return-size format))
+
+(defn print-df
+  [dataframe & [sample-size return-size]]
+  (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+        tmp (first data)
+        types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
+        data (conj (apply list data) types)]
+    (pprint/print-table data)))
 
 (defn inner-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]

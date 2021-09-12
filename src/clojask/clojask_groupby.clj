@@ -20,7 +20,7 @@
     {:clojask/dist (:buffered-wtr/filename lifecycle) 
      :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
      :clojask/key-index key-index
-     :clojask/formatter (set/rename-keys formatters key-index)}))
+     :clojask/formatter formatters}))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
