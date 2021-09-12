@@ -77,7 +77,7 @@
              preview-aggre-func (fn [key v-of-v]
                                   (let [data v-of-v
                                         ;; pre 
-                                        pre (mapv #(nth (first v-of-v) %) groupby-key-index)
+                                        pre (mapv #(if formatting ((or (get formatters %) identity)(nth (first v-of-v) %)) (nth (first v-of-v) %)) groupby-key-index)
                                         data-map (-> (iterate inc 0)
                                                      (zipmap (apply map vector data)))]
                                     (loop [aggre-funcs aggre-funcs
