@@ -99,6 +99,7 @@
   (reorderCol
     [this newColOrder]
     (assert (= (set col-keys) (set newColOrder)))
+    (set! col-keys (vec newColOrder))
     (println "BEFORE re-ordering...")
     (println (.getKeyIndex this))
     (println (.getIndexKey this))
@@ -119,4 +120,6 @@
       (if (not (empty? (.getType this)))
           (set! col-type (zipmap (map #(first (first (get col-dsp (first %)))) original-type) (map last original-type))))
       (println (.getType this))
+
+      (println (.getFormatter this))
     )))
