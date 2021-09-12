@@ -210,3 +210,7 @@
   (io/make-parents "./_clojask/join/a/a.txt")
   (io/make-parents "./_clojask/join/b/a.txt")
   (io/make-parents "./_clojask/sort/a.txt"))
+
+(defn get-type-string
+  [x]
+  (subs (str (type x)) 6))

@@ -74,7 +74,7 @@
       "There is no such column name."))
   (setFormatter
    [this format col]
-   (set! col-format (assoc col-format col format)))
+   (set! col-format (assoc col-format (get key-index col) format)))
   (getFormatter
    [this]
    col-format)
