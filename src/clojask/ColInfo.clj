@@ -14,7 +14,7 @@
   (setFormatter [b c])
   (getFormatter [])
   (renameCol [newColNames])
-  (reorderCol [newColOrder]))
+  (setColInfo [new-col-set]))
 
 
 (deftype ColInfo
@@ -96,16 +96,16 @@
   (renameCol
     [this newColNames]
     (set! col-keys (vec newColNames)))
-  (reorderCol
-    [this newColOrder]
-    (assert (= (set col-keys) (set newColOrder)))
-    (set! col-keys (vec newColOrder))
+  (setColInfo
+    [this new-col-set]
+    (assert (= (set col-keys) (set new-col-set)))
+    (set! col-keys (vec new-col-set))
     (let [original-key-index (.getKeyIndex this)
-          new-col-dsp-vals (vals (select-keys original-key-index newColOrder))
+          new-col-dsp-vals (vals (select-keys original-key-index new-col-set))
           original-type (.getType this)
           original-format (.getFormatter this)]
-      (set! key-index (zipmap newColOrder (iterate inc 0)))
-      (set! index-key (zipmap (iterate inc 0) newColOrder))
+      (set! key-index (zipmap new-col-set (iterate inc 0)))
+      (set! index-key (zipmap (iterate inc 0) new-col-set))
       (set! col-dsp (zipmap (take (count col-keys) (iterate inc 0)) (map vector (map vector new-col-dsp-vals))))
       (if (not (empty? (.getType this)))
           (set! col-type (zipmap (map #(first (first (get col-dsp (first %)))) original-type) (map last original-type))))

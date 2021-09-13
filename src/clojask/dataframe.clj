@@ -29,6 +29,7 @@
   (colTypes [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for join & aggregate")
+  (reorderCol [new-col-order] "reorder columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
@@ -99,6 +100,10 @@
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
       ))
+  (reorderCol
+    [this new-col-order]
+    (.setColInfo (.col-info this) new-col-order)
+    (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
   (head
     [this n]
     (with-open [reader (io/reader path)]
