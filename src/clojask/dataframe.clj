@@ -30,6 +30,7 @@
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for join & aggregate")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
+  (renameCol [new-col-names] "reorder columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
@@ -104,6 +105,9 @@
     [this new-col-order]
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
+  (renameCol
+    [this new-col-names]
+    (.renameColInfo (.col-info this) new-col-names))
   (head
     [this n]
     (with-open [reader (io/reader path)]

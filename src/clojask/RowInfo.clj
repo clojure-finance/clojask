@@ -11,7 +11,8 @@
   (filter [cols predicate])
   (groupby [a])
   (aggregate [func old-key new-key])
-  (setRowInfo [new-col-desc new-col-set]))
+  (setRowInfo [new-col-desc new-col-set])
+  (renameRowInfo [new-col-names]))
 
 (deftype RowInfo
          [^:unsynchronized-mutable filters
