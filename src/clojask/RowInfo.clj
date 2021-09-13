@@ -11,7 +11,7 @@
   (filter [cols predicate])
   (groupby [a])
   (aggregate [func old-key new-key])
-  (reorderCol [new-col-desc new-col-order]))
+  (setRowInfo [new-col-desc new-col-set]))
 
 (deftype RowInfo
          [^:unsynchronized-mutable filters
@@ -54,8 +54,8 @@
          (set! aggre-new-key (conj aggre-new-key new-key)))
         "success")
       "failed: you must first group the dataframe by some keys then aggregate"))
-  (reorderCol
-    [self new-col-desc new-col-order]
+  (setRowInfo
+    [self new-col-desc new-col-set]
     (let [original-filter (.getFilters self)
           original-groupby-keys (.getGroupbyKeys self)
           original-aggre-func (.getAggreFunc self)
