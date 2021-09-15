@@ -246,4 +246,22 @@
   ;; right join x and y
   ```
 
+- reorderCol / renameCol
+
+  Reorder the columns / rename the column names in the dataframe
+
+  | Argument            | Type               | Function                                                     | Remarks                                           |
+  | ------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
+  | `dataframe a`       | Clojask.DataFrame  | The operated object                                          |                                                   |
+  | `a columns`         | Clojure.collection | The new set of column names                                  | Should be existing headers in dataframe a if it is `reorderCol`         |
+
+
+  **Example**
+
+  ```clojure
+  (.reorderCol y ["Employee" "Department" "EmployeeName" "Salary"])
+  (.renameCol y ["Employee" "new-Department" "EmployeeName" "Salary"])
+  ```
+
+
   
