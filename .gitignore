@@ -8,4 +8,6 @@ target/*
 _clojask/*
 .lsp
 .calva
+.clj-kondo
+# sqlite.db
 # _*.csv
