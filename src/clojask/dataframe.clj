@@ -19,7 +19,6 @@
 "The clojask lazy dataframe"
 
 (definterface DFIntf
-  ;; (compute [& {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}])
   (compute [^int num-worker ^String output-dir ^boolean exception])
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
@@ -143,38 +142,8 @@
    (preview/preview this sample-size return-size format)
    )
   (compute
-  ;;  [this & {:keys [num-worker output-dir] :or {num-worker 1 output-dir "resources/test.csv"}}]
     [this ^int num-worker ^String output-dir ^boolean exception]
-  ;;  "success"))
     (if (<= num-worker 8)
-      ;; (try
-      ;;   (with-open [rdr (io/reader path) wtr (io/writer  output-dir)]
-      ;; ;; (with-open [rdr (io/reader path) wtr (io/output-stream "test.txt")]
-      ;;     (let [o-keys (map keyword (first (csv/read-csv rdr)))
-      ;;           keys (.getKeys col-info)]
-      ;;       (.write wtr (str (clojure.string/join "," (map name keys)) "\n"))
-      ;;       (if exception
-      ;;         (doseq [line (csv/read-csv rdr)]
-      ;;           (let [row (zipmap o-keys line)]
-      ;;             (if (filter-check (.getFilters row-info) row)
-      ;;               (do
-      ;;                 (doseq [key keys]
-      ;;                   (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-      ;;                   (if (not= key (last keys)) (.write wtr ",")))
-      ;;                 (.write wtr "\n")))))
-      ;;         (doseq [line (csv/read-csv rdr)]
-      ;;           (let [row (zipmap o-keys line)]
-      ;;             (if (filter-check (.getFilters row-info) row)
-      ;;               (do
-      ;;                 (doseq [key keys]
-      ;;                   (try
-      ;;                     (.write wtr (str (eval-res row (key (.getDesc col-info)))))
-      ;;                     (catch Exception e nil))
-      ;;                   (if (not= key (last keys)) (.write wtr ",")))
-      ;;                 (.write wtr "\n")))))))
-      ;;     (.flush wtr)
-      ;;     "success")
-      ;;   (catch Exception e e))
       (try
         (.final this)
         (.printCol this output-dir) ;; print column names to output-dir
@@ -296,12 +265,6 @@
 
 (defn compute
   [this num-worker output-dir & {:keys [exception] :or {exception false}}]
-  ;; delete the files in output-dir and /_clojask/grouped
-  ;; (io/delete-file output-dir true)
-  ;; ;; (io/delete-file "./_clojask/grouped" true)
-  ;; (doseq [file (rest (file-seq (clojure.java.io/file "./_clojask/grouped/")))]
-  ;;   (io/delete-file file))
-  ;; (io/make-parents "./_clojask/grouped/a.txt")
   (u/init-file output-dir)
   (if (= (.getAggreFunc (:row-info this)) [])
     (.compute this num-worker output-dir exception)
@@ -352,9 +315,6 @@
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
-  ;; (internal-inner-join a b a-keys b-keys)
-  ;; (io/make-parents "./_clojask/join/a/a.txt")
-  ;; (io/make-parents "./_clojask/join/b/a.txt")
   (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
@@ -368,9 +328,6 @@
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
-  ;; (internal-inner-join a b a-keys b-keys)
-  ;; (io/make-parents "./_clojask/join/a/a.txt")
-  ;; (io/make-parents "./_clojask/join/b/a.txt")
   (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
@@ -383,9 +340,6 @@
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
   (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
-  ;; (internal-inner-join a b a-keys b-keys)
-  ;; (io/make-parents "./_clojask/join/a/a.txt")
-  ;; (io/make-parents "./_clojask/join/b/a.txt")
   (u/init-file dist)
   ;; first group b by keys
   ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
@@ -402,8 +356,6 @@
   (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
     (do
       (assert (and (not= a-roll nil) (not= b-roll nil)) "rolling key should be existing header")
-      ;; (io/make-parents "./_clojask/join/a/a.txt")
-      ;; (io/make-parents "./_clojask/join/b/a.txt")
       (u/init-file dist)
   ;; (join/internal-rolling-join-forward a-keys b-keys a-roll b-roll)
       (let [a-keys (vec (map (fn [_] (get (.getKeyIndex (.col-info a)) _)) a-keys))
