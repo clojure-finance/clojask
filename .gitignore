@@ -9,5 +9,6 @@ _clojask/*
 .lsp
 .calva
 .clj-kondo
+api_design.clj
 # sqlite.db
 # _*.csv
