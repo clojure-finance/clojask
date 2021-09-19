@@ -61,19 +61,19 @@
   | Argument    | Type              | Function            | Remarks                                                      |
   | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
   | `dataframe` | Clojask.DataFrame | The operated object |                                                              |
-  | `type`      | String            | Type of the column  | The native support types are: int, double, string, date. Note that by default all the column types are string. If you need special parsing function, see `add-parser`. |
+  | `type`      | String            | Type of the column  | The native support types are: int, double, string, date. Note that by default all the column types are string. If you need special parsing function, see `set-parser`. |
   | `column`    | String            | Target columns      | Should be existing columns within the dataframe              |
 
   **Example**
 
   ```clojure
-  (set-type x "double" "Salary")
+  (set-type x "Salary" "double")
   ;; makes the column Salary doubles
   ```
 
   
 
-- add-parser
+- set-parser
 
   A more flexible way to set type.
 
@@ -86,7 +86,7 @@
   **Example**
 
   ```clojure
-  (add-parser x Double/parseDouble "Salary")
+  (set-parser x "Salary" Double/parseDouble)
   ;; parse all the values in Salary with this function
   ```
 
@@ -105,7 +105,7 @@
   **Example**
 
   ```clojure
-  (set-type x "double" "Salary")
+  (set-type x "Salary" "double")
   (operate x - "Salary")
   ;; takes the negative of column Salary
   ```

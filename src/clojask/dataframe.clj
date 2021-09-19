@@ -23,8 +23,8 @@
   (compute [^int num-worker ^String output-dir ^boolean exception])
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
-  (setType [type colName] "types supported: int double string date")
-  (addParser [parser col] "add the parser for a col which acts like setType")
+  (setType [colName type] "types supported: int double string date")
+  (setParser [col parser] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
   (printCol [output-path] "print column names to output file")
@@ -113,7 +113,7 @@
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
   (setType
-    [this type colName]
+    [this colName type]
     (u/set-format-string type)
     (let [type (subs type 0 (if-let [tmp (str/index-of type ":")] tmp (count type)))
           oprs (get u/type-operation-map type)
@@ -122,12 +122,12 @@
       (if (= oprs nil)
         "No such type. You could instead write your parsing function as the first operation to this column."
         (do
-          (.setType col-info parser colName)
+          (.setType col-info colName parser)
           (.addFormatter this format colName)
           "success"))))
-  (addParser
-    [this parser colName]
-    (.setType col-info parser colName))
+  (setParser
+    [this colName parser]
+    (.setType col-info colName parser))
   (addFormatter
     [this format col]
     (assert (u/is-in col this) "input is not existing column names")
@@ -329,12 +329,12 @@
   (.sort this list output-dir))
 
 (defn set-type
-  [this type col]
-  (.setType this type col))
+  [this col type]
+  (.setType this col type))
 
-(defn add-parser
-  [this parser col]
-  (.addParser this parser col))
+(defn set-parser
+  [this col parser]
+  (.setParser this col parser))
 
 (defn preview
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
@@ -347,6 +347,14 @@
         types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
         data (conj (apply list data) types)]
     (pprint/print-table data)))
+
+(defn reorder-col
+  [this new-col-order]
+  (.reorderCol this new-col-order))
+
+(defn rename-col
+  [this new-col-names]
+  (.renameCol this new-col-names))
 
 (defn inner-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
@@ -366,7 +374,7 @@
 
 (defn left-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
-  (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
+  ;(assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
   (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
   ;; (internal-inner-join a b a-keys b-keys)
   ;; (io/make-parents "./_clojask/join/a/a.txt")
