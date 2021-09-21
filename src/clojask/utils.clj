@@ -214,3 +214,24 @@
 (defn get-type-string
   [x]
   (subs (str (type x)) 6))
+
+(defn check-duplicate-col
+  "Check for duplicated column names and return a column names list w/o duplicates"
+  [colNames]
+  (if (not= (count (distinct colNames)) (count colNames))
+    (do
+      (println "WARNING: Duplicated columns found")
+      (let [colNames-var (atom colNames)
+            duplicate-list (into (sorted-map) (clojure.core/filter #(> (last %) 1) (frequencies (deref colNames-var))))
+            counter (atom {})]
+        (doseq [duplicate-col duplicate-list]
+          (swap! counter assoc (first duplicate-col) (atom 0)))
+        (doseq [col colNames]
+          (if (contains? duplicate-list col)
+            (reset! colNames-var (map #(if (= % col)
+                                         (do
+                                           (swap! (get @counter col) inc)
+                                           (str % (deref (get @counter col))))
+                                         %) (deref colNames-var)))))
+        (deref colNames-var)))
+    colNames))

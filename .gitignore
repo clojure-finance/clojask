@@ -12,3 +12,4 @@ _clojask/*
 api_design.clj
 # sqlite.db
 # _*.csv
+.vscode
