@@ -8,7 +8,6 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             ;; [clojask.join :as join]
-            ;; [clojure.string :as str]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
@@ -152,7 +151,6 @@
    )
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception]
-  ;;  "success"))
     (assert (= java.lang.String (type output-dir)) "output path should be a string")
     (if (<= num-worker 8)
       (try
