@@ -95,7 +95,6 @@
    index-key)
   (setColInfo
     [this new-col-set]
-    (assert (= (set col-keys) (set new-col-set)))
     (let [original-key-index (.getKeyIndex this)
           new-col-dsp-vals (vals (select-keys original-key-index new-col-set))
           original-type (.getType this)
@@ -111,7 +110,6 @@
     ))
   (renameColInfo
     [this new-col-names]
-    (assert (= (count col-keys) (count new-col-names)))
     (set! col-keys (vec new-col-names))
     (set! key-index (zipmap new-col-names (map #(last %) (.getKeyIndex this))))
     (set! index-key (zipmap (map #(first %) (.getIndexKey this)) new-col-names))

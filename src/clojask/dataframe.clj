@@ -8,7 +8,6 @@
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             ;; [clojask.join :as join]
-            ;; [clojure.string :as str]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
@@ -89,11 +88,13 @@
     (.getType col-info))
   (printCol
     [this output-path]
+    (assert (= java.lang.String (type output-path)) "output path should be a string")
     (with-open [wrtr (io/writer output-path)]
       (.write wrtr (str (str/join "," (map last (.getIndexKey (.col-info this)))) "\n")))
     )
   (printAggreCol
     [this output-path]
+    (assert (= java.lang.String (type output-path)) "output path should be a string")
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (vec (map (.getIndexKey (.col-info this)) groupby-key-index))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
@@ -102,13 +103,18 @@
       ))
   (reorderCol
     [this new-col-order]
+    (assert (= (set (.getKeys (.col-info this))) (set new-col-order)) 
+      "set of input in reorder-col contains column that do not exist in dataframe")
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
   (renameCol
     [this new-col-names]
+    (assert (= (count (.getKeys (.col-info this))) (count new-col-names)) 
+      "number of new column names not equal to number of existing columns")
     (.renameColInfo (.col-info this) new-col-names))
   (head
     [this n]
+    (assert (integer? n) "argument passed to head should be an integer")
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
   (setType
@@ -126,6 +132,7 @@
           "success"))))
   (setParser
     [this colName parser]
+    (assert (u/is-in colName this) "input is not existing column names")
     (.setType col-info colName parser))
   (addFormatter
     [this format col]
@@ -139,10 +146,12 @@
 
   (preview
    [this sample-size return-size format]
+   (assert (and (integer? sample-size) (integer? return-size)) "arguments passed to preview should be integers")
    (preview/preview this sample-size return-size format)
    )
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception]
+    (assert (= java.lang.String (type output-dir)) "output path should be a string")
     (if (<= num-worker 8)
       (try
         (.final this)
@@ -155,6 +164,7 @@
       "Max worker node number is 8."))
   (computeAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
+    (assert (= java.lang.String (type output-dir)) "output dir should be a string")
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
