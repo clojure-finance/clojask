@@ -27,12 +27,12 @@
 
    (let [directory (java.io/file path)
          files (rest (file-seq directory))
-        ;;  data (map zipmap (repeat [:clojask-id :file :data]) (map vector (iterate inc 0) [files (mapv (fn [_] (read-string (str _))) files)]))
+        ;;  data (map zipmap (repeat [:id :file :d]) (map vector (iterate inc 0) [files (mapv (fn [_] (read-string (str _))) files)]))
          data (do
                 (def tmp (volatile! -1))
                 (map (fn [file] 
                        (vswap! tmp inc)
-                       {:clojask-id @tmp :file file :data (read-string (subs (str file) (inc (count (str directory)))))}) 
+                       {:id @tmp :file file :d (read-string (subs (str file) (inc (count (str directory)))))}) 
                      files))
          ]
      (if (nil? checkpoint)
@@ -57,7 +57,7 @@
   (poll! [this _ _]
     ;; (if (> (mem-usage) 500)
     ;;   (Thread/sleep 10))
-    ;; (while (not (filter-check filters types (:data (first @rst))))
+    ;; (while (not (filter-check filters types (:d (first @rst))))
     ;;   (vswap! rst rest))
     (if-let [seg (first @rst)]
       (do

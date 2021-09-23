@@ -45,7 +45,7 @@
 ;; (defn sample-worker
 ;;   [segment]
 ;;   ;; (println segment)
-;;   (:clojask-id segment)
+;;   (:id segment)
 ;;   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
 ;;   )
 
@@ -67,7 +67,8 @@
     (if exception
       (defn worker-func
         [seg]
-        (let [data (string/split (:data seg) #"," -1)] ;; -1 is very important here!
+        (let [id (:id seg)
+              data (string/split (:d seg) #"," -1)] ;; -1 is very important here!
         ;; (doseq [index (take (count operations) (iterate inc 0))]
         ;;   )
         ;; (spit "resources/debug.txt" (str seg "\n") :append true)
@@ -75,14 +76,15 @@
         ;; (spit "resources/debug.txt" (str operations) :append true)
         ;; (spit "resources/debug.txt" index :append true)
           (if (filter-check filters types data)
-            {:data (mapv (fn [_] (eval-res data types operations _)) indices)}
-            {})))
+            {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
+            {:id id})))
       (defn worker-func
         [seg]
-        (let [data (string/split (:data seg) #"," -1)]
+        (let [id (:id seg)
+              data (string/split (:d seg) #"," -1)]
           (if (filter-check filters types data)
-            {:data (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
-            {})))))
+            {:id id :d (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
+            {:id id})))))
   )
 
 (defn catalog-gen
@@ -254,7 +256,7 @@
 
 
 (defn lifecycle-gen
-  [source dist]
+  [source dist order]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename source
@@ -265,6 +267,7 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
+      :order order
       :lifecycle/calls :clojask.clojask-output/writer-calls}]))
 
 (defn lifecycle-aggre-gen
@@ -305,39 +308,39 @@
 (defn rem0?
   [event old-segment new-segment all-new-segment]
   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 0))
+  (= (mod (:id new-segment) (deref num-workers)) 0))
 
 (defn rem1?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 1))
+  (= (mod (:id new-segment) (deref num-workers)) 1))
 
 (defn rem2?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 2))
+  (= (mod (:id new-segment) (deref num-workers)) 2))
 
 (defn rem3?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 3))
+  (= (mod (:id new-segment) (deref num-workers)) 3))
 
 (defn rem4?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 4))
+  (= (mod (:id new-segment) (deref num-workers)) 4))
 
 (defn rem5?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 5))
+  (= (mod (:id new-segment) (deref num-workers)) 5))
 
 (defn rem6?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 6))
+  (= (mod (:id new-segment) (deref num-workers)) 6))
 
 (defn rem7?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 7))
+  (= (mod (:id new-segment) (deref num-workers)) 7))
 
 (defn rem8?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 8))
+  (= (mod (:id new-segment) (deref num-workers)) 8))
 
 
 ;; [{:flow/from :in
@@ -403,13 +406,13 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception]
+  [num-work batch-size dataframe dist exception order]
   (try
     (workflow-gen num-work)
     (config-env)
     (worker-func-gen dataframe exception) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen (.path dataframe) dist)
+    (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
 

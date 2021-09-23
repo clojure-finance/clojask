@@ -58,7 +58,7 @@
 ;; (defn sample-worker
 ;;   [segment]
 ;;   ;; (println segment)
-;;   (:clojask-id segment)
+;;   (:id segment)
 ;;   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
 ;;   )
 
@@ -250,10 +250,10 @@
 
 ;; (defn rem0?
 ;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:clojask-id new-segment) 2) 0))
+;;   (= (mod (:id new-segment) 2) 0))
 ;; (defn rem1?
 ;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:clojask-id new-segment) 2) 1))
+;;   (= (mod (:id new-segment) 2) 1))
 
 ;; (def flow-conditions
 ;;   [{:flow/from :in

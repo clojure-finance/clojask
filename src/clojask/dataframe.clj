@@ -18,7 +18,7 @@
 "The clojask lazy dataframe"
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception])
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [colName type] "types supported: int double string date")
@@ -150,13 +150,13 @@
    (preview/preview this sample-size return-size format)
    )
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
     (assert (= java.lang.String (type output-dir)) "output path should be a string")
     (if (<= num-worker 8)
       (try
         (.final this)
         (.printCol this output-dir) ;; print column names to output-dir
-        (let [res (start-onyx num-worker batch-size this output-dir exception)]
+        (let [res (start-onyx num-worker batch-size this output-dir exception order)]
           (if (= res "success")
             "success"
             "failed"))
@@ -249,10 +249,10 @@
    (.operate this operation colName newCol)))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception] :or {exception false}}]
+  [this num-worker output-dir & {:keys [exception order] :or {exception false order false}}]
   (u/init-file output-dir)
   (if (= (.getAggreFunc (:row-info this)) [])
-    (.compute this num-worker output-dir exception)
+    (.compute this num-worker output-dir exception order)
     (.computeAggre this num-worker output-dir exception)))
 
 (defn group-by

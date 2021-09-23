@@ -24,7 +24,7 @@
         csv-data (if (:have-col dataframe)
                    (rest (line-seq reader))
                    (line-seq  reader))
-        data (map zipmap (repeat [:clojask-id :data]) (map vector (iterate inc 0) csv-data))
+        data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
         sample (take sample-size data)    ;; lazy source data (take sample size)
         ;;define the variables needed in the following functions
         operations (.getDesc (:col-info  dataframe))
@@ -34,17 +34,17 @@
         no-aggre (= (.getAggreFunc (:row-info dataframe)) []) ;; if need to groupby & aggregate
         ;;
         preview-work-func (fn [seg]
-                            (let [data (string/split (:data seg) #"," -1)]
+                            (let [data (string/split (:d seg) #"," -1)]
                               (if (filter-check filters types data)
-                                {:data (mapv (fn [_] (eval-res data types operations _)) indices)}
+                                {:d (mapv (fn [_] (eval-res data types operations _)) indices)}
                                 {}))) ;; the function body of operation (take over the work in worker nodes)
         preview-output-func (if (and formatting no-aggre)
                               (fn [row]
                                 (mapv (fn [_] (if-let [formatter (get formatters _)]
-                                                (formatter (nth (:data row) _))
-                                                (nth (:data row) _))) index))
+                                                (formatter (nth (:d row) _))
+                                                (nth (:d row) _))) index))
                               (fn [row]
-                                (:data row))) ;; the function body of output operation (take over the work in output node) without formatting
+                                (:d row))) ;; the function body of output operation (take over the work in output node) without formatting
 
         ;; ========== no need to change ===========
         compute-res (loop [rows sample res (transient [])]     ;; the result of normal compute

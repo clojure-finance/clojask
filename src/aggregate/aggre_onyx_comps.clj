@@ -50,7 +50,7 @@
       [seq]
       ;; (println formatters)
       (let [data (read-csv-seq (:file seq))
-            pre (:data seq)
+            pre (:d seq)
             data-map (-> (iterate inc 0)
                          (zipmap (apply map vector data)))]
         ;; (mapv (fn [_]
@@ -61,8 +61,8 @@
         (loop [aggre-funcs aggre-funcs
                res []]
           (if (= aggre-funcs [])
-            ;; {:data (vec (concat pre res))}
-            {:data (mapv concat (repeat pre) (apply map vector res))}
+            ;; {:d (vec (concat pre res))}
+            {:d (mapv concat (repeat pre) (apply map vector res))}
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
                   res-funcs (rest aggre-funcs)
@@ -152,39 +152,39 @@
 (defn rem0?
   [event old-segment new-segment all-new-segment]
   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 0))
+  (= (mod (:id new-segment) (deref num-workers)) 0))
 
 (defn rem1?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 1))
+  (= (mod (:id new-segment) (deref num-workers)) 1))
 
 (defn rem2?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 2))
+  (= (mod (:id new-segment) (deref num-workers)) 2))
 
 (defn rem3?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 3))
+  (= (mod (:id new-segment) (deref num-workers)) 3))
 
 (defn rem4?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 4))
+  (= (mod (:id new-segment) (deref num-workers)) 4))
 
 (defn rem5?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 5))
+  (= (mod (:id new-segment) (deref num-workers)) 5))
 
 (defn rem6?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 6))
+  (= (mod (:id new-segment) (deref num-workers)) 6))
 
 (defn rem7?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 7))
+  (= (mod (:id new-segment) (deref num-workers)) 7))
 
 (defn rem8?
   [event old-segment new-segment all-new-segment]
-  (= (mod (:clojask-id new-segment) (deref num-workers)) 8))
+  (= (mod (:id new-segment) (deref num-workers)) 8))
 
 
 ;; [{:flow/from :in

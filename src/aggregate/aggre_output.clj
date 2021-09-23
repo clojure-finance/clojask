@@ -71,9 +71,9 @@
       ;; (if-let [msg (first batch)]
       (do
           ;; (swap! example-datasink conj msg)
-        (if (not= msg {})
+        (if (not= (:d msg) nil)
           (do
-            (doseq [data (:data msg)]
+            (doseq [data (:d msg)]
               (.write wtr (str (string/join "," data) "\n")))
                 ;; !! define argument (debug)
             ))))

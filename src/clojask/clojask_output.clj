@@ -8,8 +8,9 @@
 
 (defn- inject-into-eventmap
   [event lifecycle]
-  (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)]
-   {:clojask/wtr wtr}))
+  (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
+        order (:order lifecycle)]
+   {:clojask/wtr wtr :clojask/order order}))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
@@ -63,19 +64,20 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr :clojask/order]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (doseq [msg write-batch]
+    (let [write-batch (if order (sort-by :id write-batch) write-batch)]
+     (doseq [msg write-batch]
       ;; (if-let [msg (first batch)]
       (do
           ;; (swap! example-datasink conj msg)
-        (if (not= msg {})
+        (if (not= (:d msg) nil)
           (do
-            (.write wtr (str (string/join "," (:data msg)) "\n"))
+            (.write wtr (str (string/join "," (:d msg)) "\n"))
                 ;; !! define argument (debug)
-            ))))
+            )))))
     true))
 
 ;; Builder function for your output plugin.

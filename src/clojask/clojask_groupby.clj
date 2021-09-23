@@ -81,12 +81,12 @@
       (if-let [msg (first batch)]
         (do
           ;; (swap! example-datasink conj msg)
-          (if (not= msg {})
+          (if (not= (:d msg) nil)
             (do
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-groupby dist (:data msg) groupby-keys key-index formatter)))
+              (output-groupby dist (:d msg) groupby-keys key-index formatter)))
 
           (recur (rest batch)))))
     true))
