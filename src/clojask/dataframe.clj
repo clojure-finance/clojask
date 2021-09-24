@@ -21,8 +21,8 @@
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
-  (setType [colName type] "types supported: int double string date")
-  (setParser [col parser] "add the parser for a col which acts like setType")
+  (setType [type colName] "types supported: int double string date")
+  (setParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
   (printCol [output-path] "print column names to output file")
@@ -118,7 +118,7 @@
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
   (setType
-    [this colName type]
+    [this type colName]
     (u/set-format-string type)
     (let [type (subs type 0 (if-let [tmp (str/index-of type ":")] tmp (count type)))
           oprs (get u/type-operation-map type)
@@ -127,7 +127,7 @@
       (if (= oprs nil)
         "No such type. You could instead write your parsing function as the first operation to this column."
         (do
-          (.setType col-info colName parser)
+          (.setType col-info parser colName)
           (.addFormatter this format colName)
           "success"))))
   (setParser
@@ -151,7 +151,7 @@
    )
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
-    (assert (= java.lang.String (type output-dir)) "output path should be a string")
+    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
     (if (<= num-worker 8)
       (try
         (.final this)
@@ -278,11 +278,11 @@
 
 (defn set-type
   [this col type]
-  (.setType this col type))
+  (.setType this type col))
 
 (defn set-parser
   [this col parser]
-  (.setParser this col parser))
+  (.setParser this parser col))
 
 (defn preview
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
