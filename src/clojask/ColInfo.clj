@@ -44,7 +44,8 @@
     (if (contains? key-index col)
       (do
         (set! col-dsp (assoc col-dsp (get key-index col) (conj (get col-dsp (get key-index col)) operation)))
-        "success")
+        ; "success"
+        nil)
       (str col " is not an existing column name") ;; would not come here otherwise deprecate
       ))
   (operate
@@ -60,7 +61,9 @@
             ;; (set! col-keys (conj col-keys newCol))
             (set! key-index (assoc key-index newCol (count key-index)))
             (set! index-key (assoc index-key (count index-key) newCol))
-            (set! col-dsp (assoc col-dsp (get key-index newCol) (conj [(vec (map (fn [_] (get key-index _)) col))] operation)))))
+            (set! col-dsp (assoc col-dsp (get key-index newCol) (conj [(vec (map (fn [_] (get key-index _)) col))] operation)))
+            ; "success"
+            nil))
         (do
           (str external " are not original column names")))))
   (setType
