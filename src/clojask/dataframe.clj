@@ -53,11 +53,16 @@
   DFIntf
   (operate ;; has assert
     [this operation colName]
-    (.operate col-info operation colName))
+    (println (.operate col-info operation colName))
+    (if (nil? (.operate col-info operation colName))
+    this ; "success"
+    "operation failed"))
   (operate
     [this operation colNames newCol]
     (assert (= java.lang.String (type newCol)) "new column should be a string")
-    (.operate col-info operation colNames newCol))
+    (if (nil? (.operate col-info operation colNames newCol))
+      this ; "success"
+      "operation failed"))
   (groupby
     [this key]
     (let [keys (if (coll? key)
@@ -129,14 +134,17 @@
         (do
           (.setType col-info parser colName)
           (.addFormatter this format colName)
-          "success"))))
+          ;; "success"
+          this))))
   (setParser
-    [this colName parser]
-    (assert (u/is-in colName this) "input is not existing column names")
-    (.setType col-info colName parser))
+    [this parser colName]
+    (assert (u/is-in colName this) "input is not existing column name")
+    (if (nil? (.setType col-info parser colName))
+      this
+      "failed in .setType col-info"))
   (addFormatter
     [this format col]
-    (assert (u/is-in col this) "input is not existing column names")
+    (assert (u/is-in col this) "input is not existing column name")
     (.setFormatter col-info format col))
   (final
     [this]
