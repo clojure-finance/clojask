@@ -54,7 +54,7 @@
                               rest (rest rows)
                               row (preview-work-func row)
                               row-res (preview-output-func row)
-                              res (conj! res row-res)]
+                              res (if row-res (conj! res row-res) res)]
                           (if (>= (count res) return-size)
                             (persistent! res)
                             (recur rest res)))))]
