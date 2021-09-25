@@ -257,7 +257,7 @@
    (.operate this operation colName newCol)))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order] :or {exception false order false}}]
+  [this num-worker output-dir & {:keys [exception order] :or {exception false order true}}]
   (u/init-file output-dir)
   (if (= (.getAggreFunc (:row-info this)) [])
     (.compute this num-worker output-dir exception order)
