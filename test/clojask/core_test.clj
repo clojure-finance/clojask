@@ -1,17 +1,13 @@
-;; (ns techml-onyx.core-test
-;;   (:require [clojure.test :refer :all]
-;;             [techml-onyx.core :refer :all]
-;;             [tech.v3.dataset :as ds]
-;;             [clojure.pprint :refer :all]
-;;             [clojure.core.async :refer [chan >!! <!! close!]]
-;;             [onyx.extensions :as extensions]
-;;             [onyx.plugin.core-async :refer [take-segments!]]
-;;             [onyx.api])
-;;   (:gen-class))
+(ns clojask.core-test
+    (:require [clojure.test :refer :all]
+              [clojask.DataFrame :refer :all]
+              [clojask.utils :refer :all]
+              [clojask.groupby :refer :all]
+              [clojask.sort :refer :all]))
 
-;; (deftest a-test
-;;   (testing "FIXME, I fail."
-;;     (is (= 0 1))))
+(deftest a-test
+  (testing "FIXME, I fail."
+    (is (= 0 1))))
 
 ;; (deftest dataset-test
 ;;   (def dataset (ds/->dataset "https://github.com/techascent/tech.ml.dataset/raw/master/test/data/stocks.csv"))

@@ -2,6 +2,7 @@
 onyx.log
 *.log
 resources/*
+.lein-failures
 .lein-repl-history
 .nrepl-port
 target/*
