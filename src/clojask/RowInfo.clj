@@ -27,7 +27,8 @@
   (filter
    [self cols predicate]
    (set! filters (conj filters [predicate cols]))
-   "success")
+   ; "success"
+   nil)
   (groupby
     [self key]
     (set! groupby-key key)

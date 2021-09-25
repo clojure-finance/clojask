@@ -84,7 +84,10 @@
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
       (assert (u/are-in cols this) "input is not existing column names")
-      (.filter row-info indices predicate)))
+      (if (nil? (.filter row-info indices predicate))
+        this
+        "operation failed"
+        )))
   (colDesc
     [this]
     (.getDesc col-info))
