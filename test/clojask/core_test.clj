@@ -5,9 +5,13 @@
               [clojask.groupby :refer :all]
               [clojask.sort :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest internal-api-test
+  (testing "Dataframe manipulation APIs"
+    (is (= clojask.DataFrame.DataFrame (type (dataframe "resources/Employees-large.csv" :have-col true))))
+    ))
+
+
+;; !! write a public test
 
 ;; (deftest dataset-test
 ;;   (def dataset (ds/->dataset "https://github.com/techascent/tech.ml.dataset/raw/master/test/data/stocks.csv"))
