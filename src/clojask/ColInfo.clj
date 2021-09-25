@@ -73,7 +73,8 @@
       (do
         (set! col-type (assoc col-type (get key-index col)  operation))
           ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
-        "success")
+        ; "success"
+        nil)
       "There is no such column name."))
   (setFormatter
    [this format col]

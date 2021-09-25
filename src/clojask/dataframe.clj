@@ -137,12 +137,14 @@
           ;; "success"
           this))))
   (setParser
-    [this colName parser]
-    (assert (u/is-in colName this) "input is not existing column names")
-    (.setType col-info colName parser))
+    [this parser colName]
+    (assert (u/is-in colName this) "input is not existing column name")
+    (if (nil? (.setType col-info parser colName))
+      this
+      "failed in .setType col-info"))
   (addFormatter
     [this format col]
-    (assert (u/is-in col this) "input is not existing column names")
+    (assert (u/is-in col this) "input is not existing column name")
     (.setFormatter col-info format col))
   (final
     [this]
