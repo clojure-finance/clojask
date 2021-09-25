@@ -32,7 +32,8 @@
   (groupby
     [self key]
     (set! groupby-key key)
-    "success")
+    ; "success"
+    nil)
   (getGroupbyKeys
    [self]
    groupby-key)
@@ -54,7 +55,8 @@
         ;; (set! aggre-old-key old-key)
         (doseq [new-key new-keys]
          (set! aggre-new-key (conj aggre-new-key new-key)))
-        "success")
+        ; "success"
+        nil)
       "failed: you must first group the dataframe by some keys then aggregate"))
   (setRowInfo
     [self new-col-desc new-col-set]
