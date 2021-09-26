@@ -5,11 +5,14 @@
               [clojask.groupby :refer :all]
               [clojask.sort :refer :all]))
 
+;; !! TO-DO: change csv file path to load from GitHub
+
 (deftest internal-df-api-test
   (testing "Single dataframe manipulation APIs"
     (def y (dataframe "resources/Employees-large.csv" :have-col true))
     (is (= clojask.DataFrame.DataFrame (type y)))
     (is (= clojask.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
+    (is (= clojask.DataFrame.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
     (is (= clojask.DataFrame.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
     (is (= clojask.DataFrame.DataFrame (type (operate y - "Salary"))))
     (is (= clojask.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
@@ -27,8 +30,6 @@
     (is (= (.getKeys (.col-info y)) ["Employee" "new-Department" "EmployeeName" "Salary"]))
     ))
 
-
-;; !! write a public test
 
 ;; (deftest dataset-test
 ;;   (def dataset (ds/->dataset "https://github.com/techascent/tech.ml.dataset/raw/master/test/data/stocks.csv"))
