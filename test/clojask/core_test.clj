@@ -7,7 +7,14 @@
 
 (deftest internal-api-test
   (testing "Dataframe manipulation APIs"
-    (is (= clojask.DataFrame.DataFrame (type (dataframe "resources/Employees-large.csv" :have-col true))))
+    (def y (dataframe "resources/Employees-large.csv" :have-col true))
+    (is (= clojask.DataFrame.DataFrame (type y)))
+    (is (= clojask.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
+    (is (= clojask.DataFrame.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
+    (is (= clojask.DataFrame.DataFrame (type (operate y - "Salary"))))
+    (is (= clojask.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
+    (is (= clojask.DataFrame.DataFrame (type (group-by y ["Department"]))))
+    (is (= clojask.DataFrame.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
     ))
 
 
