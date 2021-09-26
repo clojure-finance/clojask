@@ -7,7 +7,7 @@
 
 ;; !! TO-DO: change csv file path to load from GitHub
 
-(deftest internal-df-api-test
+(deftest df-api-test
   (testing "Single dataframe manipulation APIs"
     (def y (dataframe "resources/Employees-large.csv" :have-col true))
     (is (= clojask.DataFrame.DataFrame (type y)))
@@ -21,13 +21,22 @@
     (is (= "success" (compute y 8 "resources/test.csv" :exception true)))
     ))
 
-(deftest internal-col-api-test
-    (testing "Single dataframe manipulation APIs"
+(deftest col-api-test
+    (testing "Column manipulation APIs"
     (def y (dataframe "resources/Employees-large.csv" :have-col true))
     (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
     (is (= (.getKeys (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"]))
     (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary"])
     (is (= (.getKeys (.col-info y)) ["Employee" "new-Department" "EmployeeName" "Salary"]))
+    ))
+
+(deftest join-api-test
+    (testing "Join dataframes APIs"
+    (def x (dataframe "resources/Employees-large.csv"))
+    (def y (dataframe "resources/Employees.csv"))
+    (is (= "success" (left-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
+    (is (= "success" (right-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
+    (is (= "success" (inner-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
     ))
 
 
