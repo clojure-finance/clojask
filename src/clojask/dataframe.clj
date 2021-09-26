@@ -70,13 +70,19 @@
                  [key])]
       (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
       (let [keys (mapv (fn [_] (get (.getKeyIndex col-info) _)) keys)]
-        (.groupby row-info keys))))
+        (if (nil? (.groupby row-info keys))
+          this
+          "operation failed"
+          ))))
   (aggregate
     [this func old-key new-key]
     (assert (= 0 (count (u/are-in old-key this))) "input is not existing column names")
     (assert (= 0 (count (u/are-out new-key this))) "new keys should not be existing column names")
     (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
-      (.aggregate row-info func old-key new-key)))
+      (if (nil? (.aggregate row-info func old-key new-key))
+        this
+        "operation failed"
+        )))
   (filter
     [this cols predicate]
     (let [cols (if (coll? cols)
@@ -84,7 +90,10 @@
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
       (assert (u/are-in cols this) "input is not existing column names")
-      (.filter row-info indices predicate)))
+      (if (nil? (.filter row-info indices predicate))
+        this
+        "operation failed"
+        )))
   (colDesc
     [this]
     (.getDesc col-info))

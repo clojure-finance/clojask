@@ -5,8 +5,8 @@
               [clojask.groupby :refer :all]
               [clojask.sort :refer :all]))
 
-(deftest internal-api-test
-  (testing "Dataframe manipulation APIs"
+(deftest internal-df-api-test
+  (testing "Single dataframe manipulation APIs"
     (def y (dataframe "resources/Employees-large.csv" :have-col true))
     (is (= clojask.DataFrame.DataFrame (type y)))
     (is (= clojask.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
@@ -15,6 +15,16 @@
     (is (= clojask.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
     (is (= clojask.DataFrame.DataFrame (type (group-by y ["Department"]))))
     (is (= clojask.DataFrame.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
+    (is (= "success" (compute y 8 "resources/test.csv" :exception true)))
+    ))
+
+(deftest internal-col-api-test
+    (testing "Single dataframe manipulation APIs"
+    (def y (dataframe "resources/Employees-large.csv" :have-col true))
+    (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
+    (is (= (.getKeys (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"]))
+    (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary"])
+    (is (= (.getKeys (.col-info y)) ["Employee" "new-Department" "EmployeeName" "Salary"]))
     ))
 
 
