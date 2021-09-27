@@ -2,21 +2,21 @@
 
 Number of workers = 4
 
-| Operation | Dask (N=1.8M) | Dask (N=3.6M) | Clojask (N=1.8M) | Clojask (N=3.6M) | Clojask (N=80M) |
-| :---:   | :-: | :-: | :-: | :-: | :-: |
-| Element-wise operation | 119.3 | 261.3 | 72.3 | 133.3 | 1,836,648.3 |
-| Row-wise selection | 115.0 | 232.0 | 67.9 | 145.6 | |
-| Aggregation | 116.0 | 226.7 | - | - | |
-| Groupby-aggregate | 116.7 | 229.3 | 459.5 | 681.3 | |
-| Left join | 114.7 | 248.7 | 1152.0 | | |
-| Inner join | 116.7 | 242.0| 1138.8 | | |
-| Rolling join | - | - | | | |
+| Operation | Dask (N=1.8M) | Dask (N=3.6M) | Dask (N=80M)* | Clojask (N=1.8M) | Clojask (N=3.6M) | Clojask (N=80M) |
+| :---:   | :-: | :-: | :-: | :-: | :-: | :-: |
+| Element-wise operation | 119.3 | 261.3 | N/A | 72.3 | 133.3 | 1,836,648.3 |
+| Row-wise selection | 115.0 | 232.0 | N/A | 67.9 | 145.6 | 1,757,480.6 |
+| Aggregation | 116.0 | 226.7 | N/A | - | - | |
+| Groupby-aggregate | 116.7 | 229.3 | N/A | 459.5 | 681.3 | |
+| Left join | 114.7 | 248.7 | N/A | 1152.0 | | |
+| Inner join | 116.7 | 242.0| N/A | 1138.8 | | |
+| Rolling join | - | - | - | | | |
 
 **Remarks:**
 - N = Number of lines in csv file
 - All benchmarks are in the unit of milli-seconds (ms)
-
-Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputting the processed dataframe to one single csv.
+- All benchmarks are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputting the processed dataframe to one single csv file.
+- *In the case of Dask (N=80M) the program could not manage to complete the opeartion in 7 hours
 
 
 ## System info
