@@ -12,7 +12,7 @@ Number of workers = 4
 | Inner join | 116.7 | 242.0| 1138.8 | | |
 | Rolling join | - | - | | | |
 
-***Remark:**
+**Remarks:**
 - N = Number of lines in csv file
 - All benchmarks are in the unit of milli-seconds (ms)
 
