@@ -12,7 +12,9 @@ Number of workers = 4
 | Inner join | 116.7 | 242.0| 1138.8 | | |
 | Rolling join | - | - | | | |
 
-***Remark:** N = Number of lines in csv file, all time in unit of seconds*
+***Remark:**
+- N = Number of lines in csv file
+- All benchmarks are in the unit of milli-seconds (ms)
 
 Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputting the processed dataframe to one single csv.
 
