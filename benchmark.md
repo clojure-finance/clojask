@@ -2,19 +2,19 @@
 
 Number of workers = 4
 
-| Operation | Dask (N=1.8M) (s) | Dask (N=3.6M) (s) | Clojask (N=1.8M) (s) | Clojask (N=3.6M) (s) |
-| :---:   | :-: | :-: | :-: | :-: |
-| Element-wise operation | 119.3 | 261.3 | 72.3 | 133.3 |
-| Row-wise selection | 115.0 | 232.0 | 67.9 | 145.6 |
-| Aggregation | 116.0 | 226.7 | - | - |
-| Groupby-aggregate | 116.7 | 229.3 | 459.5 | 681.3 |
-| Left join | 114.7 | 248.7 | 1152.0 | |
-| Inner join | 116.7 | 242.0| 1138.8 | |
-| Rolling join | - | - | | |
+| Operation | Dask (N=1.8M) | Dask (N=3.6M) | Clojask (N=1.8M) | Clojask (N=3.6M) | Clojask (N=80M) |
+| :---:   | :-: | :-: | :-: | :-: | :-: |
+| Element-wise operation | 119.3 | 261.3 | 72.3 | 133.3 | |
+| Row-wise selection | 115.0 | 232.0 | 67.9 | 145.6 | |
+| Aggregation | 116.0 | 226.7 | - | - | |
+| Groupby-aggregate | 116.7 | 229.3 | 459.5 | 681.3 | |
+| Left join | 114.7 | 248.7 | 1152.0 | | |
+| Inner join | 116.7 | 242.0| 1138.8 | | |
+| Rolling join | - | - | | | |
 
-***Remark:** N = Number of lines in csv file*
+***Remark:** N = Number of lines in csv file, all time in unit of seconds*
 
-Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputing the processed dataframe to one single csv.
+Note that all benchmarks shown above are inclusive of the time used for importing necssary libraries, loading the dataframe from csv file and ouputting the processed dataframe to one single csv.
 
 
 ## System info
