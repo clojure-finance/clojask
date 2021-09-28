@@ -4,12 +4,12 @@
               [clojask.utils :refer :all]
               [clojask.groupby :refer :all]
               [clojask.sort :refer :all]))
-
-;; !! TO-DO: change csv file path to load from GitHub
+        
+(use '[clojure.java.shell :only [sh]])
 
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
-    (def y (dataframe "resources/Employees-large.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
     (is (= clojask.DataFrame.DataFrame (type y)))
     (is (= clojask.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
     (is (= clojask.DataFrame.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
@@ -21,9 +21,36 @@
     (is (= "success" (compute y 8 "resources/test.csv" :exception true)))
     ))
 
+(deftest df-api-output-test
+    (testing "Single dataframe manipulation APIs"
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (sh "mkdir" "test/clojask/test_outputs") ; create directory to store test outputs
+    ;; element-operation
+    (set-type y "Salary" "double")
+    (operate y - "Salary")
+    (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception true :order true)
+    (let [result (sh "diff" "test/clojask/test_outputs/1-1.csv" "test/clojask/correct_outputs/1-1.csv")]
+        (is (= "" (:out result))))
+    ;; filter and row-operation
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (set-type y "Salary" "double")
+    (filter y "Salary" (fn [salary] (<= salary 800)))
+    (operate y str ["Employee" "Salary"] "new-col")
+    (compute y 8 "test/clojask/test_outputs/1-2.csv" :exception true :order true)
+    (let [result (sh "diff" "test/clojask/test_outputs/1-2.csv" "test/clojask/correct_outputs/1-2.csv")]
+        (is (= "" (:out result))))
+    ;; groupby and aggregate
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (group-by y ["Department"])
+    (aggregate y min ["Employee"] ["new-employee"])
+    (compute y 8 "test/clojask/test_outputs/1-3.csv" :exception true :order true)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-3.csv)" "<(sort test/clojask/correct_outputs/1-3.csv)")]
+        (is (= "" (:out result))))
+    ))
+
 (deftest col-api-test
     (testing "Column manipulation APIs"
-    (def y (dataframe "resources/Employees-large.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
     (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
     (is (= (.getKeys (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"]))
     (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary"])
@@ -32,8 +59,8 @@
 
 (deftest join-api-test
     (testing "Join dataframes APIs"
-    (def x (dataframe "resources/Employees-large.csv"))
-    (def y (dataframe "resources/Employees.csv"))
+    (def x (dataframe "test/clojask/Employees-example.csv"))
+    (def y (dataframe "test/clojask/Employees-example.csv"))
     (is (= "success" (left-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
     (is (= "success" (right-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
     (is (= "success" (inner-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))

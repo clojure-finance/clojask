@@ -1,7 +1,8 @@
 .DS_Store
-onyx.log
+onyx.log*
 *.log
 resources/*
+test/clojask/test_outputs/*
 .lein-failures
 .lein-repl-history
 .nrepl-port
