@@ -3,11 +3,15 @@ Clojure data frame with parallel computing on larger-than-memory datasets
 
 #### Run the main function in `core`:
 
-`lein run`
+```
+lein run
+```
 
 #### Run the tests in `test`:
 
-`lein test`
+```
+lein test
+```
 
 
 To run a particular test defined in the namespace:
