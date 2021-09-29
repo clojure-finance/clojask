@@ -63,7 +63,7 @@
     (is (= "success" (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
     (is (= "success" (right-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
     (is (= "success" (inner-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
-    ;(is (= "success" (rolling-join-forward x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
+    (is (= "success" (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "resources/test.csv" :exception false)))
     ))
 
 (deftest join-api-output-test
@@ -79,6 +79,8 @@
     (inner-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-6.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-6.csv)" "<(sort test/clojask/correct_outputs/1-6.csv)")]
         (is (= "" (:out result))))
-    ;(rolling-join-forward x y ["Employee"] ["Employee"] 8 "test/clojask/correct_outputs/1-7.csv" :exception false)
+    (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "test/clojask/test_outputs/1-7.csv" :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-7.csv)" "<(sort test/clojask/correct_outputs/1-7.csv)")]
+        (is (= "" (:out result))))
     ))
 
