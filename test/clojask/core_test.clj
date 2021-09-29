@@ -24,7 +24,6 @@
 (deftest df-api-output-test
     (testing "Single dataframe manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
-    (sh "mkdir" "test/clojask/test_outputs") ; create directory to store test outputs
     ;; element-operation
     (set-type y "Salary" "double")
     (operate y - "Salary")
@@ -61,8 +60,25 @@
     (testing "Join dataframes APIs"
     (def x (dataframe "test/clojask/Employees-example.csv"))
     (def y (dataframe "test/clojask/Employees-example.csv"))
-    (is (= "success" (left-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
-    (is (= "success" (right-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
-    (is (= "success" (inner-join x y ["Employee"] ["Employee"] 4 "resources/test.csv" :exception false)))
+    (is (= "success" (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
+    (is (= "success" (right-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
+    (is (= "success" (inner-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
+    ;(is (= "success" (rolling-join-forward x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false)))
+    ))
+
+(deftest join-api-output-test
+    (testing "Join dataframes APIs"
+    (def x (dataframe "test/clojask/Employees-example.csv"))
+    (def y (dataframe "test/clojask/Employees-example.csv"))
+    (left-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-4.csv" :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-4.csv)" "<(sort test/clojask/correct_outputs/1-4.csv)")]
+        (is (= "" (:out result))))
+    (right-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-5.csv" :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-5.csv)" "<(sort test/clojask/correct_outputs/1-5.csv)")]
+        (is (= "" (:out result))))
+    (inner-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-6.csv" :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-6.csv)" "<(sort test/clojask/correct_outputs/1-6.csv)")]
+        (is (= "" (:out result))))
+    ;(rolling-join-forward x y ["Employee"] ["Employee"] 8 "test/clojask/correct_outputs/1-7.csv" :exception false)
     ))
 
