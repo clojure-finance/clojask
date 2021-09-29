@@ -53,7 +53,6 @@
   DFIntf
   (operate ;; has assert
     [this operation colName]
-    (println (.operate col-info operation colName))
     (if (nil? (.operate col-info operation colName))
     this ; "success"
     "operation failed"))
@@ -119,6 +118,25 @@
     [this new-col-order]
     (assert (= (set (.getKeys (.col-info this))) (set new-col-order)) 
       "set of input in reorder-col contains column that do not exist in dataframe")
+    
+      ;; (if (not= (set (.getKeys (.col-info this))) (set new-col-order)) 
+      ;;     (throw (Exception. "my exception message")))
+
+      ;; (throw (ex-info "My hovercraft is full of eels"
+      ;;   {:type :python-exception, :cause :eels}))
+
+      ;; (try
+      ;;   (catch clojure.lang.ExceptionInfo e
+      ;;   (if (= :eels (-> e ex-data :cause))
+      ;;   (println "beware the shrieking eels!")
+      ;;   (println "???"))))
+
+      ;; (cond
+      ;;   (not (= (set (.getKeys (.col-info this))) (set new-col-order)))
+      ;;   (throw (ex-info "Missing required attributes"
+      ;;           {:type :python-exception, :cause :eels}
+      ;;           )))
+    
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
   (renameCol
