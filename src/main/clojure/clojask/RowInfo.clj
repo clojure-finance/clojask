@@ -2,6 +2,9 @@
   ;; (:require [clojask.utils :refer :all])
   )
 
+(import '[com.clojask.exception Clojask_TypeException]
+        '[com.clojask.exception Clojask_OperationException])
+
 (definterface RowIntf
   (getFilters [])
   (getAggreOldKeys [])
@@ -57,7 +60,7 @@
          (set! aggre-new-key (conj aggre-new-key new-key)))
         ; "success"
         nil)
-      "failed: you must first group the dataframe by some keys then aggregate"))
+        (throw (Clojask_OperationException. "you must first group the dataframe by some keys then aggregate"))))
   (setRowInfo
     [self new-col-desc new-col-set]
     (let [original-filter (.getFilters self)

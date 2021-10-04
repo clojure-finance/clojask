@@ -1,6 +1,9 @@
 (ns clojask.ColInfo
   (:require [clojask.utils :refer []]))
 
+(import '[com.clojask.exception Clojask_TypeException]
+        '[com.clojask.exception Clojask_OperationException])
+
 (definterface ColIntf
   (init [colNames])
   (operate [b c])
@@ -65,7 +68,8 @@
             ; "success"
             nil))
         (do
-          (str external " are not original column names")))))
+          (throw (Clojask_OperationException. (str external " are not original column names")))
+          ))))
   (setType
     [this operation col]
     (if (.contains col-keys col)
@@ -75,7 +79,7 @@
           ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
         ; "success"
         nil)
-      "There is no such column name."))
+      (throw (Clojask_OperationException. "Column name passed to setType not found"))))
   (setFormatter
    [this format col]
    (set! col-format (assoc col-format (get key-index col) format)))
