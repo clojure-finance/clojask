@@ -17,6 +17,9 @@
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
 
+(import '[com.clojask.exception Clojask_TypeException]
+        '[com.clojask.exception Clojask_OperationException])
+
 (definterface DFIntf
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
   (operate [operation colName] "operate an operation to column and replace in place")
@@ -44,9 +47,6 @@
 (defrecord DataFrame
            [^String path
             ^Integer batch-size
-   ;;  ...
-   ;; more fields to add
-   ;;  ...
             ^ColInfo col-info
             ^RowInfo row-info
             ^Boolean have-col]
@@ -55,13 +55,13 @@
     [this operation colName]
     (if (nil? (.operate col-info operation colName))
     this ; "success"
-    "operation failed"))
+    (throw (Clojask_OperationException. "operate"))))
   (operate
     [this operation colNames newCol]
     (assert (= java.lang.String (type newCol)) "new column should be a string")
     (if (nil? (.operate col-info operation colNames newCol))
       this ; "success"
-      "operation failed"))
+      (throw (Clojask_OperationException. "operate"))))
   (groupby
     [this key]
     (let [keys (if (coll? key)
@@ -71,7 +71,7 @@
       (let [keys (mapv (fn [_] (get (.getKeyIndex col-info) _)) keys)]
         (if (nil? (.groupby row-info keys))
           this
-          "operation failed"
+          (throw (Clojask_OperationException. "groupby"))
           ))))
   (aggregate
     [this func old-key new-key]
@@ -80,7 +80,7 @@
     (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
       (if (nil? (.aggregate row-info func old-key new-key))
         this
-        "operation failed"
+        (throw (Clojask_OperationException. "aggregate"))
         )))
   (filter
     [this cols predicate]
@@ -91,7 +91,7 @@
       (assert (u/are-in cols this) "input is not existing column names")
       (if (nil? (.filter row-info indices predicate))
         this
-        "operation failed"
+        (throw (Clojask_OperationException. "filter"))
         )))
   (colDesc
     [this]
@@ -116,33 +116,14 @@
       ))
   (reorderCol
     [this new-col-order]
-    (assert (= (set (.getKeys (.col-info this))) (set new-col-order)) 
-      "set of input in reorder-col contains column that do not exist in dataframe")
-    
-      ;; (if (not= (set (.getKeys (.col-info this))) (set new-col-order)) 
-      ;;     (throw (Exception. "my exception message")))
-
-      ;; (throw (ex-info "My hovercraft is full of eels"
-      ;;   {:type :python-exception, :cause :eels}))
-
-      ;; (try
-      ;;   (catch clojure.lang.ExceptionInfo e
-      ;;   (if (= :eels (-> e ex-data :cause))
-      ;;   (println "beware the shrieking eels!")
-      ;;   (println "???"))))
-
-      ;; (cond
-      ;;   (not (= (set (.getKeys (.col-info this))) (set new-col-order)))
-      ;;   (throw (ex-info "Missing required attributes"
-      ;;           {:type :python-exception, :cause :eels}
-      ;;           )))
-    
+    (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
+      (throw (Clojask_TypeException. "set of input in reorder-col contains column that do not exist in dataframe")))
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
   (renameCol
     [this new-col-names]
-    (assert (= (count (.getKeys (.col-info this))) (count new-col-names)) 
-      "number of new column names not equal to number of existing columns")
+    (cond (not (= (count (.getKeys (.col-info this))) (count new-col-names)))
+      (throw (Clojask_TypeException. "number of new column names not equal to number of existing columns")))
     (.renameColInfo (.col-info this) new-col-names))
   (head
     [this n]
@@ -168,7 +149,7 @@
     (assert (u/is-in colName this) "input is not existing column name")
     (if (nil? (.setType col-info parser colName))
       this
-      "failed in .setType col-info"))
+      (throw (Clojask_OperationException. "setParser"))))
   (addFormatter
     [this format col]
     (assert (u/is-in col this) "input is not existing column name")
@@ -196,7 +177,7 @@
             "success"
             "failed"))
         (catch Exception e e))
-      "Max worker node number is 8."))
+        (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
   (computeAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
     (assert (= java.lang.String (type output-dir)) "output dir should be a string")
@@ -210,10 +191,10 @@
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
              (start-onyx-aggre num-worker batch-size this output-dir exception)
               "success"
-              "failed at aggregate stage")
-            "failed at group by stage"))
+              (throw (Clojask_OperationException. "start-onyx-aggre")))
+            (throw (Clojask_OperationException. "start-onyx-groupby"))))
         (catch Exception e e))
-      "Max worker node number is 8."))
+        (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
   (sort
     [this list output-dir]
     (assert (and (not (empty? list)) (loop [list list key false]

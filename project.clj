@@ -14,5 +14,9 @@
                  :timeout 60000}
   :plugins [[lein-update-dependency "0.1.2"]]
   :main ^:skip-aot clojask.debug/-main
+  :source-paths      ["src/main/clojure"]
+  :java-source-paths ["src/main/java"]
+  :test-paths        ["test/clojask"]
+  ;; :java-test-paths   ["src/test/java"]
   ;; :injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
   )
