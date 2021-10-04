@@ -5,8 +5,13 @@
             [clojask.sort :refer :all]))
 "For debugging purposes only, will not be used in production."
 
+(import '[com.stackoverflow.clojure MyOwnException])
+
 (defn -main
   []
+  (def x "Hello world")
+  (-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
+
   ; (def y (dataframe "resources/Employees-large.csv" :have-col true))
   ;; (set-type y "Salary" "double")
   ;; (filter y "Salary" (fn [salary] (<= salary 800)))
@@ -44,16 +49,16 @@
   
   ;; Benchmarking
 
-  (def y (dataframe "../clojure-datasets/data-CRSP.csv"))
+  ;(def y (dataframe "../clojure-datasets/data-CRSP.csv"))
   ;(def y (dataframe "resources/data-CRSP.csv" :have-col true))
   ;(set-type y "prccq" "double")
   ;(operate y - "prccq")
   ;(operate y str ["PERMCO" "PERMNO"] "new-col")
   ;(group-by y "gvkey")
   ;(aggregate y min ["prccq"] ["prccq-min"])
-  (group-by y "PERMCO")
-  (aggregate y min ["PERMNO"] ["PERMNO-min"])
-  (time (compute y 4 "resources/test.csv" :exception false))
+  ;(group-by y "PERMCO")
+  ;(aggregate y min ["PERMNO"] ["PERMNO-min"])
+  ;(time (compute y 4 "resources/test.csv" :exception false))
 
   ;; (def x (dataframe "../clojure-datasets/CRSP-extract.csv"))
   ;; (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
