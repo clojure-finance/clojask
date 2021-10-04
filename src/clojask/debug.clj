@@ -7,17 +7,17 @@
 
 (defn -main
   []
-  (def y (dataframe "resources/Employees-large.csv" :have-col true))
-  (set-type y "double" "Department")
-  (println (.getKeys (.col-info y)))
-  ;(println "Renaming columns...")
-  (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
-  (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
-  (group-by y "Department")
-  (aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
-  (.reorderCol (.col-info y) ["Employee" "Department" "EmployeeName" "Salary"])
-  (.reorderCol (.row-info y) (.getDesc (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"])
-  (println (.getKeys (.col-info y)))
+  ;; (def y (dataframe "resources/Employees-large.csv" :have-col true))
+  ;; (set-type y "double" "Department")
+  ;; (println (.getKeys (.col-info y)))
+  ;; (println "Renaming columns...")
+  ;; (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
+  ;; (filter y ["Salary" "Department"] (fn [salary] (<= salary 800)))
+  ;; (group-by y "Department")
+  ;; (aggregate y aggre-avg ["Department" "Salary"] ["dept-avg" "salary-avg"])
+  ;; (.reorderCol (.col-info y) ["Employee" "Department" "EmployeeName" "Salary"])
+  ;; (.reorderCol (.row-info y) (.getDesc (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"])
+  ;; (println (.getKeys (.col-info y)))
   
   ;(time (compute y 8 "resources/test.csv" :exception true))
 
@@ -29,9 +29,9 @@
   ;(aggregate y min ["prccq"] ["prccq-min"])
   ;(time (compute y 4 "resources/test.csv" :exception false))
 
-  ;; (def x (dataframe "resources/CRSP-extract.csv"))
-  ;; (def y (dataframe "resources/data-Compustat-lohi.csv"))
-  ;; (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
+  (def x (dataframe "../clojure-datasets/data-CRSP.csv"))
+  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
   )
 
 ;; (ns clojask.debug
