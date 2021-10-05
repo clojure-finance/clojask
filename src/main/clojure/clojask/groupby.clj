@@ -36,9 +36,13 @@
   (let [index groupby-keys
         ;; (map (fn [_] (get key-index _)) groupby-keys)
         val (mapv (fn [_] 
-                    (if-let [formatter (get formatters _)]
-                      (formatter (nth msg _))
-                      (nth msg _))) 
+                    (let [func (nth _ 0)
+                          _ (nth _ 1)]
+                     (if func
+                       (func (nth msg _))
+                       (if-let [formatter (get formatters _)]
+                         (formatter (nth msg _))
+                         (nth msg _))))) 
                   index)]
     (str dist val)))
 

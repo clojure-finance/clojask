@@ -64,11 +64,11 @@
       (throw (Clojask_OperationException. "operate"))))
   (groupby
     [this key]
-    (let [keys (if (coll? key)
-                 key
-                 [key])]
+    (let [input (u/proc-groupby-key key)
+          keys (map #(nth % 1) input)]
+      (assert (not= input nil) "the group-by keys format is not correct")
       (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
-      (let [keys (mapv (fn [_] (get (.getKeyIndex col-info) _)) keys)]
+      (let [keys (mapv (fn [_] [(first _)(get (.getKeyIndex col-info) (nth _ 1))]) input)]
         (if (nil? (.groupby row-info keys))
           this
           (throw (Clojask_OperationException. "groupby"))

@@ -5,12 +5,12 @@
             [clojask.sort :refer :all]))
 "For debugging purposes only, will not be used in production."
 
-(import '[com.stackoverflow.clojure MyOwnException])
+;; (import '[com.stackoverflow.clojure MyOwnException])
 
 (defn -main
   []
   (def x "Hello world")
-  (-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
+  ;; (-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
   ; (def y (dataframe "resources/Employees-large.csv" :have-col true))
   ;; (set-type y "Salary" "double")

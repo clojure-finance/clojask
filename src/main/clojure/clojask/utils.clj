@@ -235,3 +235,28 @@
                                          %) (deref colNames-var)))))
         (deref colNames-var)))
     colNames))
+
+(defn proc-groupby-key-each
+  [pair]
+  (if (coll? pair)
+    (if (and (= 2 (count pair)) (fn? (first pair)) (string? (nth pair 1)))
+      pair
+      (throw (Exception.)))
+    (if (string? pair)
+      [nil pair]
+      (throw (Exception.)))))
+
+(defn proc-groupby-key
+  [input]
+  (try
+    (if (coll? input)
+    ;; it is a collection
+      (if (fn? (first input))
+        (if (= 2 (count input))
+          [input]
+          nil)
+        (mapv proc-groupby-key-each input))
+      (if (string? input)
+        [[nil input]]
+        nil))
+    (catch Exception e nil)))

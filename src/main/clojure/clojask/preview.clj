@@ -63,6 +63,7 @@
       ;; need to do groupby and aggregate
        (let [groupby-keys (.getGroupbyKeys (:row-info dataframe))
              key-index (.getKeyIndex (:col-info dataframe))
+             index-key (.getIndexKey (.col-info dataframe))
              groupby-res (loop [sample compute-res groupby {}]
                            (if-let [row (first sample)]
                              (let [res (rest sample)
@@ -70,14 +71,23 @@
                                (recur res (assoc groupby key (conj (or (get groupby key) []) row))))
                              groupby))
              aggre-funcs (.getAggreFunc (.row-info dataframe))
-             groupby-key-index (.getGroupbyKeys (:row-info dataframe))
-             groupby-keys (vec (map (.getIndexKey (.col-info dataframe)) groupby-key-index))
+            ;;  groupby-key-index (mapv #(nth % 1) (.getGroupbyKeys (:row-info dataframe)))
+             groupby-keys-value (vec (map #(if (nth % 0)
+                                            (str (nth % 0) "(" (index-key (nth % 1)) ")") 
+                                            (index-key (nth % 1))) groupby-keys))
              aggre-new-keys (.getAggreNewKeys (:row-info dataframe))
-             keys (concat groupby-keys aggre-new-keys)
+             keys (concat groupby-keys-value aggre-new-keys)
              preview-aggre-func (fn [key v-of-v]
                                   (let [data v-of-v
                                         ;; pre 
-                                        pre (mapv #(if formatting ((or (get formatters %) identity)(nth (first v-of-v) %)) (nth (first v-of-v) %)) groupby-key-index)
+                                        pre (mapv #(let [func (first %)
+                                                         index (nth % 1)]
+                                                    (if func
+                                                      (func (nth (first v-of-v) index))
+                                                      (if formatting
+                                                        ((or (get formatters index) identity) (nth (first v-of-v) index))
+                                                        (nth (first v-of-v) index)))) 
+                                                  groupby-keys)
                                         data-map (-> (iterate inc 0)
                                                      (zipmap (apply map vector data)))]
                                     (loop [aggre-funcs aggre-funcs
