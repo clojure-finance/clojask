@@ -109,8 +109,9 @@
     [this output-path]
     (assert (= java.lang.String (type output-path)) "output path should be a string")
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
-          groupby-keys (vec (map (.getIndexKey (.col-info this)) groupby-key-index))
+          groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
+        ;(println (vec (map #(last %) groupby-key-index)))
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
       ))
