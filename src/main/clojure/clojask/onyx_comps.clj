@@ -280,7 +280,7 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      :clojask/groupby-keys keys
+      ;; :clojask/groupby-keys keys
       :clojask/key-index key-index
       :lifecycle/calls :clojask.clojask-groupby/writer-aggre-calls}]))
 

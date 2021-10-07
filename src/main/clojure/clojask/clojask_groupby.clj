@@ -15,10 +15,12 @@
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [key-index (.getKeyIndex (.col-info (deref dataframe)))
-        formatters (.getFormatter (.col-info (deref dataframe)))]
+        formatters (.getFormatter (.col-info (deref dataframe)))
+        groupby-keys (.getGroupbyKeys (.row-info (deref dataframe)))]
   ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
     {:clojask/dist (:buffered-wtr/filename lifecycle) 
-     :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
+    ;;  :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
+     :clojask/groupby-keys groupby-keys
      :clojask/key-index key-index
      :clojask/formatter formatters}))
 
