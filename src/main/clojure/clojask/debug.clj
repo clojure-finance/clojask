@@ -5,12 +5,10 @@
             [clojask.sort :refer :all]))
 "For debugging purposes only, will not be used in production."
 
-(import '[com.stackoverflow.clojure MyOwnException])
-
 (defn -main
   []
-  (def x "Hello world")
-  (-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
+  ;(def x "Hello world")
+  ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
   ; (def y (dataframe "resources/Employees-large.csv" :have-col true))
   ;; (set-type y "Salary" "double")
@@ -60,7 +58,8 @@
   ;(aggregate y min ["PERMNO"] ["PERMNO-min"])
   ;(time (compute y 4 "resources/test.csv" :exception false))
 
-  ;; (def x (dataframe "../clojure-datasets/CRSP-extract.csv"))
-  ;; (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
-  ;; (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
+  (def x (dataframe "../clojure-datasets/data-CRSP.csv"))
+  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  ; join on (TIC, DATE)
+  (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
   )
