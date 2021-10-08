@@ -6,9 +6,9 @@ Number of workers = 4
 | :---:   | :-: | :-: | :-: | :-: | :-: | :-: |
 | Element-wise operation | 119.3 | 261.3 | N/A | 72.3 | 133.3 | 1836.6 |
 | Row-wise selection | 115.0 | 232.0 | N/A | 67.9 | 145.6 | 1757.5 |
-| Aggregation | 116.0 | 226.7 | N/A | - | - | |
+| Aggregation | 116.0 | 226.7 | N/A | - | - | - |
 | Groupby-aggregate | 116.7 | 229.3 | N/A | 459.5 | 681.3 | |
-| Left join | 114.7 | 248.7 | N/A | 1152.0 | | |
+| Left join | 114.7 | 248.7 | N/A | 1152.0 | 2310.2 | 14007.9 |
 | Inner join | 116.7 | 242.0| N/A | 1138.8 | | |
 | Rolling join | - | - | - | | | |
 
