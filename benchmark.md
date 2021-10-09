@@ -8,7 +8,7 @@ Number of workers = 4
 | Row-wise selection | 115.0 | 232.0 | N/A | 67.9 | 145.6 | 1757.5 |
 | Aggregation | 116.0 | 226.7 | N/A | - | - | - |
 | Groupby-aggregate | 116.7 | 229.3 | N/A | 459.5 | 681.3 | N/A |
-| Left join | 114.7 | 248.7 | N/A | 1152.0 | 2310.2 | 14007.9 |
+| Left join | 114.7 | 248.7 | N/A | 676.3 | 2310.2 | 14007.9 |
 | Inner join | 116.7 | 242.0| N/A | 1138.8 | | |
 | Rolling join | - | - | - | | | |
 
