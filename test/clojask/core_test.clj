@@ -28,7 +28,7 @@
     (set-type y "Salary" "double")
     (operate y - "Salary")
     (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception true :order true)
-    (let [result (sh "diff" "test/clojask/test_outputs/1-1.csv" "test/clojask/correct_outputs/1-1.csv")]
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-1.csv)" "<(sort test/clojask/correct_outputs/1-1.csv)")]
         (is (= "" (:out result))))
     ;; filter and row-operation
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
@@ -36,7 +36,7 @@
     (filter y "Salary" (fn [salary] (<= salary 800)))
     (operate y str ["Employee" "Salary"] "new-col")
     (compute y 8 "test/clojask/test_outputs/1-2.csv" :exception true :order true)
-    (let [result (sh "diff" "test/clojask/test_outputs/1-2.csv" "test/clojask/correct_outputs/1-2.csv")]
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-2.csv)" "<(sort test/clojask/correct_outputs/1-2.csv)")]
         (is (= "" (:out result))))
     ;; groupby and aggregate
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
