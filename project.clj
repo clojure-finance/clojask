@@ -17,6 +17,6 @@
   :source-paths      ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
   :test-paths        ["test/clojask"]
-  ;; :java-test-paths   ["src/test/java"]
-  ;; :injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
+  ;:java-test-paths   ["test/java"]
+  ;;:injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
   )

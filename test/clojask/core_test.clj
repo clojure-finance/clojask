@@ -1,4 +1,4 @@
-(ns clojask.core-test
+(ns core-test
     (:require [clojure.test :refer :all]
               [clojask.DataFrame :refer :all]
               [clojask.utils :refer :all]
