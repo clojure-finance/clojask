@@ -9,11 +9,15 @@
 
 (def a (atom nil))
 (def b (atom nil))
+(def a-keys (atom nil))
+(def b-keys (atom nil))
 
 (defn inject-dataframe
-  [d-a d-b]
+  [d-a d-b a-key b-key]
   (reset! a d-a)
-  (reset! b d-b))
+  (reset! b d-b)
+  (reset! a-keys a-key)
+  (reset! b-keys b-key))
 
 (defn- inject-into-eventmap
   [event lifecycle]
@@ -24,8 +28,10 @@
     ;; b-map (.getKeyIndex (.col-info (deref b)))
     b-format (.getFormatter (.col-info (deref b)))]
     {:clojask/wtr wtr
-     :clojask/a-keys (:clojask/a-keys lifecycle)
-     :clojask/b-keys (:clojask/b-keys lifecycle)
+    ;;  :clojask/a-keys (:clojask/a-keys lifecycle)
+     :clojask/a-keys (deref a-keys)
+    ;;  :clojask/b-keys (:clojask/b-keys lifecycle)
+     :clojask/b-keys (deref b-keys)
      :clojask/a-roll (:clojask/a-roll lifecycle)
      :clojask/b-roll (:clojask/b-roll lifecycle)
      :clojask/a-map (:clojask/a-map lifecycle)
@@ -127,8 +133,8 @@
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
                           (join/output-join-forward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-
                       (recur (rest batch))))))
+    ;; (.close wtr)
     true))
 
 ;; Builder function for your output plugin.

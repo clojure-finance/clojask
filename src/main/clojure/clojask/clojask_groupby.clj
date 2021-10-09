@@ -7,16 +7,18 @@
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def dataframe (atom nil))
+(def groupby-keys (atom nil))
 
 (defn inject-dataframe
-  [df]
-  (reset! dataframe df))
+  [df groupby-key]
+  (reset! dataframe df)
+  (reset! groupby-keys groupby-key))
 
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [key-index (.getKeyIndex (.col-info (deref dataframe)))
         formatters (.getFormatter (.col-info (deref dataframe)))
-        groupby-keys (.getGroupbyKeys (.row-info (deref dataframe)))]
+        groupby-keys (deref groupby-keys)]
   ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
     {:clojask/dist (:buffered-wtr/filename lifecycle) 
     ;;  :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 

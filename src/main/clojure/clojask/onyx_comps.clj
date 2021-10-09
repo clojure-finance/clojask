@@ -294,8 +294,8 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      :clojask/a-keys a-keys
-      :clojask/b-keys b-keys 
+      ;; :clojask/a-keys a-keys
+      ;; :clojask/b-keys b-keys 
       :clojask/a-roll a-roll
       :clojask/b-roll b-roll
       :clojask/a-map (.getKeyIndex (.col-info a)) 
@@ -447,7 +447,7 @@
     (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (groupby/inject-dataframe dataframe)
+    (groupby/inject-dataframe dataframe groupby-keys)
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -480,7 +480,7 @@
     (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (join/inject-dataframe dataframe b)
+    (join/inject-dataframe dataframe b a-keys b-keys)
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
