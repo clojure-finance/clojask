@@ -134,12 +134,12 @@
 
 - group-by
 
-  Group by the dataframe with some columns (always use together with `aggregate`)
+  Group by the dataframe with some columns (always use together with `aggregate`), or the result by applying the function to the column
 
-  | Argument         | Type                           | Function            | Remarks                                         |
-  | ---------------- | ------------------------------ | ------------------- | ----------------------------------------------- |
-  | `dataframe`      | Clojask.DataFrame              | The operated object |                                                 |
-  | `column name(s)` | String or collection of String | Group by columns    | Should be existing columns within the dataframe |
+  | Argument       | Type                | Function                                | Remarks                                      |
+  | -------------- | ------------------- | --------------------------------------- | -------------------------------------------- |
+  | `dataframe`    | Clojask.DataFrame   | The operated object                     |                                              |
+  | `groupby-keys` | String / Collection | Group by columns (functions of columns) | Find the specification [here](#groupby-keys) |
 
   **Example**
 
@@ -147,6 +147,44 @@
   (group-by x ["Department" "DepartmentName"])
   ;; group by both columns
   ```
+
+
+
+<a name="groupby-keys">**Group-by Keys Specification**</a>
+
+**Group-by functions requirements:**
+
+- Take one argument
+- Return type: int / double / string
+
+One general rule is to put the group-by function and its corresponding column name together.
+
+```clojure
+(defn rem10
+  "Get the reminder of the num by 10"
+  [num]
+  (rem num 10))
+
+(group-by x [rem10 "Salary"])
+;; or
+(group-by x [[rem10 "Salary"]])
+```
+
+If no group-by function, the column name can be alone.
+
+```clojure
+(group-by x "Salary")
+;; or
+(group-by x ["Salary"])
+```
+
+You can also group by the combination of keys. (Use the above two rules together)
+
+```clojure
+(group-by x [[rem10 "Salary"] "Department"])
+;; or
+(group-by x [[rem10 "Salary"] ["Department"]])
+```
 
 
 
@@ -220,15 +258,15 @@
 
   *Will automatically pipeline the registered operations and filters like `compute`. You could think of join as first compute the two dataframes then join.*
 
-  | Argument            | Type               | Function                                                     | Remarks                                           |
-  | ------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
-  | `dataframe a`       | Clojask.DataFrame  | The operated object                                          |                                                   |
-  | `dataframe b`       | Clojask.DataFrame  | The operated object                                          |                                                   |
-  | `a columns`         | Clojure.collection | The keys of a to be aligned                                  | Should be existing headers in dataframe a         |
-  | `b columns`         | Clojure.collection | The keys of b to be aligned                                  | Should be existing headers in dataframe b         |
-  | `number of workers` | int (max 8)        | Number of worker nodes doing the joining                     |                                                   |
-  | `distination file`  | string             | The file path to the distination                             | Will be emptied first                             |
-  | [`exception`]       | boolean            | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields |
+  | Argument            | Type                | Function                                                     | Remarks                                           |
+  | ------------------- | ------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
+  | `dataframe a`       | Clojask.DataFrame   | The operated object                                          |                                                   |
+  | `dataframe b`       | Clojask.DataFrame   | The operated object                                          |                                                   |
+  | `a join keys`       | String / Collection | The keys of a to be aligned                                  | Find the specification [here](#groupby-keys)      |
+  | `b join keys`       | String / Collection | The keys of b to be aligned                                  | Find the specification [here](#groupby-keys)      |
+  | `number of workers` | int (max 8)         | Number of worker nodes doing the joining                     |                                                   |
+  | `distination file`  | string              | The file path to the distination                             | Will be emptied first                             |
+  | [`exception`]       | boolean             | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields |
 
   **Example**
 
@@ -263,5 +301,3 @@
   (.renameCol y ["Employee" "new-Department" "EmployeeName" "Salary"])
   ```
 
-
-  

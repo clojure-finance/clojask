@@ -241,7 +241,9 @@
   (if (coll? pair)
     (if (and (= 2 (count pair)) (fn? (first pair)) (string? (nth pair 1)))
       pair
-      (throw (Exception.)))
+      (if (and (= 1 (count pair)) (string? (first pair)))
+        [nil pair]
+        (throw (Exception.))))
     (if (string? pair)
       [nil pair]
       (throw (Exception.)))))
