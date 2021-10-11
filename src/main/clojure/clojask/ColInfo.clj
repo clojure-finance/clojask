@@ -16,6 +16,7 @@
   (getIndexKey [])
   (setFormatter [b c])
   (getFormatter [])
+  (delCol [col-to-del])
   (setColInfo [new-col-set])
   (renameColInfo [new-col-names]))
 
@@ -101,6 +102,18 @@
   (getIndexKey
    [this]
    index-key)
+  (delCol
+    [this col-to-delete]
+    (let [original-key-index (.getKeyIndex this)
+          ;new-col-dsp-vals (vals (select-keys original-key-index new-col-set))
+          original-type (.getType this)
+          original-format (.getFormatter this)]
+      (println col-keys)
+      (println key-index)
+      (println index-key)
+      (println col-type)
+      (println col-format)
+      ))
   (setColInfo
     [this new-col-set]
     (let [original-key-index (.getKeyIndex this)

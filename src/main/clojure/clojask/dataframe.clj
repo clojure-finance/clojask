@@ -30,6 +30,7 @@
   (colTypes [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for join & aggregate")
+  (delCol [col-to-del] "delete column(s) in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "reorder columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
@@ -115,6 +116,9 @@
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
       ))
+  (delCol 
+    [this col-to-del]
+    (.delCol (.col-info this) col-to-del))
   (reorderCol
     [this new-col-order]
     (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
@@ -312,6 +316,10 @@
         types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
         data (conj (apply list data) types)]
     (pprint/print-table data)))
+
+(defn del-col
+  [this col-to-del]
+  (.delCol this col-to-del))
 
 (defn reorder-col
   [this new-col-order]
