@@ -51,9 +51,11 @@
     (testing "Column manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
     (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
-    (is (= (.getKeys (.col-info y)) ["Employee" "Department" "EmployeeName" "Salary"]))
+    (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary"]))
     (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary"])
-    (is (= (.getKeys (.col-info y)) ["Employee" "new-Department" "EmployeeName" "Salary"]))
+    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary"]))
+    (delete-col y ["new-Department" "Salary"])
+    (is (= (col-names y) ["Employee" "EmployeeName"]))
     ))
 
 (deftest join-api-test
