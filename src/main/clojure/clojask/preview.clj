@@ -1,5 +1,6 @@
 (ns clojask.preview
-  (:require [clojask.ColInfo :refer [->ColInfo]]
+  (:require [clojure.set :as set]
+            [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
@@ -19,6 +20,12 @@
   (let [index-key (.getIndexKey (:col-info dataframe))
         formatters (.getFormatter (:col-info dataframe))
         index (take (count index-key) (iterate inc 0))
+        indices-deleted (.getDeletedCol (:col-info dataframe))
+        indices-wo-del (vec (take (count index-key) (iterate inc 0)))
+        index (if (empty? indices-deleted) 
+                  indices-wo-del ;; no columns deleted
+                  (vec (set/difference (set indices-wo-del) (set indices-deleted))) ; minus column indices deleted
+                  )
         header (mapv index-key index)    ;; the header of the result in sequence vector
         reader (io/reader (:path dataframe))
         csv-data (if (:have-col dataframe)

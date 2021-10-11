@@ -332,7 +332,7 @@
   [this]
   (.getColNames this))
 
-(defn del-col
+(defn delete-col
   [this col-to-del]
   (.delCol this col-to-del))
 
