@@ -1,5 +1,6 @@
 (ns clojask.DataFrame
-  (:require [clojask.ColInfo :refer [->ColInfo]]
+  (:require [clojure.set :as set]
+            [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
@@ -103,9 +104,13 @@
   (printCol
     [this output-path]
     (assert (= java.lang.String (type output-path)) "output path should be a string")
-    (with-open [wrtr (io/writer output-path)]
-      (.write wrtr (str (str/join "," (map last (.getIndexKey (.col-info this)))) "\n")))
-    )
+    (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
+          col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
+          col-set (if (empty? (.getDeletedCol (.col-info this))) 
+                      col-set-wo-del ; no columns deleted
+                      (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
+          (with-open [wrtr (io/writer output-path)]
+            (.write wrtr (str (str/join "," col-set) "\n")))))
   (printAggreCol
     [this output-path]
     (assert (= java.lang.String (type output-path)) "output path should be a string")
@@ -118,6 +123,7 @@
       ))
   (delCol 
     [this col-to-del]
+    (assert (= 0 (count (u/are-in col-to-del this))) "input is not existing column names")
     (.delCol (.col-info this) col-to-del))
   (reorderCol
     [this new-col-order]

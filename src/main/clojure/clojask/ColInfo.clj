@@ -109,11 +109,8 @@
     col-deleted)
   (delCol
     [this col-to-delete]
-    (println "Hello I'm in delCol")
-    (println col-to-delete)
-    (if (not (empty? (.getDeletedCol this)))
-      (println (.getDeletedCol this)))
-    )
+    (let [col-indices (set (map key-index col-to-delete))]
+      (set! col-deleted (conj col-indices))))
   (setColInfo
     [this new-col-set]
     (let [original-key-index (.getKeyIndex this)
