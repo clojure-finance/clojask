@@ -1,5 +1,6 @@
 (ns clojask.onyx-comps
-  (:require [clojask.clojask-input :as input]
+  (:require [clojure.set :as set]
+            [clojask.clojask-input :as input]
             [clojask.clojask-output :as output]
             [clojask.clojask-groupby :as groupby]
             [clojask.clojask-join :as join]
@@ -63,7 +64,12 @@
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
-        indices (vec (take (count operations) (iterate inc 0)))]
+        indices-deleted (.getDeletedCol (:col-info (deref dataframe)))
+        indices-wo-del (vec (take (count operations) (iterate inc 0)))
+        indices (if (empty? indices-deleted) 
+                    indices-wo-del ; no columns deleted
+                    (vec (set/difference (set indices-wo-del) (set indices-deleted))) ; minus column indices deleted
+                    )]
     (if exception
       (defn worker-func
         [seg]

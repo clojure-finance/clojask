@@ -1,5 +1,6 @@
 (ns clojask.DataFrame
-  (:require [clojask.ColInfo :refer [->ColInfo]]
+  (:require [clojure.set :as set]
+            [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
@@ -28,8 +29,10 @@
   (setParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
+  (getColNames [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for join & aggregate")
+  (delCol [col-to-del] "delete column(s) in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "reorder columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
@@ -99,12 +102,20 @@
   (colTypes
     [this]
     (.getType col-info))
+  (getColNames
+    [this]
+    (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
+          col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
+          col-set (if (empty? (.getDeletedCol (.col-info this))) 
+                      col-set-wo-del ; no columns deleted
+                      (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
+          col-set))
   (printCol
     [this output-path]
     (assert (= java.lang.String (type output-path)) "output path should be a string")
-    (with-open [wrtr (io/writer output-path)]
-      (.write wrtr (str (str/join "," (map last (.getIndexKey (.col-info this)))) "\n")))
-    )
+    (let [col-set (.getColNames this)]
+          (with-open [wrtr (io/writer output-path)]
+            (.write wrtr (str (str/join "," col-set) "\n")))))
   (printAggreCol
     [this output-path]
     (assert (= java.lang.String (type output-path)) "output path should be a string")
@@ -115,6 +126,10 @@
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
       ))
+  (delCol 
+    [this col-to-del]
+    (assert (= 0 (count (u/are-in col-to-del this))) "input is not existing column names")
+    (.delCol (.col-info this) col-to-del))
   (reorderCol
     [this new-col-order]
     (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
@@ -240,7 +255,7 @@
     (let [reader (io/reader path)
           file (csv/read-csv reader)
           colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
-          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
+          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
           row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
       (.close reader)
@@ -312,6 +327,14 @@
         types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
         data (conj (apply list data) types)]
     (pprint/print-table data)))
+
+(defn col-names
+  [this]
+  (.getColNames this))
+
+(defn delete-col
+  [this col-to-del]
+  (.delCol this col-to-del))
 
 (defn reorder-col
   [this new-col-order]

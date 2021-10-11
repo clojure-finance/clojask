@@ -10,19 +10,27 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  ; (def y (dataframe "resources/Employees-large.csv" :have-col true))
-  ;; (set-type y "Salary" "double")
-  ;; (filter y "Salary" (fn [salary] (<= salary 800)))
+  (def y (dataframe "resources/Employees-large.csv" :have-col true))
+  ;(println (.getKeys (.col-info y)))
+  (set-type y "Salary" "double")
+  (filter y "Salary" (fn [salary] (<= salary 800)))
+  (set-parser y "Department" #(Double/parseDouble %))
 
-  ;; (group-by y ["Department"])
+  (del-col y ["Salary" "Department"])
+
+  (print-df y)
+  (println (col-names y))
+
+  ;; (group-by y ["Department" "Employee"])
   ;; (aggregate y min ["Employee"] ["new-employee"])
+  ;; (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
 
   ;; (set-type y "Department" "double")
   ;; (set-parser y "Salary" #(Double/parseDouble %))
   ;; (operate y - "Department")
   ;; (operate y str ["Employee" "Salary"] "new-col")
 
-  ;; (time (compute y 4 "resources/test.csv" :exception true :order true))
+  (time (compute y 8 "resources/test.csv" :exception true :order true))
 
   ;; (-> (dataframe "resources/Employees-large.csv" :have-col true)
   ;;     (set-type "Salary" "double")
@@ -49,17 +57,22 @@
 
   ;(def y (dataframe "../clojure-datasets/data-CRSP.csv"))
   ;(def y (dataframe "resources/data-CRSP.csv" :have-col true))
-  ;(set-type y "prccq" "double")
+  ;(set-type y "PRC" "double")
   ;(operate y - "prccq")
   ;(operate y str ["PERMCO" "PERMNO"] "new-col")
-  ;(group-by y "gvkey")
-  ;(aggregate y min ["prccq"] ["prccq-min"])
-  ;(group-by y "PERMCO")
-  ;(aggregate y min ["PERMNO"] ["PERMNO-min"])
+  ;(group-by y "TICKER")
+  ;(aggregate y min ["PRC"] ["PRC-min"])
+  ;(group-by y "TICKER")
+  ;(aggregate y min ["PRC"] ["PRC-min"])
   ;(time (compute y 4 "resources/test.csv" :exception false))
 
-  (def x (dataframe "../clojure-datasets/data-CRSP.csv"))
-  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  ;; CRSP Benchmarking
+
+  ;(def x (dataframe "../clojure-datasets/data-CRSP.csv"))
+  ;(def x (dataframe "resources/CRSP-extract.csv"))
+  ;(def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+
   ; join on (TIC, DATE)
-  (time (left-join x y ["date"] ["datadate"] 4 "resources/test.csv" :exception false))
+  ;(time (rolling-join-forward x y ["date"] ["datadate"] "date" "datadate" 4 "resources/test.csv" :exception false))
+  ;(time (inner-join x y ["date" "TICKER"] ["datadate" "TICKER"] 4 "resources/test.csv" :exception false))
   )
