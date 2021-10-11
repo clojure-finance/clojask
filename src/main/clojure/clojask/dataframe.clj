@@ -29,6 +29,7 @@
   (setParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
+  (getColNames [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for join & aggregate")
   (delCol [col-to-del] "delete column(s) in the dataframe")
@@ -101,14 +102,18 @@
   (colTypes
     [this]
     (.getType col-info))
-  (printCol
-    [this output-path]
-    (assert (= java.lang.String (type output-path)) "output path should be a string")
+  (getColNames
+    [this]
     (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
           col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
           col-set (if (empty? (.getDeletedCol (.col-info this))) 
                       col-set-wo-del ; no columns deleted
                       (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
+          col-set))
+  (printCol
+    [this output-path]
+    (assert (= java.lang.String (type output-path)) "output path should be a string")
+    (let [col-set (.getColNames this)]
           (with-open [wrtr (io/writer output-path)]
             (.write wrtr (str (str/join "," col-set) "\n")))))
   (printAggreCol
@@ -322,6 +327,10 @@
         types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
         data (conj (apply list data) types)]
     (pprint/print-table data)))
+
+(defn col-names
+  [this]
+  (.getColNames this))
 
 (defn del-col
   [this col-to-del]
