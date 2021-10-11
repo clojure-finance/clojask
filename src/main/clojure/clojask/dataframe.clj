@@ -244,7 +244,7 @@
     (let [reader (io/reader path)
           file (csv/read-csv reader)
           colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
-          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {})
+          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
           row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
       (.close reader)

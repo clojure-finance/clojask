@@ -14,6 +14,7 @@
   (getKeys [])
   (getKeyIndex [])
   (getIndexKey [])
+  (getDeletedCol [])
   (setFormatter [b c])
   (getFormatter [])
   (delCol [col-to-del])
@@ -28,10 +29,10 @@
           ^:unsynchronized-mutable index-key
           ^:unsynchronized-mutable col-dsp
           ^:unsynchronized-mutable col-type
-          ^:unsynchronized-mutable col-format]
+          ^:unsynchronized-mutable col-format
+          ^:unsynchronized-mutable col-deleted]
 
   ;; method
-   ;; method
   ColIntf
   ;; (init
   ;;   [this colNames]
@@ -42,7 +43,8 @@
     (set! col-keys (vec colNames))  ;; contains only the original keys
     (set! key-index (zipmap col-keys (iterate inc 0)))
     (set! index-key (zipmap (iterate inc 0) col-keys))
-    (set! col-dsp (zipmap (take (count colNames) (iterate inc 0)) (map vector (map vector (iterate inc 0))))))
+    (set! col-dsp (zipmap (take (count colNames) (iterate inc 0)) (map vector (map vector (iterate inc 0)))))
+    (set! col-deleted (set nil)))
   (operate
     [this operation col]
     (if (contains? key-index col)
@@ -102,18 +104,16 @@
   (getIndexKey
    [this]
    index-key)
+  (getDeletedCol
+    [this]
+    col-deleted)
   (delCol
     [this col-to-delete]
-    (let [original-key-index (.getKeyIndex this)
-          ;new-col-dsp-vals (vals (select-keys original-key-index new-col-set))
-          original-type (.getType this)
-          original-format (.getFormatter this)]
-      (println col-keys)
-      (println key-index)
-      (println index-key)
-      (println col-type)
-      (println col-format)
-      ))
+    (println "Hello I'm in delCol")
+    (println col-to-delete)
+    (if (not (empty? (.getDeletedCol this)))
+      (println (.getDeletedCol this)))
+    )
   (setColInfo
     [this new-col-set]
     (let [original-key-index (.getKeyIndex this)
