@@ -18,7 +18,7 @@
     (is (= clojask.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
     (is (= clojask.DataFrame.DataFrame (type (group-by y ["Department"]))))
     (is (= clojask.DataFrame.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
-    (is (= "success" (compute y 8 "resources/test.csv" :exception true)))
+    (is (= "success" (compute y 8 "resources/test.csv" :exception false)))
     ))
 
 (deftest df-api-output-test
@@ -27,7 +27,7 @@
     ;; element-operation
     (set-type y "Salary" "double")
     (operate y - "Salary")
-    (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception true :order true)
+    (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception false :order true)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-1.csv)" "<(sort test/clojask/correct_outputs/1-1.csv)")]
         (is (= "" (:out result))))
     ;; filter and row-operation
@@ -35,14 +35,14 @@
     (set-type y "Salary" "double")
     (filter y "Salary" (fn [salary] (<= salary 800)))
     (operate y str ["Employee" "Salary"] "new-col")
-    (compute y 8 "test/clojask/test_outputs/1-2.csv" :exception true :order true)
+    (compute y 8 "test/clojask/test_outputs/1-2.csv" :exception false :order true)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-2.csv)" "<(sort test/clojask/correct_outputs/1-2.csv)")]
         (is (= "" (:out result))))
     ;; groupby and aggregate
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
     (group-by y ["Department"])
     (aggregate y min ["Employee"] ["new-employee"])
-    (compute y 8 "test/clojask/test_outputs/1-3.csv" :exception true :order true)
+    (compute y 8 "test/clojask/test_outputs/1-3.csv" :exception false :order true)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-3.csv)" "<(sort test/clojask/correct_outputs/1-3.csv)")]
         (is (= "" (:out result))))
     ))

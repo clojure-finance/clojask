@@ -14,7 +14,7 @@
   (getKeys [])
   (getKeyIndex [])
   (getIndexKey [])
-  (getDeletedCol [])
+  (getDeletedCol [] "get indices of deleted columns")
   (setFormatter [b c])
   (getFormatter [])
   (delCol [col-to-del])
@@ -38,6 +38,7 @@
   ;;   [this colNames]
   ;;   (set! col-keys (map keyword colNames))
   ;;   (set! col-dsp (zipmap col-keys (map (fn [_] (wrap-res _ row)) col-keys))))
+
   (init
     [this colNames]
     (set! col-keys (vec colNames))  ;; contains only the original keys
@@ -45,6 +46,7 @@
     (set! index-key (zipmap (iterate inc 0) col-keys))
     (set! col-dsp (zipmap (take (count colNames) (iterate inc 0)) (map vector (map vector (iterate inc 0)))))
     (set! col-deleted (set nil)))
+
   (operate
     [this operation col]
     (if (contains? key-index col)
@@ -54,6 +56,7 @@
         nil)
       (str col " is not an existing column name") ;; would not come here otherwise deprecate
       ))
+
   (operate
     [this operation col newCol]
     (let [col (if (coll? col)
@@ -73,6 +76,7 @@
         (do
           (throw (Clojask_OperationException. (str external " are not original column names")))
           ))))
+
   (setType
     [this operation col]
     (if (.contains col-keys col)
@@ -83,34 +87,44 @@
         ; "success"
         nil)
       (throw (Clojask_OperationException. "Column name passed to setType not found"))))
+
   (setFormatter
    [this format col]
    (set! col-format (assoc col-format (get key-index col) format)))
+
   (getFormatter
    [this]
    col-format)
+
   (getDesc
     [this]
     col-dsp)
+
   (getType
     [this]
     col-type)
+
   (getKeys
     [this]
     col-keys)
+
   (getKeyIndex
    [this]
    key-index)
+
   (getIndexKey
    [this]
    index-key)
+
   (getDeletedCol
     [this]
     col-deleted)
+
   (delCol
     [this col-to-delete]
     (let [col-indices (set (map key-index col-to-delete))]
       (set! col-deleted (conj col-indices))))
+
   (setColInfo
     [this new-col-set]
     (let [original-key-index (.getKeyIndex this)
@@ -126,6 +140,7 @@
       (if (not (empty? (.getFormatter this)))
           (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))
     ))
+  
   (renameColInfo
     [this new-col-names]
     (set! col-keys (vec new-col-names))
