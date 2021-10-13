@@ -5,15 +5,12 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :as u]
-            ;; [clojask.groupby :refer [internal-aggregate aggre-min]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
-            ;; [clojask.join :as join]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
-            [clojure.pprint :as pprint]
-            )
+            [clojure.pprint :as pprint])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]))
 "The clojask lazy dataframe"
@@ -54,42 +51,47 @@
             ^RowInfo row-info
             ^Boolean have-col]
   DFIntf
+
   (operate ;; has assert
     [this operation colName]
     (if (nil? (.operate col-info operation colName))
     this ; "success"
     (throw (Clojask_OperationException. "operate"))))
+
   (operate
     [this operation colNames newCol]
     (cond (not (= java.lang.String (type newCol)))
-      (throw (Clojask_TypeException.  "new column should be a string")))
+      (throw (Clojask_TypeException.  "New column should be a string.")))
     (if (nil? (.operate col-info operation colNames newCol))
       this ; "success"
-      (throw (Clojask_OperationException. "operate"))))
+      (throw (Clojask_OperationException. "Error in running operate."))))
+
   (groupby
     [this key]
     (let [input (u/proc-groupby-key key)
           keys (map #(nth % 1) input)]
       (cond (not (not= input nil)) 
-        (throw (Clojask_TypeException. "the group-by keys format is not correct")))
+        (throw (Clojask_TypeException. "The group-by keys format is not correct.")))
       (cond (not (= 0 (count (u/are-in keys this)))) 
-        (throw (Clojask_TypeException. "input is not existing column names")))
+        (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
       (let [keys (mapv (fn [_] [(first _)(get (.getKeyIndex col-info) (nth _ 1))]) input)]
         (if (nil? (.groupby row-info keys))
           this
           (throw (Clojask_OperationException. "groupby"))
           ))))
+
   (aggregate
     [this func old-key new-key]
     (cond (not (= 0 (count (u/are-in old-key this)))) 
-      (throw (Clojask_TypeException. "input is not existing column names")))
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (cond (not (= 0 (count (u/are-out new-key this)))) 
-      (throw (Clojask_TypeException. "new keys should not be existing column names")))
+      (throw (Clojask_TypeException. "New keys should not be existing column names.")))
     (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
       (if (nil? (.aggregate row-info func old-key new-key))
         this
         (throw (Clojask_OperationException. "aggregate"))
         )))
+
   (filter
     [this cols predicate]
     (let [cols (if (coll? cols)
@@ -97,17 +99,20 @@
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
       (cond (not (u/are-in cols this)) 
-        (throw (Clojask_TypeException. "input is not existing column names")))
+        (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
       (if (nil? (.filter row-info indices predicate))
         this
         (throw (Clojask_OperationException. "filter"))
         )))
+
   (colDesc
     [this]
     (.getDesc col-info))
+
   (colTypes
     [this]
     (.getType col-info))
+  
   (getColNames
     [this]
     (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
@@ -116,46 +121,53 @@
                       col-set-wo-del ; no columns deleted
                       (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
           col-set))
+
   (printCol
     [this output-path]
     (cond (not (= java.lang.String (type output-path))) 
-      (throw (Clojask_TypeException. "output path should be a string")))
+      (throw (Clojask_TypeException. "Output path should be a string.")))
     (let [col-set (.getColNames this)]
           (with-open [wrtr (io/writer output-path)]
             (.write wrtr (str (str/join "," col-set) "\n")))))
+
   (printAggreCol
     [this output-path]
     (cond (not (= java.lang.String (type output-path))) 
-      (throw (Clojask_TypeException. "output path should be a string")))
+      (throw (Clojask_TypeException. "Output path should be a string.")))
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
         ;(println (vec (map #(last %) groupby-key-index)))
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
+
       ))
   (delCol 
     [this col-to-del]
     (cond (not (= 0 (count (u/are-in col-to-del this)))) 
-      (throw (Clojask_TypeException. "input is not existing column names")))
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (.delCol (.col-info this) col-to-del))
+
   (reorderCol
     [this new-col-order]
     (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
-      (throw (Clojask_TypeException. "set of input in reorder-col contains column that do not exist in dataframe")))
+      (throw (Clojask_TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
+
   (renameCol
     [this new-col-names]
     (cond (not (= (count (.getKeys (.col-info this))) (count new-col-names)))
-      (throw (Clojask_TypeException. "number of new column names not equal to number of existing columns")))
+      (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
     (.renameColInfo (.col-info this) new-col-names))
+
   (head
     [this n]
     (cond (not (integer? n)) 
-      (throw (Clojask_TypeException. "argument passed to head should be an integer")))
+      (throw (Clojask_TypeException. "Argument passed to head should be an integer.")))
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
+
   (setType
     [this type colName]
     (u/set-format-string type)
@@ -170,18 +182,21 @@
           (.addFormatter this format colName)
           ;; "success"
           this))))
+
   (setParser
     [this parser colName]
     (cond (not (u/is-in colName this)) 
-      (throw (Clojask_TypeException. "input is not existing column name")))
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (if (nil? (.setType col-info parser colName))
       this
-      (throw (Clojask_OperationException. "setParser"))))
+      (throw (Clojask_OperationException. "Error in running setParser."))))
+
   (addFormatter
     [this format col]
     (cond (not (u/is-in col this)) 
-      (throw (Clojask_TypeException. "input is not existing column name")))
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (.setFormatter col-info format col))
+
   (final
     [this]
     (doseq [tmp (.getFormatter (:col-info this))]
@@ -191,7 +206,7 @@
   (preview
    [this sample-size return-size format]
    (cond (and (integer? sample-size) (integer? return-size)) 
-      (throw (Clojask_TypeException. "arguments passed to preview should be integers")))
+      (throw (Clojask_TypeException. "Arguments passed to preview must be integers.")))
    (preview/preview this sample-size return-size format))
 
   (compute
@@ -206,12 +221,12 @@
             "success"
             "failed"))
         (catch Exception e e))
-        (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
+        (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
 
   (computeAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
     (cond (not (= java.lang.String (type output-dir))) 
-      (throw (Clojask_TypeException. "output-dir should be a string")))
+      (throw (Clojask_TypeException. "Output-dir should be a string.")))
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
@@ -222,10 +237,10 @@
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
              (start-onyx-aggre num-worker batch-size this output-dir exception)
               "success"
-              (throw (Clojask_OperationException. "start-onyx-aggre")))
-            (throw (Clojask_OperationException. "start-onyx-groupby"))))
+              (throw (Clojask_OperationException. "Error in running start-onyx-aggre.")))
+            (throw (Clojask_OperationException. "Error in running start-onyx-groupby."))))
         (catch Exception e e))
-        (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
+        (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
   (sort
     [this list output-dir]
     (cond (not (and (not (empty? list)) (loop [list list key false]
@@ -366,14 +381,16 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
-    (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+      (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (not (= (count a-keys) (count b-keys))) 
+      (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
-  ;; first group b by keys
-  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+    ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1))
-  )
+    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1)))
 
 (defn left-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
@@ -381,11 +398,14 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-  ;(assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
-    (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+      (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (not (= (count a-keys) (count b-keys))) 
+      (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
-  ;; first group b by keys
-  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+    ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 2)))
 
@@ -395,11 +415,14 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (assert (and (= (type b) clojask.DataFrame.DataFrame) (= (type a) clojask.DataFrame.DataFrame)) "First two arguments should be clojask dataframes.")
-    (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+      (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (not (= (count a-keys) (count b-keys))) 
+      (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
-  ;; first group b by keys
-  ;; (start-onyx-groupby num-worker batch-size a "./_clojask/join/a/" a-keys false)
+    ;; first group b by keys
     (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
 
@@ -409,16 +432,18 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (assert (= (type a-roll) java.lang.String))
-    (assert (= (type b-roll) java.lang.String))
-    (assert (= (count a-keys) (count b-keys)) "The length of left keys and right keys should be equal.")
+    (cond (not (and (= (type a-roll) java.lang.String) (= (type b-roll) java.lang.String)))
+      (throw (Clojask_TypeException. "Rolling keys should be strings")))
+    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+      (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (not (= (count a-keys) (count b-keys))) 
+      (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
       (do
-        (assert (and (not= a-roll nil) (not= b-roll nil)) "rolling key should be existing header")
+        (cond (not (and (not= a-roll nil) (not= b-roll nil)))
+          (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
         (u/init-file dist)
-  ;; (join/internal-rolling-join-forward a-keys b-keys a-roll b-roll)
-
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4))))
-  ;; (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys exception)
-  )
+        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4)))))
