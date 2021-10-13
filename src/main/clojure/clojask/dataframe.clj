@@ -72,7 +72,8 @@
           keys (map #(nth % 1) input)]
       (cond (not (not= input nil)) 
         (throw (Clojask_TypeException. "the group-by keys format is not correct")))
-      (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
+      (cond (not (= 0 (count (u/are-in keys this)))) 
+        (throw (Clojask_TypeException. "input is not existing column names")))
       (let [keys (mapv (fn [_] [(first _)(get (.getKeyIndex col-info) (nth _ 1))]) input)]
         (if (nil? (.groupby row-info keys))
           this
@@ -80,8 +81,10 @@
           ))))
   (aggregate
     [this func old-key new-key]
-    (assert (= 0 (count (u/are-in old-key this))) "input is not existing column names")
-    (assert (= 0 (count (u/are-out new-key this))) "new keys should not be existing column names")
+    (cond (not (= 0 (count (u/are-in old-key this)))) 
+      (throw (Clojask_TypeException. "input is not existing column names")))
+    (cond (not (= 0 (count (u/are-out new-key this)))) 
+      (throw (Clojask_TypeException. "new keys should not be existing column names")))
     (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
       (if (nil? (.aggregate row-info func old-key new-key))
         this
