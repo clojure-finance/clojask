@@ -16,7 +16,7 @@ lein test
 
 To run a particular test defined in the namespace:
 ```
-lein test :only clojask.core-test/df-api-test 
+lein test :only core-test/df-api-test 
 ```
 
 #### Requirements for the input file:
