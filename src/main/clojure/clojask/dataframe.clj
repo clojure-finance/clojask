@@ -61,7 +61,8 @@
     (throw (Clojask_OperationException. "operate"))))
   (operate
     [this operation colNames newCol]
-    (assert (= java.lang.String (type newCol)) "new column should be a string")
+    (cond (not (= java.lang.String (type newCol)))
+      (throw (Clojask_TypeException.  "new column should be a string")))
     (if (nil? (.operate col-info operation colNames newCol))
       this ; "success"
       (throw (Clojask_OperationException. "operate"))))
@@ -69,7 +70,8 @@
     [this key]
     (let [input (u/proc-groupby-key key)
           keys (map #(nth % 1) input)]
-      (assert (not= input nil) "the group-by keys format is not correct")
+      (cond (not (not= input nil)) 
+        (throw (Clojask_TypeException. "the group-by keys format is not correct")))
       (assert (= 0 (count (u/are-in keys this))) "input is not existing column names")
       (let [keys (mapv (fn [_] [(first _)(get (.getKeyIndex col-info) (nth _ 1))]) input)]
         (if (nil? (.groupby row-info keys))
