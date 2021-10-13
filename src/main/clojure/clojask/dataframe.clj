@@ -96,7 +96,8 @@
                  cols
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
-      (assert (u/are-in cols this) "input is not existing column names")
+      (cond (not (u/are-in cols this)) 
+        (throw (Clojask_TypeException. "input is not existing column names")))
       (if (nil? (.filter row-info indices predicate))
         this
         (throw (Clojask_OperationException. "filter"))
@@ -117,13 +118,15 @@
           col-set))
   (printCol
     [this output-path]
-    (assert (= java.lang.String (type output-path)) "output path should be a string")
+    (cond (not (= java.lang.String (type output-path))) 
+      (throw (Clojask_TypeException. "output path should be a string")))
     (let [col-set (.getColNames this)]
           (with-open [wrtr (io/writer output-path)]
             (.write wrtr (str (str/join "," col-set) "\n")))))
   (printAggreCol
     [this output-path]
-    (assert (= java.lang.String (type output-path)) "output path should be a string")
+    (cond (not (= java.lang.String (type output-path))) 
+      (throw (Clojask_TypeException. "output path should be a string")))
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
@@ -133,7 +136,8 @@
       ))
   (delCol 
     [this col-to-del]
-    (assert (= 0 (count (u/are-in col-to-del this))) "input is not existing column names")
+    (cond (not (= 0 (count (u/are-in col-to-del this)))) 
+      (throw (Clojask_TypeException. "input is not existing column names")))
     (.delCol (.col-info this) col-to-del))
   (reorderCol
     [this new-col-order]
@@ -148,7 +152,8 @@
     (.renameColInfo (.col-info this) new-col-names))
   (head
     [this n]
-    (assert (integer? n) "argument passed to head should be an integer")
+    (cond (not (integer? n)) 
+      (throw (Clojask_TypeException. "argument passed to head should be an integer")))
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
   (setType
@@ -167,13 +172,15 @@
           this))))
   (setParser
     [this parser colName]
-    (assert (u/is-in colName this) "input is not existing column name")
+    (cond (not (u/is-in colName this)) 
+      (throw (Clojask_TypeException. "input is not existing column name")))
     (if (nil? (.setType col-info parser colName))
       this
       (throw (Clojask_OperationException. "setParser"))))
   (addFormatter
     [this format col]
-    (assert (u/is-in col this) "input is not existing column name")
+    (cond (not (u/is-in col this)) 
+      (throw (Clojask_TypeException. "input is not existing column name")))
     (.setFormatter col-info format col))
   (final
     [this]
@@ -183,9 +190,10 @@
 
   (preview
    [this sample-size return-size format]
-   (assert (and (integer? sample-size) (integer? return-size)) "arguments passed to preview should be integers")
-   (preview/preview this sample-size return-size format)
-   )
+   (cond (and (integer? sample-size) (integer? return-size)) 
+      (throw (Clojask_TypeException. "arguments passed to preview should be integers")))
+   (preview/preview this sample-size return-size format))
+
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
     ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
@@ -199,9 +207,11 @@
             "failed"))
         (catch Exception e e))
         (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
+
   (computeAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
-    (assert (= java.lang.String (type output-dir)) "output dir should be a string")
+    (cond (not (= java.lang.String (type output-dir))) 
+      (throw (Clojask_TypeException. "output-dir should be a string")))
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
@@ -218,7 +228,7 @@
         (throw (Clojask_OperationException. "Max number of work nodes is 8."))))
   (sort
     [this list output-dir]
-    (assert (and (not (empty? list)) (loop [list list key false]
+    (cond (not (and (not (empty? list)) (loop [list list key false]
                                        (if (and (not key) (= list '()))
                                          true
                                          (let [_ (first list)
@@ -229,8 +239,8 @@
                                                false)
                                              (if (or (= _ "+") (= _ "-"))
                                                (recur res true)
-                                               false))))))
-            "The order list is not in the correct format.")
+                                               false)))))))
+            (throw (Clojask_TypeException. "The order list is not in the correct format.")))
     (defn clojask-compare
       "a and b are two rows"
       [a b]
@@ -272,7 +282,8 @@
     (catch Exception e
       (do
         ;; (println "No such file or directory")
-        (throw e)
+        ;; (throw e)
+        (throw (Clojask_OperationException. e))
         nil))))
 
 (defn filter
