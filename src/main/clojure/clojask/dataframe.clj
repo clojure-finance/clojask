@@ -146,20 +146,26 @@
     [this col-to-del]
     (cond (not (= 0 (count (u/are-in col-to-del this)))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (.delCol (.col-info this) col-to-del))
+    (.delCol (.col-info this) col-to-del)
+    ;; "success"
+    this)
 
   (reorderCol
     [this new-col-order]
     (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
       (throw (Clojask_TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
     (.setColInfo (.col-info this) new-col-order)
-    (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order))
+    (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order)
+    ;; "success"  
+    this)
 
   (renameCol
     [this new-col-names]
     (cond (not (= (count (.getKeys (.col-info this))) (count new-col-names)))
       (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
-    (.renameColInfo (.col-info this) new-col-names))
+    (.renameColInfo (.col-info this) new-col-names)
+    ;; "success"
+    this )
 
   (head
     [this n]
