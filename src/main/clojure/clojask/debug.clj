@@ -16,14 +16,14 @@
   (filter y "Salary" (fn [salary] (<= salary 800)))
   (set-parser y "Department" #(Double/parseDouble %))
 
-  (del-col y ["Salary" "Department"])
+  (delete-col y ["Salary" "Department"])
 
   (print-df y)
   (println (col-names y))
 
   ;; (group-by y ["Department" "Employee"])
   ;; (aggregate y min ["Employee"] ["new-employee"])
-  ;; (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
+  ;; (rename-col y ["Employee" "Department-A" "EmployeeName" "Salary"])
 
   ;; (set-type y "Department" "double")
   ;; (set-parser y "Salary" #(Double/parseDouble %))
