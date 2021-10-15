@@ -9,8 +9,8 @@ Number of workers = 4
 | Aggregation | 116.0 | 226.7 | N/A | - | - | - |
 | Groupby-aggregate | 116.7 | 229.3 | N/A | 459.5 | 681.3 | N/A |
 | Left join | 114.7 | 248.7 | N/A | 676.3 | 2310.2 | 14007.9 |
-| Inner join | 116.7 | 242.0| N/A | 1138.8 | | |
-| Rolling join | - | - | - | | | |
+| Inner join | 116.7 | 242.0| N/A | 1138.8 | 4593.3 | |
+| Rolling join | - | - | - | 2812.1 | 3943.1 | |
 
 **Remarks:**
 - N = Number of lines in csv file
