@@ -51,7 +51,8 @@
    aggre-func)
   (aggregate
     [self func old-keys new-keys]
-    (if (not= groupby-key [])
+    (if true
+    ;;  (not= groupby-key [])
       (do
         (doseq [old-key old-keys]
           (set! aggre-func (conj aggre-func [func old-key])))

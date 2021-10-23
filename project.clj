@@ -11,7 +11,7 @@
                  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]]
   :repl-options {:init-ns clojask.debug
-                 :timeout 60000}
+                 :timeout 180000}
   :plugins [[lein-update-dependency "0.1.2"]]
   :main ^:skip-aot clojask.debug/-main
   :source-paths      ["src/main/clojure"]

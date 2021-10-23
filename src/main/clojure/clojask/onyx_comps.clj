@@ -3,6 +3,7 @@
             [clojask.clojask-input :as input]
             [clojask.clojask-output :as output]
             [clojask.clojask-groupby :as groupby]
+            [clojask.clojask-aggre :as aggre]
             [clojask.clojask-join :as join]
             [onyx.api :refer :all]
             [clojure.string :as string]
@@ -172,6 +173,50 @@
   (def catalog
     (conj catalog
           {:onyx/name :output
+           :onyx/plugin :clojask.clojask-aggre/output
+           :onyx/type :output
+           :onyx/medium :core.async  ;; this is maked up
+           :onyx/max-peers 1
+           :onyx/batch-size batch-size
+           :output/doc "Writes segments to the file"}))
+
+    ;; (println catalog) ;; !! debugging
+  )
+
+(defn catalog-groupby-gen
+  "Generate the catalog for running Onyx"
+  [num-work batch-size]
+  ;; initialisation
+  (def catalog [])
+
+  ;; input
+  (def catalog
+    (conj catalog
+          {:onyx/name :in
+           :onyx/plugin :clojask.clojask-input/input
+           :onyx/type :input
+           :onyx/medium :seq
+           :seq/checkpoint? true
+           :onyx/batch-size batch-size
+           :onyx/max-peers 1
+           :input/doc "Reads segments from a core.async channel"}))
+
+    ;; for loop for sample workers
+  (doseq [x (range 1 (+ num-work 1))]
+    (let [worker-name (keyword (str "sample-worker" x))
+          worker-function (keyword "clojask.onyx-comps" "worker-func")]
+      (def catalog
+        (conj catalog
+              {:onyx/name worker-name
+               :onyx/fn worker-function
+               :onyx/type :function
+               :onyx/batch-size batch-size
+               :worker/doc "This is a worker node"}))))
+
+    ;; output
+  (def catalog
+    (conj catalog
+          {:onyx/name :output
            :onyx/plugin :clojask.clojask-groupby/groupby
            :onyx/type :output
            :onyx/medium :core.async  ;; this is maked up
@@ -277,6 +322,21 @@
       :lifecycle/calls :clojask.clojask-output/writer-calls}]))
 
 (defn lifecycle-aggre-gen
+  [source dist]
+  (def lifecycles
+    [{:lifecycle/task :in
+      :buffered-reader/filename source
+      ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
+      ;; :clojask/types (.getType (:col-info (deref dataframe)))
+      :lifecycle/calls ::in-calls}
+     {:lifecycle/task :in
+      :lifecycle/calls :clojask.clojask-input/reader-calls}
+     {:lifecycle/task :output
+      :buffered-wtr/filename dist
+      ;; :order order
+      :lifecycle/calls :clojask.clojask-aggre/writer-calls}]))
+
+(defn lifecycle-groupby-gen
   [source dist keys key-index]
   (def lifecycles
     [{:lifecycle/task :in
@@ -421,7 +481,6 @@
     (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -442,6 +501,38 @@
     (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
   "success")
 
+(defn start-onyx-aggre-only
+  "start the onyx cluster with the specification inside dataframe"
+  [num-work batch-size dataframe dist exception]
+  (try
+    (workflow-gen num-work)
+    (config-env)
+    (worker-func-gen dataframe exception) ;;need some work
+    (catalog-aggre-gen num-work batch-size)
+    (lifecycle-aggre-gen (.path dataframe) dist)
+    (flow-cond-gen num-work)
+    (input/inject-dataframe dataframe)
+    (aggre/inject-dataframe dataframe)
+    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
+  (try
+    (let [submission (onyx.api/submit-job peer-config
+                                          {:workflow workflow
+                                           :catalog catalog
+                                           :lifecycles lifecycles
+                                           :flow-conditions flow-conditions
+                                           :task-scheduler :onyx.task-scheduler/balanced})
+          job-id (:job-id submission)]
+      ;; (println submission)
+      (assert job-id "Job was not successfully submitted")
+      (feedback-exception! peer-config job-id))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (Exception. (str "[submit-to-onyx stage (aggregate)] " (.getMessage e)))))))
+  (try
+    (shutdown)
+    (catch Exception e (throw (Exception. (str "[terminate-node stage (aggregate)] " (.getMessage e))))))
+  "success")
+
 (defn start-onyx-groupby
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist groupby-keys exception]
@@ -449,8 +540,8 @@
     (workflow-gen num-work)
     (config-env)
     (worker-func-gen dataframe exception) ;;need some work
-    (catalog-aggre-gen num-work batch-size)
-    (lifecycle-aggre-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
+    (catalog-groupby-gen num-work batch-size)
+    (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (groupby/inject-dataframe dataframe groupby-keys)

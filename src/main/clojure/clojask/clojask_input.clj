@@ -41,7 +41,8 @@
     (let [csv-data (if have-col 
                      (rest (line-seq (BufferedReader. reader)))
                      (line-seq (BufferedReader. reader)))
-          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))]
+          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
+          ]
       (if (nil? checkpoint)
         (do
           (vreset! rst data)
@@ -69,7 +70,11 @@
     (if-let [seg (first @rst)]
       (do
         (vswap! rst rest)
-        seg)
+        ;; (if (= (count @rst) 0) 
+        ;;   (assoc seg :last true)
+        ;;   seg)
+        seg
+        )
       (do (vreset! completed? true)
           nil))
     ;; (if-let [seg (first @rst)]

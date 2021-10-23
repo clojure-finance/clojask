@@ -5,7 +5,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :as u]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
+            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
@@ -36,6 +36,7 @@
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n])
   (filter [cols predicate])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
@@ -55,13 +56,13 @@
   (operate ;; has assert
     [this operation colName]
     (if (nil? (.operate col-info operation colName))
-    this ; "success"
-    (throw (Clojask_OperationException. "operate"))))
+      this ; "success"
+      (throw (Clojask_OperationException. "operate"))))
 
   (operate
     [this operation colNames newCol]
     (cond (not (= java.lang.String (type newCol)))
-      (throw (Clojask_TypeException.  "New column should be a string.")))
+          (throw (Clojask_TypeException.  "New column should be a string.")))
     (if (nil? (.operate col-info operation colNames newCol))
       this ; "success"
       (throw (Clojask_OperationException. "Error in running operate."))))
@@ -70,27 +71,25 @@
     [this key]
     (let [input (u/proc-groupby-key key)
           keys (map #(nth % 1) input)]
-      (cond (not (not= input nil)) 
-        (throw (Clojask_TypeException. "The group-by keys format is not correct.")))
-      (cond (not (= 0 (count (u/are-in keys this)))) 
-        (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-      (let [keys (mapv (fn [_] [(first _)(get (.getKeyIndex col-info) (nth _ 1))]) input)]
+      (cond (not (not= input nil))
+            (throw (Clojask_TypeException. "The group-by keys format is not correct.")))
+      (cond (not (= 0 (count (u/are-in keys this))))
+            (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+      (let [keys (mapv (fn [_] [(first _) (get (.getKeyIndex col-info) (nth _ 1))]) input)]
         (if (nil? (.groupby row-info keys))
           this
-          (throw (Clojask_OperationException. "groupby"))
-          ))))
+          (throw (Clojask_OperationException. "groupby"))))))
 
   (aggregate
     [this func old-key new-key]
-    (cond (not (= 0 (count (u/are-in old-key this)))) 
-      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (cond (not (= 0 (count (u/are-out new-key this)))) 
-      (throw (Clojask_TypeException. "New keys should not be existing column names.")))
+    (cond (not (= 0 (count (u/are-in old-key this))))
+          (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (not (= 0 (count (u/are-out new-key this))))
+          (throw (Clojask_TypeException. "New keys should not be existing column names.")))
     (let [old-key (mapv (fn [_] (get (.getKeyIndex col-info) _)) old-key)]
       (if (nil? (.aggregate row-info func old-key new-key))
         this
-        (throw (Clojask_OperationException. "aggregate"))
-        )))
+        (throw (Clojask_OperationException. "aggregate")))))
 
   (filter
     [this cols predicate]
@@ -98,12 +97,11 @@
                  cols
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
-      (cond (not (u/are-in cols this)) 
-        (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+      (cond (not (u/are-in cols this))
+            (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
       (if (nil? (.filter row-info indices predicate))
         this
-        (throw (Clojask_OperationException. "filter"))
-        )))
+        (throw (Clojask_OperationException. "filter")))))
 
   (colDesc
     [this]
@@ -112,48 +110,47 @@
   (colTypes
     [this]
     (.getType col-info))
-  
+
   (getColNames
     [this]
     (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
           col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
-          col-set (if (empty? (.getDeletedCol (.col-info this))) 
-                      col-set-wo-del ; no columns deleted
-                      (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
-          col-set))
+          col-set (if (empty? (.getDeletedCol (.col-info this)))
+                    col-set-wo-del ; no columns deleted
+                    (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
+      col-set))
 
   (printCol
     [this output-path]
-    (cond (not (= java.lang.String (type output-path))) 
-      (throw (Clojask_TypeException. "Output path should be a string.")))
+    (cond (not (= java.lang.String (type output-path)))
+          (throw (Clojask_TypeException. "Output path should be a string.")))
     (let [col-set (.getColNames this)]
-          (with-open [wrtr (io/writer output-path)]
-            (.write wrtr (str (str/join "," col-set) "\n")))))
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," col-set) "\n")))))
 
   (printAggreCol
     [this output-path]
-    (cond (not (= java.lang.String (type output-path))) 
-      (throw (Clojask_TypeException. "Output path should be a string.")))
+    (cond (not (= java.lang.String (type output-path)))
+          (throw (Clojask_TypeException. "Output path should be a string.")))
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
         ;(println (vec (map #(last %) groupby-key-index)))
-        (with-open [wrtr (io/writer output-path)]
-          (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))
-
-      ))
-  (delCol 
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
+  
+  (delCol
     [this col-to-del]
-    (cond (not (= 0 (count (u/are-in col-to-del this)))) 
-      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (not (= 0 (count (u/are-in col-to-del this))))
+          (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (.delCol (.col-info this) col-to-del)
     ;; "success"
     this)
 
   (reorderCol
     [this new-col-order]
-    (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order))) 
-      (throw (Clojask_TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
+    (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order)))
+          (throw (Clojask_TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order)
     ;; "success"  
@@ -162,15 +159,15 @@
   (renameCol
     [this new-col-names]
     (cond (not (= (count (.getKeys (.col-info this))) (count new-col-names)))
-      (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
+          (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
     (.renameColInfo (.col-info this) new-col-names)
     ;; "success"
-    this )
+    this)
 
   (head
     [this n]
-    (cond (not (integer? n)) 
-      (throw (Clojask_TypeException. "Argument passed to head should be an integer.")))
+    (cond (not (integer? n))
+          (throw (Clojask_TypeException. "Argument passed to head should be an integer.")))
     (with-open [reader (io/reader path)]
       (doall (take n (csv/read-csv reader)))))
 
@@ -191,16 +188,16 @@
 
   (setParser
     [this parser colName]
-    (cond (not (u/is-in colName this)) 
-      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (not (u/is-in colName this))
+          (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (if (nil? (.setType col-info parser colName))
       this
       (throw (Clojask_OperationException. "Error in running setParser."))))
 
   (addFormatter
     [this format col]
-    (cond (not (u/is-in col this)) 
-      (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (not (u/is-in col this))
+          (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (.setFormatter col-info format col))
 
   (final
@@ -210,10 +207,10 @@
     ;; currently put read file here
 
   (preview
-   [this sample-size return-size format]
-   (cond (and (integer? sample-size) (integer? return-size)) 
-      (throw (Clojask_TypeException. "Arguments passed to preview must be integers.")))
-   (preview/preview this sample-size return-size format))
+    [this sample-size return-size format]
+    (cond (not (and (integer? sample-size) (integer? return-size)))
+          (throw (Clojask_TypeException. "Arguments passed to preview must be integers.")))
+    (preview/preview this sample-size return-size format))
 
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
@@ -227,12 +224,24 @@
             "success"
             "failed"))
         (catch Exception e e))
-        (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
-
+      (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
+  
   (computeAggre
+   [this ^int num-worker ^String output-dir ^boolean exception]
+   (cond (not (= java.lang.String (type output-dir)))
+         (throw (Clojask_TypeException. "Output-dir should be a string.")))
+   (if (> num-worker 8)
+     (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))
+   (.printAggreCol this output-dir) ;; print column names to output-dir
+   (let [res (start-onyx-aggre-only num-worker batch-size this output-dir exception)]
+     (if (= res "success")
+       "success"
+       "failed")))
+  
+  (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
-    (cond (not (= java.lang.String (type output-dir))) 
-      (throw (Clojask_TypeException. "Output-dir should be a string.")))
+    (cond (not (= java.lang.String (type output-dir)))
+          (throw (Clojask_TypeException. "Output-dir should be a string.")))
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
@@ -246,22 +255,22 @@
               (throw (Clojask_OperationException. "Error in running start-onyx-aggre.")))
             (throw (Clojask_OperationException. "Error in running start-onyx-groupby."))))
         (catch Exception e e))
-        (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
+      (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
   (sort
     [this list output-dir]
     (cond (not (and (not (empty? list)) (loop [list list key false]
-                                       (if (and (not key) (= list '()))
-                                         true
-                                         (let [_ (first list)
-                                               res (rest list)]
-                                           (if key
-                                             (if (and (contains? (.getKeyIndex col-info) _) (= (type _) java.lang.String))
-                                               (recur res false)
-                                               false)
-                                             (if (or (= _ "+") (= _ "-"))
-                                               (recur res true)
-                                               false)))))))
-            (throw (Clojask_TypeException. "The order list is not in the correct format.")))
+                                          (if (and (not key) (= list '()))
+                                            true
+                                            (let [_ (first list)
+                                                  res (rest list)]
+                                              (if key
+                                                (if (and (contains? (.getKeyIndex col-info) _) (= (type _) java.lang.String))
+                                                  (recur res false)
+                                                  false)
+                                                (if (or (= _ "+") (= _ "-"))
+                                                  (recur res true)
+                                                  false)))))))
+          (throw (Clojask_TypeException. "The order list is not in the correct format.")))
     (defn clojask-compare
       "a and b are two rows"
       [a b]
@@ -322,7 +331,9 @@
   (u/init-file output-dir)
   (if (= (.getAggreFunc (:row-info this)) [])
     (.compute this num-worker output-dir exception order)
-    (.computeAggre this num-worker output-dir exception)))
+    (if (not= (.getGroupbyKeys (:row-info this)) [])
+      (.computeGroupAggre this num-worker output-dir exception)
+      (.computeAggre this num-worker output-dir exception))))
 
 (defn group-by
   [this key]
