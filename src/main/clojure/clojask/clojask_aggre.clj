@@ -3,7 +3,8 @@
             [onyx.plugin.protocols :as p]
             [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [clojask.api.aggregate :refer [start]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def df (atom nil))
@@ -102,4 +103,4 @@
 (defn output [pipeline-data]
   (let [aggre-func (.getAggreFunc (:row-info (deref df)))]
    (->ClojaskOutput (volatile! (take (count aggre-func)
-                                     (repeat nil))))))
+                                     (repeat start))))))

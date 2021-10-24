@@ -2,7 +2,8 @@
   (:require [clojask.DataFrame :refer :all]
             [clojask.utils :refer :all]
             [clojask.groupby :refer :all]
-            [clojask.sort :refer :all]))
+            [clojask.sort :refer :all]
+            [clojask.api.aggregate :as aggre]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main

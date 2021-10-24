@@ -287,7 +287,9 @@
               (if (= _ "+")
                 (recur res true +)
                 (recur res true -)))))))
-    (sort/use-external-sort path output-dir clojask-compare)))
+    (sort/use-external-sort path output-dir clojask-compare))
+    Object
+    )
 
 (defn generate-col
   "Generate column names if there are none"
