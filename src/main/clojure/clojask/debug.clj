@@ -14,13 +14,13 @@
   (def y (dataframe "resources/Employees-large.csv" :have-col true))
   ;(println (.getKeys (.col-info y)))
   (set-type y "Salary" "double")
-  (filter y "Salary" (fn [salary] (<= salary 800)))
-  (set-parser y "Department" #(Double/parseDouble %))
+  (set-type y "EmployeeName" "double")
+  ;(print-df y)
+  ;(filter y "Salary" (fn [salary] (<= salary 800)))
+  ;(set-parser y "Department" #(Double/parseDouble %))
 
-  (delete-col y ["Salary" "Department"])
-
-  (print-df y)
-  (println (col-names y))
+  ;(delete-col y ["Salary" "Department"])
+  ;(println (col-names y))
 
   ;; (group-by y ["Department" "Employee"])
   ;; (aggregate y min ["Employee"] ["new-employee"])
@@ -31,7 +31,7 @@
   ;; (operate y - "Department")
   ;; (operate y str ["Employee" "Salary"] "new-col")
 
-  (time (compute y 8 "resources/test.csv" :exception true :order true))
+  ;(time (compute y 8 "resources/test.csv" :exception true :order true))
 
   ;; (-> (dataframe "resources/Employees-large.csv" :have-col true)
   ;;     (set-type "Salary" "double")

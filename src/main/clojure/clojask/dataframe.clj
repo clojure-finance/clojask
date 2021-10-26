@@ -291,6 +291,25 @@
     Object
     )
 
+(defn preview
+  [dataframe sample-size return-size & {:keys [format] :or {format false}}]
+  (.preview dataframe sample-size return-size format))
+
+(defn preview-df
+  [dataframe]
+  (let [data (.preview dataframe 10 10 false)
+          tmp (first data)
+          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))]
+      (conj (apply list data) types)))
+
+(defn print-df
+  [dataframe & [sample-size return-size]]
+  (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+        tmp (first data)
+        types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
+        data (conj (apply list data) types)]
+    (pprint/print-table data)))
+
 (defn generate-col
   "Generate column names if there are none"
   [col-count]
@@ -315,7 +334,7 @@
       (do
         ;; (println "No such file or directory")
         ;; (throw e)
-        (throw (Clojask_OperationException. e))
+        (throw (Clojask_OperationException. "No such file or directory"))
         nil))))
 
 (defn filter
@@ -360,23 +379,18 @@
 
 (defn set-type
   [this col type]
-  (.setType this type col))
+  (.setType this type col)
+  ;; error pre-detection
+  (try 
+    (preview-df this)
+    (catch Exception e
+      (do
+        (throw (Clojask_OperationException. (format "data has incompatible type (original error: %s)" (str (.getMessage e)))))
+        nil))))
 
 (defn set-parser
   [this col parser]
   (.setParser this parser col))
-
-(defn preview
-  [dataframe sample-size return-size & {:keys [format] :or {format false}}]
-  (.preview dataframe sample-size return-size format))
-
-(defn print-df
-  [dataframe & [sample-size return-size]]
-  (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
-        tmp (first data)
-        types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
-        data (conj (apply list data) types)]
-    (pprint/print-table data)))
 
 (defn col-names
   [this]
