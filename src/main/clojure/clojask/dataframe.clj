@@ -351,8 +351,15 @@
       (do
         (throw (Clojask_OperationException. (format "this function cannot be appended into the current pipeline (original error: %s)" (str (.getMessage e)))))
         nil))))
-  ([this colName operation newCol]
-   (.operate this operation colName newCol)))
+  ([this colName newCol operation]
+   (.operate this operation colName newCol)
+   ;; error pre-detection
+   (try 
+    (preview-df this)
+    (catch Exception e
+      (do
+        (throw (Clojask_OperationException. (format "this function cannot be appended into the current pipeline (original error: %s)" (str (.getMessage e)))))
+        nil)))))
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order] :or {exception false order true}}]

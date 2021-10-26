@@ -14,8 +14,15 @@
   (def y (dataframe "resources/Employees-large.csv" :have-col true))
   ;(println (.getKeys (.col-info y)))
   (set-type y "Salary" "double")
-  (set-type y "EmployeeName" "double")
-  ;(print-df y)
+  ;(set-type y "EmployeeName" "double") ;; gives exception
+
+  (operate y "Salary" (fn [x] (+ 10 x)))
+  ;(operate y "Salary" (fn [] 2)) ;; gives exception
+
+  (operate y ["Employee" "Salary"] "new-col" str)
+  ;(operate y ["Employee" "Salary"] "new-col" (fn [] 2)) ;; gives exception
+
+  (print-df y)
   ;(filter y "Salary" (fn [salary] (<= salary 800)))
   ;(set-parser y "Department" #(Double/parseDouble %))
 
