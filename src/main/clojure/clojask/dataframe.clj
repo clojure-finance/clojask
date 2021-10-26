@@ -342,9 +342,16 @@
   (.filter this cols predicate))
 
 (defn operate
-  ([this operation colName]
-   (.operate this operation colName))
-  ([this operation colName newCol]
+  ([this colName operation]
+   (.operate this operation colName)
+   ;; error pre-detection
+   (try 
+    (preview-df this)
+    (catch Exception e
+      (do
+        (throw (Clojask_OperationException. (format "this function cannot be appended into the current pipeline (original error: %s)" (str (.getMessage e)))))
+        nil))))
+  ([this colName operation newCol]
    (.operate this operation colName newCol)))
 
 (defn compute
