@@ -1,6 +1,6 @@
 ### Aggregation Functions
 
-In Clojask, you can aggregate on the whole dataframe, or on the group-by dataframe. We call the first case "simple aggregation" and the second "group-by aggregation". Some given functions for simple aggregation are defined in namespace `clojask.aggregate`, and the given functions for group-by aggregation are defined in namespace `clojask.gb-aggregate`. 
+In Clojask, you can aggregate on the whole dataframe, or on the group-by dataframe. We call the first case "simple aggregation" and the second "group-by aggregation". Some given functions for simple aggregation are defined in namespace `clojask.api.aggregate`, and the given functions for group-by aggregation are defined in namespace `clojask.api.gb-aggregate`. 
 
 Below are full list of given functions for the two types.
 
@@ -18,7 +18,7 @@ Below are full list of given functions for the two types.
 
 Besides these given functions, you are also welcomed to define your own.
 
-#### How to define simple aggregation functions?
+#### How to define group-by aggregation functions?
 
 This is the template:
 
@@ -34,7 +34,7 @@ Basically, the function should take one argument only, which is the full aggrega
 
 You may find many built-in function in Clojure also fulfilling this requirement, for example, `count`, `mean`, and countless function constructed from [`reduce`](https://clojuredocs.org/clojure.core/reduce).
 
-#### How to define group-by aggregation functions?
+#### How to define simple aggregation functions?
 
 This is the template:
 
