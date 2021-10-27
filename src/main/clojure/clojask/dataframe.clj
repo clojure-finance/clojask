@@ -334,7 +334,7 @@
       (do
         ;; (println "No such file or directory")
         ;; (throw e)
-        (throw (Clojask_OperationException. "No such file or directory"))
+        (throw (Clojask_OperationException. "no such file or directory"))
         nil))))
 
 (defn filter
@@ -389,7 +389,14 @@
 (defn sort
   [this list output-dir]
   (u/init-file output-dir)
-  (.sort this list output-dir))
+  (.sort this list output-dir)
+  ;; error pre-detection
+  (try 
+    (preview-df this)
+    (catch Exception e
+      (do
+        (throw (Clojask_OperationException. (format "invalid arguments passed to sort function (original error: %s)" (str (.getMessage e)))))
+        nil))))
 
 (defn set-type
   [this col type]
