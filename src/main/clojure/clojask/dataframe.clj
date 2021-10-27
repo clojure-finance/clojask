@@ -357,13 +357,13 @@
 
 (defn operate
   ([this operation colName]
-    (let [result (.operate this operation colName)]
-      (.errorPredetect this "this function cannot be appended into the current pipeline")
-      result))
+  (let [result (.operate this operation colName)]
+    (.errorPredetect this "this function cannot be appended into the current pipeline")
+    result))
   ([this operation colName newCol]
-    (let [result (.operate this operation colName newCol)]
-      (.errorPredetect this "this function cannot be appended into the current pipeline")
-      result)))
+  (let [result (.operate this operation colName newCol)]
+    (.errorPredetect this "this function cannot be appended into the current pipeline")
+    result)))
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order] :or {exception false order true}}]
@@ -376,7 +376,9 @@
 
 (defn group-by
   [this key]
-  (.groupby this key))
+  (let [result (.groupby this key)]
+    (.errorPredetect this "invalid arguments passed to groupby function")
+    result))
 
 (defn aggregate
   [this func old-key & [new-key]]
@@ -388,7 +390,9 @@
                   (if (not= new-key nil)
                     [new-key]
                     (mapv (fn [_] (str func "(" _ ")")) old-key)))]
-   (.aggregate this func old-key new-key)))
+    (let [result (.aggregate this func old-key new-key)]
+      (.errorPredetect this "invalid arguments passed to aggregate function")
+      result)))
 
 (defn sort
   [this list output-dir]
