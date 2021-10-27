@@ -42,6 +42,8 @@
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
   (final [] "prepare the dataframe for computation")
+  (previewDF [] "preview function used for error predetection")
+  (errorPredetect [msg] "prints exception with msg if error is detected in preview")
   )
 
 ;; each dataframe can have a delayed object
@@ -64,7 +66,7 @@
     (cond (not (= java.lang.String (type newCol)))
           (throw (Clojask_TypeException.  "New column should be a string.")))
     (if (nil? (.operate col-info operation colNames newCol))
-      this ; "success"
+      this
       (throw (Clojask_OperationException. "Error in running operate."))))
 
   (groupby
@@ -256,6 +258,7 @@
             (throw (Clojask_OperationException. "Error in running start-onyx-groupby."))))
         (catch Exception e e))
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
+
   (sort
     [this list output-dir]
     (cond (not (and (not (empty? list)) (loop [list list key false]
@@ -288,19 +291,28 @@
                 (recur res true +)
                 (recur res true -)))))))
     (sort/use-external-sort path output-dir clojask-compare))
+
+    (previewDF
+      [this]
+      (let [data (.preview this 10 10 false)
+            tmp (first data)
+            types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))]
+            (conj (apply list data) types)))
+
+    (errorPredetect
+      [this msg]
+      (try 
+        (.previewDF this)
+        (catch Exception e
+          (do
+            (throw (Clojask_OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e)))))))))
+
     Object
     )
 
 (defn preview
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
   (.preview dataframe sample-size return-size format))
-
-(defn preview-df
-  [dataframe]
-  (let [data (.preview dataframe 10 10 false)
-          tmp (first data)
-          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))]
-      (conj (apply list data) types)))
 
 (defn print-df
   [dataframe & [sample-size return-size]]
@@ -339,27 +351,19 @@
 
 (defn filter
   [this cols predicate]
-  (.filter this cols predicate))
+  (let [result (.filter this cols predicate)]
+    (.errorPredetect this "invalid arguments passed to filter function")
+    result))
 
 (defn operate
-  ([this colName operation]
-   (.operate this operation colName)
-   ;; error pre-detection
-   (try 
-    (preview-df this)
-    (catch Exception e
-      (do
-        (throw (Clojask_OperationException. (format "this function cannot be appended into the current pipeline (original error: %s)" (str (.getMessage e)))))
-        nil))))
-  ([this colName newCol operation]
-   (.operate this operation colName newCol)
-   ;; error pre-detection
-   (try 
-    (preview-df this)
-    (catch Exception e
-      (do
-        (throw (Clojask_OperationException. (format "this function cannot be appended into the current pipeline (original error: %s)" (str (.getMessage e)))))
-        nil)))))
+  ([this operation colName]
+    (let [result (.operate this operation colName)]
+      (.errorPredetect this "this function cannot be appended into the current pipeline")
+      result))
+  ([this operation colName newCol]
+    (let [result (.operate this operation colName newCol)]
+      (.errorPredetect this "this function cannot be appended into the current pipeline")
+      result)))
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order] :or {exception false order true}}]
@@ -389,25 +393,11 @@
 (defn sort
   [this list output-dir]
   (u/init-file output-dir)
-  (.sort this list output-dir)
-  ;; error pre-detection
-  (try 
-    (preview-df this)
-    (catch Exception e
-      (do
-        (throw (Clojask_OperationException. (format "invalid arguments passed to sort function (original error: %s)" (str (.getMessage e)))))
-        nil))))
+  (.sort this list output-dir))
 
 (defn set-type
   [this col type]
-  (.setType this type col)
-  ;; error pre-detection
-  (try 
-    (preview-df this)
-    (catch Exception e
-      (do
-        (throw (Clojask_OperationException. (format "data has incompatible type (original error: %s)" (str (.getMessage e)))))
-        nil))))
+  (.setType this type col))
 
 (defn set-parser
   [this col parser]
@@ -419,7 +409,14 @@
 
 (defn delete-col
   [this col-to-del]
-  (.delCol this col-to-del))
+  (.delCol this col-to-del)
+  ;; (try 
+  ;;   (preview-df this)
+  ;;   (catch Exception e
+  ;;     (do
+  ;;       (throw (Clojask_OperationException. (format "invalid arguments passed to delete-col function (original error: %s)" (str (.getMessage e)))))
+  ;;       nil)))
+        )
 
 (defn reorder-col
   [this new-col-order]
