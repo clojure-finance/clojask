@@ -397,9 +397,7 @@
 (defn sort
   [this list output-dir]
   (u/init-file output-dir)
-  (let [result (.sort this list output-dir)]
-    (.errorPredetect this "invalid arguments passed to sort function")
-  result))
+  (.sort this list output-dir))
 
 (defn set-type
   [this col type]
