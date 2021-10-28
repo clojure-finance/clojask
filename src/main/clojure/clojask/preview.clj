@@ -39,6 +39,7 @@
         filters (.getFilters (:row-info dataframe))
         indices (vec (take (count operations) (iterate inc 0)))
         no-aggre (= (.getAggreFunc (:row-info dataframe)) []) ;; if need to groupby & aggregate
+        no-groupby (= (.getGroupbyKeys (:row-info dataframe)) [])
         ;;
         preview-work-func (fn [seg]
                             (let [data (string/split (:d seg) #"," -1)]
@@ -67,61 +68,67 @@
                             (recur rest res)))))]
     (if no-aggre
       (mapv (fn [row-v] (zipmap header row-v)) compute-res)
-      ;; need to do groupby and aggregate
-       (let [groupby-keys (.getGroupbyKeys (:row-info dataframe))
-             key-index (.getKeyIndex (:col-info dataframe))
-             index-key (.getIndexKey (.col-info dataframe))
-             groupby-res (loop [sample compute-res groupby {}]
-                           (if-let [row (first sample)]
-                             (let [res (rest sample)
-                                   key (gen-groupby-filenames "" row groupby-keys key-index formatters)]
-                               (recur res (assoc groupby key (conj (or (get groupby key) []) row))))
-                             groupby))
-             aggre-funcs (.getAggreFunc (.row-info dataframe))
+      ;; need to do aggregate
+      (if no-groupby
+        ;; need to do simple aggregate
+        (let [aggre-funcs (.getAggreFunc (.row-info dataframe))
+              keys (.getAggreNewKeys (:row-info dataframe))
+              aggre-res [(for [[func index] aggre-funcs]
+                    (reduce func (mapv (fn [row] (nth row index)) compute-res)))]]
+          (mapv (fn [row-v] (zipmap keys row-v)) aggre-res))
+        ;; need to do groupby aggregate
+        (let [groupby-keys (.getGroupbyKeys (:row-info dataframe))
+              key-index (.getKeyIndex (:col-info dataframe))
+              index-key (.getIndexKey (.col-info dataframe))
+              groupby-res (loop [sample compute-res groupby {}]
+                            (if-let [row (first sample)]
+                              (let [res (rest sample)
+                                    key (gen-groupby-filenames "" row groupby-keys key-index formatters)]
+                                (recur res (assoc groupby key (conj (or (get groupby key) []) row))))
+                              groupby))
+              aggre-funcs (.getAggreFunc (.row-info dataframe))
             ;;  groupby-key-index (mapv #(nth % 1) (.getGroupbyKeys (:row-info dataframe)))
-             groupby-keys-value (vec (map #(if (nth % 0)
-                                            (str (nth % 0) "(" (index-key (nth % 1)) ")") 
-                                            (index-key (nth % 1))) groupby-keys))
-             aggre-new-keys (.getAggreNewKeys (:row-info dataframe))
-             keys (concat groupby-keys-value aggre-new-keys)
-             preview-aggre-func (fn [key v-of-v]
-                                  (let [data v-of-v
+              groupby-keys-value (vec (map #(if (nth % 0)
+                                              (str (nth % 0) "(" (index-key (nth % 1)) ")")
+                                              (index-key (nth % 1))) groupby-keys))
+              aggre-new-keys (.getAggreNewKeys (:row-info dataframe))
+              keys (concat groupby-keys-value aggre-new-keys)
+              preview-aggre-func (fn [key v-of-v]
+                                   (let [data v-of-v
                                         ;; pre 
-                                        pre (mapv #(let [func (first %)
-                                                         index (nth % 1)]
-                                                    (if func
-                                                      (func (nth (first v-of-v) index))
-                                                      (if formatting
-                                                        ((or (get formatters index) identity) (nth (first v-of-v) index))
-                                                        (nth (first v-of-v) index)))) 
-                                                  groupby-keys)
-                                        data-map (-> (iterate inc 0)
-                                                     (zipmap (apply map vector data)))]
-                                    (loop [aggre-funcs aggre-funcs
-                                           res []]
-                                      (if (= aggre-funcs [])
-                                        (mapv concat (repeat pre) (apply map vector res))
-                                        (let [func (first (first aggre-funcs))
-                                              index (nth (first aggre-funcs) 1)
-                                              res-funcs (rest aggre-funcs)
-                                              new (func (get data-map index))
-                                              new (if (coll? new)
-                                                    new
-                                                    (vector new))
-                                              new (if formatting
-                                                    (mapv (fn [_] (if-let [formatter (get formatters index)]
-                                                                    (formatter _)
-                                                                    _)) new)
-                                                    new)]
-                                          (if (or (= res []) (= (count new) (count (last res))))
-                                            (recur res-funcs (conj res new))
-                                            (throw (Exception. "aggregation result is not of the same length"))))))))]
-         (loop [groupby-res groupby-res aggre-res []]
-           (if-let [key-vv (first groupby-res)]
-             (let [res (rest groupby-res)
-                   key (nth key-vv 0)
-                   vv (nth key-vv 1)]
-               (recur res (concat aggre-res (preview-aggre-func key vv))))
-             (mapv (fn [row-v] (zipmap keys row-v)) aggre-res)))
-         )
-      )))
+                                         pre (mapv #(let [func (first %)
+                                                          index (nth % 1)]
+                                                      (if func
+                                                        (func (nth (first v-of-v) index))
+                                                        (if formatting
+                                                          ((or (get formatters index) identity) (nth (first v-of-v) index))
+                                                          (nth (first v-of-v) index))))
+                                                   groupby-keys)
+                                         data-map (-> (iterate inc 0)
+                                                      (zipmap (apply map vector data)))]
+                                     (loop [aggre-funcs aggre-funcs
+                                            res []]
+                                       (if (= aggre-funcs [])
+                                         (mapv concat (repeat pre) (apply map vector res))
+                                         (let [func (first (first aggre-funcs))
+                                               index (nth (first aggre-funcs) 1)
+                                               res-funcs (rest aggre-funcs)
+                                               new (func (get data-map index))
+                                               new (if (coll? new)
+                                                     new
+                                                     (vector new))
+                                               new (if formatting
+                                                     (mapv (fn [_] (if-let [formatter (get formatters index)]
+                                                                     (formatter _)
+                                                                     _)) new)
+                                                     new)]
+                                           (if (or (= res []) (= (count new) (count (last res))))
+                                             (recur res-funcs (conj res new))
+                                             (throw (Exception. "aggregation result is not of the same length"))))))))]
+          (loop [groupby-res groupby-res aggre-res []]
+            (if-let [key-vv (first groupby-res)]
+              (let [res (rest groupby-res)
+                    key (nth key-vv 0)
+                    vv (nth key-vv 1)]
+                (recur res (concat aggre-res (preview-aggre-func key vv))))
+              (mapv (fn [row-v] (zipmap keys row-v)) aggre-res))))))))

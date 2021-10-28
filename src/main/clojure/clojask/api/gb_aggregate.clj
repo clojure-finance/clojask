@@ -1,5 +1,5 @@
 (ns clojask.api.gb-aggregate
-  (:require [clojask.api.aggregate :refer [max min]]))
+  (:require [clojask.api.aggregate :as aggre]))
 "Contains the implemented function for group-by aggregation functions"
 
 ;; (defn- compare
@@ -9,9 +9,9 @@
 
 (defn max
   [list]
-  (reduce max list))
+  (reduce aggre/max list))
 
 (defn min
   [list]
-  (reduce min list))
+  (reduce aggre/min list))
 
