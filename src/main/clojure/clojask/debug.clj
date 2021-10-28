@@ -3,7 +3,8 @@
             [clojask.utils :refer :all]
             [clojask.groupby :refer :all]
             [clojask.sort :refer :all]
-            [clojask.api.aggregate :as aggre]))
+            [clojask.api.aggregate :as aggre]
+            [clojask.api.gb-aggregate :as gb-aggre]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main
