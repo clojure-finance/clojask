@@ -401,34 +401,39 @@
 
 (defn set-type
   [this col type]
-  (.setType this type col))
+  (let [result (.setType this type col)]
+    (.errorPredetect this "invalid arguments passed to set-type function")
+  result))
 
 (defn set-parser
   [this col parser]
-  (.setParser this parser col))
+  (let [result (.setParser this parser col)]
+    (.errorPredetect this "invalid arguments passed to set-parser function")
+  result))
 
 (defn col-names
   [this]
-  (.getColNames this))
+  (let [result (.getColNames this)]
+    (.errorPredetect this "invalid arguments passed to col-names function")
+  result))
 
 (defn delete-col
   [this col-to-del]
-  (.delCol this col-to-del)
-  ;; (try 
-  ;;   (preview-df this)
-  ;;   (catch Exception e
-  ;;     (do
-  ;;       (throw (Clojask_OperationException. (format "invalid arguments passed to delete-col function (original error: %s)" (str (.getMessage e)))))
-  ;;       nil)))
-        )
+  (let [result (.delCol this col-to-del)]
+    (.errorPredetect this "invalid arguments passed to delete-col function")
+  result))
 
 (defn reorder-col
   [this new-col-order]
-  (.reorderCol this new-col-order))
+  (let [result (.reorderCol this new-col-order)]
+    (.errorPredetect this "invalid arguments passed to reorder-col function")
+  result))
 
 (defn rename-col
   [this new-col-names]
-  (.renameCol this new-col-names))
+  (let [result (.renameCol this new-col-names)]
+    (.errorPredetect this "invalid arguments passed to rename-col function")
+  result))
 
 (defn inner-join
   [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
