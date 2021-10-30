@@ -1,5 +1,6 @@
 (ns clojask.ColInfo
-  (:require [clojask.utils :refer []]))
+  (:require [clojure.set :as set]
+            [clojask.utils :refer []]))
 
 (import '[com.clojask.exception Clojask_TypeException]
         '[com.clojask.exception Clojask_OperationException])
@@ -123,7 +124,7 @@
   (delCol
     [this col-to-delete]
     (let [col-indices (set (map key-index col-to-delete))]
-      (set! col-deleted (conj col-indices))))
+      (set! col-deleted (set/union col-deleted col-indices))))
 
   (setColInfo
     [this new-col-set]

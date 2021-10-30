@@ -411,16 +411,15 @@
   [this]
   (.getColNames this))
 
+(defn select-col
+  [this col-to-keep]
+  (let [col-to-del (set/difference (set (.getColNames this)) (set col-to-keep))] 
+    (.delCol this (vec col-to-del))
+    ))
+
 (defn delete-col
   [this col-to-del]
-  (.delCol this col-to-del)
-  ;; (try 
-  ;;   (preview-df this)
-  ;;   (catch Exception e
-  ;;     (do
-  ;;       (throw (Clojask_OperationException. (format "invalid arguments passed to delete-col function (original error: %s)" (str (.getMessage e)))))
-  ;;       nil)))
-        )
+  (.delCol this col-to-del))
 
 (defn reorder-col
   [this new-col-order]
