@@ -20,7 +20,7 @@
   (operate y "Salary" (fn [x] (+ 10 x)))
   ;(operate y "Salary" (fn [] 2)) ;; gives exception
 
-  (operate y ["Employee" "Salary"] "new-col" str)
+  (operate y str ["Employee" "Salary"] "new-col")
   ;(operate y ["Employee" "Salary"] "new-col" (fn [] 2)) ;; gives exception
 
   (print-df y)
