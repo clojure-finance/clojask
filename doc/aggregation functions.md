@@ -23,7 +23,7 @@ Besides these given functions, you are also welcomed to define your own.
 This is the template:
 
 ```clojure
-(defn aggre-template
+(defn gb-aggre-template
   [col]  ;; take only one argument which is the aggregation column in the format of vector
   ;; ... your implementation
   result    ;; return one variable (could be int / double / string / collection of above)
@@ -39,10 +39,11 @@ You may find many built-in function in Clojure also fulfilling this requirement,
 This is the template:
 
 ```clojure
-(defn gb-aggre-template
-  [new-value old-result]
-  ;; new-value: the value for the column on the current row
+(defn aggre-template
+  ;; [new-value old-result]
+  [old-result new-value]
   ;; old-result: the value of the result for the previous gb-aggre-template
+  ;; new-value: the value for the column on the current row
   ;; ... your implementation
   new-result   ;; return the new result, and this will be passed as old-result for the next gb-aggre-template
   )
@@ -50,5 +51,7 @@ This is the template:
 
 **Notes:**
 
-1. The old-result for the first `gb-aggre-template` is `clojask.api.gb-aggregate/start`. So your function must be able to deal with cases when the second argument is `clojask.api.gb-aggregate/start`.
-2. Your function should be self-sustainable, meaning that the result of `gb-aggre-template` should be safe as the input for `gb-aggre-template`.
+1. The old-result for the first `aggre-template` is `clojask.api.aggregate/start`. So your function must be able to deal with cases when the first argument is `clojask.api.aggregate/start`.
+2. Your function should be self-sustainable, meaning that the result of `aggre-template` should be safe as the input for `aggre-template`.
+   1. To better understand the this template, you may refer to the documentation of [`reduce`](https://clojuredocs.org/clojure.core/reduce), the `aggre-func` should be able to use in `reduce`.
+

@@ -12,7 +12,8 @@
             [clojure.string :as string]
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
-            [clojask.preview :as preview]))
+            [clojask.preview :as preview]
+            [clojask.api.aggregate :as aggre]))
 
 (defn preview
   [dataframe sample-size return-size formatting]
@@ -73,9 +74,15 @@
         ;; need to do simple aggregate
         (let [aggre-funcs (.getAggreFunc (.row-info dataframe))
               keys (.getAggreNewKeys (:row-info dataframe))
-              aggre-res [(for [[func index] aggre-funcs]
-                    (reduce func (mapv (fn [row] (nth row index)) compute-res)))]]
-          (mapv (fn [row-v] (zipmap keys row-v)) aggre-res))
+              aggre-res (for [[func index] aggre-funcs]
+                          (let [res
+                                (reduce func aggre/start (map (fn [row] (nth row index)) compute-res))]
+                            (if (coll? res)
+                              res
+                              [res])))]
+          (if (apply = (map count aggre-res))
+            (mapv (fn [row-v] (zipmap keys row-v)) (apply map vector aggre-res))
+            (throw (Exception. "aggregation result is not of the same length"))))
         ;; need to do groupby aggregate
         (let [groupby-keys (.getGroupbyKeys (:row-info dataframe))
               key-index (.getKeyIndex (:col-info dataframe))

@@ -5,13 +5,13 @@
 
 (defn max
   [a b]
-  (if (and (not= b start) (< (compare a b) 0))
-    b
-    a))
+  (if (and (not= a start) (> (compare a b) 0))
+    a
+    b))
 
 (defn min
   [a b]
-  (if (and (not= b start) (> (compare a b) 0))
-    b
-    a))
+  (if (and (not= a start) (< (compare a b) 0))
+    a
+    b))
 
