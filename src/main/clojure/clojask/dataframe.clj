@@ -417,6 +417,12 @@
     (.errorPredetect this "invalid arguments passed to col-names function")
   result))
 
+(defn select-col
+  [this col-to-keep]
+  (let [col-to-del (set/difference (set (.getColNames this)) (set col-to-keep))] 
+    (.delCol this (vec col-to-del))
+    ))
+
 (defn delete-col
   [this col-to-del]
   (let [result (.delCol this col-to-del)]
