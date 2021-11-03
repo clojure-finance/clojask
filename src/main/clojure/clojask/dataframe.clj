@@ -1,4 +1,4 @@
-(ns clojask.DataFrame
+(ns clojask.dataframe
   (:require [clojure.set :as set]
             [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
@@ -447,7 +447,7 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
@@ -464,7 +464,7 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
@@ -481,7 +481,7 @@
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
-    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
@@ -500,7 +500,7 @@
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a-roll) java.lang.String) (= (type b-roll) java.lang.String)))
       (throw (Clojask_TypeException. "Rolling keys should be strings")))
-    (cond (not (and (= (type a) clojask.DataFrame.DataFrame) (= (type b) clojask.DataFrame.DataFrame))) 
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))

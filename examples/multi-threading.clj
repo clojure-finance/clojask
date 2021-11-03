@@ -1,8 +1,8 @@
 (ns examples.timezone
-    (:require [clojask.DataFrame :as clojask]
+    (:require [clojask.dataframe :refer :all]
               [clojure.core.async :as async]))
   
-  (def main
+  (defn main
     []
     (def x (dataframe "resources/Employees-large.csv"))
     (def y (dataframe "resources/Employees.csv"))

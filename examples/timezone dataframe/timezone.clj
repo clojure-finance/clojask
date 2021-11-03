@@ -1,5 +1,5 @@
 (ns examples.timezone
-  (:require [clojask.DataFrame :as clojask]))
+  (:require [clojask.dataframe :as clojask]))
 
 (defn timezone-parser
   "the input is a datetime string with timezone identifier as suffix"

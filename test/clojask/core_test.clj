@@ -1,6 +1,6 @@
 (ns core-test
     (:require [clojure.test :refer :all]
-              [clojask.DataFrame :refer :all]
+              [clojask.dataframe :refer :all]
               [clojask.utils :refer :all]
               [clojask.groupby :refer :all]
               [clojask.sort :refer :all]))
@@ -10,14 +10,14 @@
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
-    (is (= clojask.DataFrame.DataFrame (type y)))
-    (is (= clojask.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
-    (is (= clojask.DataFrame.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
-    (is (= clojask.DataFrame.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
-    (is (= clojask.DataFrame.DataFrame (type (operate y - "Salary"))))
-    (is (= clojask.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
-    (is (= clojask.DataFrame.DataFrame (type (group-by y ["Department"]))))
-    (is (= clojask.DataFrame.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
+    (is (= clojask.dataframe.DataFrame (type y)))
+    (is (= clojask.dataframe.DataFrame (type (set-type y "Salary" "double"))))
+    (is (= clojask.dataframe.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
+    (is (= clojask.dataframe.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
+    (is (= clojask.dataframe.DataFrame (type (operate y - "Salary"))))
+    (is (= clojask.dataframe.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
+    (is (= clojask.dataframe.DataFrame (type (group-by y ["Department"]))))
+    (is (= clojask.dataframe.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
     ;(is (= "success" (compute y 8 "resources/test.csv" :exception false)))
     ))
 
