@@ -12,18 +12,19 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  (def y (dataframe "resources/Employees-large.csv" :have-col true))
+  ;(def y (dataframe "resources/Employees-large.csv" :have-col true))
+  ;(select-col y ["Salary" "EmployeeName"])
   ;(println (.getKeys (.col-info y)))
-  (set-type y "Salary" "double")
+  ;(set-type y "Salary" "double")
   ;(set-type y "EmployeeName" "double") ;; gives exception
 
-  (operate y "Salary" (fn [x] (+ 10 x)))
+  ;(operate y "Salary" (fn [x] (+ 10 x)))
   ;(operate y "Salary" (fn [] 2)) ;; gives exception
 
-  (operate y str ["Employee" "Salary"] "new-col")
+  ;(operate y str ["Employee" "Salary"] "new-col")
   ;(operate y ["Employee" "Salary"] "new-col" (fn [] 2)) ;; gives exception
 
-  (print-df y)
+  ;(print-df y)
   ;(filter y "Salary" (fn [salary] (<= salary 800)))
   ;(set-parser y "Department" #(Double/parseDouble %))
 
@@ -77,11 +78,11 @@
 
   ;; CRSP Benchmarking
 
-  ;(def x (dataframe "../clojure-datasets/data-CRSP.csv"))
+  (def x (dataframe "../clojure-datasets/data-CRSP.csv"))
   ;(def x (dataframe "resources/CRSP-extract.csv"))
-  ;(def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
 
   ; join on (TIC, DATE)
-  ;(time (rolling-join-forward x y ["date"] ["datadate"] "date" "datadate" 4 "resources/test.csv" :exception false))
+  (time (rolling-join-forward x y ["TICKER"] ["tic"] "date" "datadate" 4 "resources/test.csv" :exception false))
   ;(time (inner-join x y ["date" "TICKER"] ["datadate" "TICKER"] 4 "resources/test.csv" :exception false))
   )
