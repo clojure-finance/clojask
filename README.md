@@ -20,4 +20,4 @@ lein test :only core-test/df-api-test
 ```
 
 #### Requirements for the input file:
-- the first row should contains the column names
+- the first row should contain the column names
