@@ -14,6 +14,12 @@
   (reset! df dataframe)
   )
 
+(defn c-count
+  [a]
+  (if (coll? a)
+    (count a)
+    1))
+
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
@@ -43,8 +49,12 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-    (.write (:clojask/wtr event) (str (string/join "," (deref memo)) "\n"))
-    this)
+        (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))]
+          ;; (.write (:clojask/wtr event) (str data "\n"))
+          (if (apply = (map count data))
+            (mapv #(.write (:clojask/wtr event) (str (string/join "," %) "\n")) (apply map vector data))
+            (throw (Exception. "aggregation result is not of the same length"))))
+        this)
 
   p/Checkpointed
   ;; Nothing is required here. This is normally useful for checkpointing in
@@ -90,7 +100,7 @@
             ;;   (.write wtr (str (string/join "," (:d msg)) "\n"))
 
             ;;    (swap! memo assoc index (func (get index (deref memo)) (:d msg)))
-              (vreset! memo (map-indexed (fn [ind prev] ((nth (nth aggre-func ind) 0) (nth data (nth (nth aggre-func ind) 1)) prev)) (deref memo)))
+              (vreset! memo (map-indexed (fn [ind prev] ((nth (nth aggre-func ind) 0) prev (nth data (nth (nth aggre-func ind) 1)))) (deref memo)))
             ;;   (.write wtr (str (vec (deref memo)) "\n"))
               )))))
     true))
