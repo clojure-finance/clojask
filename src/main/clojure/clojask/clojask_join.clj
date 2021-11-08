@@ -133,7 +133,19 @@
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
                           (join/output-join-forward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-                      (recur (rest batch))))))
+                      (recur (rest batch)))))
+      
+      5 (loop [batch write-batch]
+          (if-let [msg (first batch)]
+            (do
+          ;; (swap! example-datasink conj msg)
+              (if (not= (:d msg) nil)
+                (do
+                ;(.write wtr (str msg "\n"))
+                ;; !! define argument (debug)
+            ;;   (def groupby-keys [:Department :EmployeeName])
+                  (join/output-join-backward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
+              (recur (rest batch))))))
     ;; (.close wtr)
     true))
 

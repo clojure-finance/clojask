@@ -513,3 +513,26 @@
         (u/init-file dist)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
         (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4)))))
+
+;; all of the code is the same as above except for the last line
+(defn rolling-join-backward
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception] :or {exception false}}]
+  (let [a-keys (u/proc-groupby-key a-keys)
+        b-keys (u/proc-groupby-key b-keys)
+        a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
+        b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
+    (cond (not (and (= (type a-roll) java.lang.String) (= (type b-roll) java.lang.String)))
+          (throw (Clojask_TypeException. "Rolling keys should be strings")))
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame)))
+          (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (not (= (count a-keys) (count b-keys)))
+          (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+          (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
+      (do
+        (cond (not (and (not= a-roll nil) (not= b-roll nil)))
+              (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
+        (u/init-file dist)
+        (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 5)))))
