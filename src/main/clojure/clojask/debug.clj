@@ -12,8 +12,8 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  (def x (dataframe "resources/Employees-large.csv" :have-col true))
-  (def y (dataframe "resources/Employees-large.csv" :have-col true))
+  (def x (dataframe "resources/Employees.csv" :have-col true))
+  (def y (dataframe "resources/Employees-info.csv" :have-col true))
   (time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
   ;(time (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "resources/test.csv" :exception false))
 

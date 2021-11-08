@@ -149,14 +149,17 @@
     [this b-df this-keys b-keys output-path]
     (cond (not (= java.lang.String (type output-path)))
           (throw (Clojask_TypeException. "Output path should be a string.")))
-    (let [a-col-set (set (.getColNames this))
-          b-col-set (set (.getColNames b-df))]
+    (let [a-col-set (.getColNames this)
+          b-col-set (.getColNames b-df)
+          a-col-header (map #(str "1_" %) a-col-set)
+          b-col-header (map #(str "2_" %) b-col-set)]
       (do
-        (println (type a-col-set))
-        (println a-col-set)
-        (println (set/intersection a-col-set b-col-set)))
-      ;; (with-open [wrtr (io/writer output-path)]
-      ;;   (.write wrtr (str (str/join "," col-set) "\n")))
+        ;; (println (str/join "," (concat a-col-header b-col-header)))
+        ;; (println (set/intersection (set a-col-set) (set b-col-set)))
+        ;; tested with left-join
+        (with-open [wrtr (io/writer output-path)]
+          (.write wrtr (str (str/join "," (concat a-col-header b-col-header)) "\n")))
+        )
       ))
   
   (delCol
