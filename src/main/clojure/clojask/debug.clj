@@ -12,7 +12,11 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  ;(def y (dataframe "resources/Employees-large.csv" :have-col true))
+  (def x (dataframe "resources/Employees-large.csv" :have-col true))
+  (def y (dataframe "resources/Employees-large.csv" :have-col true))
+  (time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
+  ;(time (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "resources/test.csv" :exception false))
+
   ;(select-col y ["Salary" "EmployeeName"])
   ;(println (.getKeys (.col-info y)))
   ;(set-type y "Salary" "double")
@@ -78,11 +82,11 @@
 
   ;; CRSP Benchmarking
 
-  (def x (dataframe "../clojure-datasets/data-CRSP.csv"))
+  ;(def x (dataframe "../clojure-datasets/data-CRSP.csv"))
   ;(def x (dataframe "resources/CRSP-extract.csv"))
-  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  ;(def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
 
   ; join on (TIC, DATE)
-  (time (rolling-join-forward x y ["TICKER"] ["tic"] "date" "datadate" 4 "resources/test.csv" :exception false))
+  ;(time (rolling-join-forward x y ["TICKER"] ["tic"] "date" "datadate" 4 "resources/test.csv" :exception false))
   ;(time (inner-join x y ["date" "TICKER"] ["datadate" "TICKER"] 4 "resources/test.csv" :exception false))
   )
