@@ -492,7 +492,7 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
-    ;; debug
+    ;; print column names
     (.printJoinCol a b a-keys b-keys dist)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
@@ -511,6 +511,8 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
+    ;; print column names
+    (.printJoinCol b a a-keys b-keys dist)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
