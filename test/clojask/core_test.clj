@@ -71,7 +71,7 @@
 (deftest join-api-output-test
     (testing "Join dataframes APIs"
     (def x (dataframe "test/clojask/Employees-example.csv"))
-    (def y (dataframe "test/clojask/Employees-example.csv"))
+    (def y (dataframe "test/clojask/Employees-info-example.csv"))
     (left-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-4.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-4.csv)" "<(sort test/clojask/correct_outputs/1-4.csv)")]
         (is (= "" (:out result))))
@@ -81,7 +81,7 @@
     (inner-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-6.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-6.csv)" "<(sort test/clojask/correct_outputs/1-6.csv)")]
         (is (= "" (:out result))))
-    (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "test/clojask/test_outputs/1-7.csv" :exception false)
+    (rolling-join-forward x y ["Employee"] ["Employee"] "UpdateDate" "UpdateDate" 8 "test/clojask/test_outputs/1-7.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-7.csv)" "<(sort test/clojask/correct_outputs/1-7.csv)")]
         (is (= "" (:out result))))
     ))

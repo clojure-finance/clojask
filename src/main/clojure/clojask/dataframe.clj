@@ -532,6 +532,8 @@
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
           (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
         (u/init-file dist)
+        ;; print column names
+        (.printJoinCol a b a-keys b-keys dist)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
         (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4)))))
 
