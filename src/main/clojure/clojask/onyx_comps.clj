@@ -567,7 +567,7 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception  a-keys b-keys a-roll b-roll join-type]
+  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type]
   ;; dataframe means a
   (try
     (workflow-gen num-work)

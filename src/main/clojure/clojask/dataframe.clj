@@ -28,7 +28,8 @@
   (colTypes [])
   (getColNames [])
   (printCol [output-path] "print column names to output file")
-  (printAggreCol [output-path] "print column names to output file for join & aggregate")
+  (printAggreCol [output-path] "print column names to output file for aggregate")
+  (printJoinCol [b-df a-keys b-keys output-path] "print column names to output file for join")
   (delCol [col-to-del] "delete column(s) in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "reorder columns in the dataframe")
@@ -123,6 +124,7 @@
       col-set))
 
   (printCol
+  ;; print column names, called by compute
     [this output-path]
     (cond (not (= java.lang.String (type output-path)))
           (throw (Clojask_TypeException. "Output path should be a string.")))
@@ -131,6 +133,7 @@
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
   (printAggreCol
+  ;; print column names, called by computeAggre
     [this output-path]
     (cond (not (= java.lang.String (type output-path)))
           (throw (Clojask_TypeException. "Output path should be a string.")))
@@ -140,6 +143,18 @@
         ;(println (vec (map #(last %) groupby-key-index)))
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
+
+  (printJoinCol
+  ;; print column names, called by join APIs
+    [this b-df this-keys b-keys output-path]
+    (cond (not (= java.lang.String (type output-path)))
+          (throw (Clojask_TypeException. "Output path should be a string.")))
+    (let [a-col-set (.getColNames this)
+          b-col-set (.getColNames b-df)
+          a-col-header (map #(str "1_" %) a-col-set)
+          b-col-header (map #(str "2_" %) b-col-set)]
+        (with-open [wrtr (io/writer output-path)]
+          (.write wrtr (str (str/join "," (concat a-col-header b-col-header)) "\n")))))
   
   (delCol
     [this col-to-del]
@@ -454,6 +469,8 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
+    ;; print column names
+    (.printJoinCol a b a-keys b-keys dist)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1)))
@@ -471,6 +488,8 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
+    ;; print column names
+    (.printJoinCol a b a-keys b-keys dist)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 2)))
@@ -488,6 +507,8 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
+    ;; print column names
+    (.printJoinCol b a a-keys b-keys dist)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
