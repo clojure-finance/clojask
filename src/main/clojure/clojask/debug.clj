@@ -14,8 +14,8 @@
 
   (def x (dataframe "resources/Employees.csv" :have-col true))
   (def y (dataframe "resources/Employees-info.csv" :have-col true))
-  (time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
-  ;(time (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary" 8 "resources/test.csv" :exception false))
+  ;(time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
+  (time (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "Employee" "Employee" 8 "resources/test.csv" :exception false))
 
   ;(select-col y ["Salary" "EmployeeName"])
   ;(println (.getKeys (.col-info y)))
