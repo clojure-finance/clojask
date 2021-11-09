@@ -70,15 +70,15 @@
   ;; Benchmarking
 
   ;(def y (dataframe "../clojure-datasets/data-CRSP.csv"))
-  ;(def y (dataframe "resources/data-CRSP.csv" :have-col true))
-  ;(set-type y "PRC" "double")
+  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  (set-type y "datacqtr" "double")
   ;(operate y - "prccq")
   ;(operate y str ["PERMCO" "PERMNO"] "new-col")
   ;(group-by y "TICKER")
-  ;(aggregate y min ["PRC"] ["PRC-min"])
+  (aggregate y min ["datacqtr"] ["datacqtr-min"])
   ;(group-by y "TICKER")
   ;(aggregate y min ["PRC"] ["PRC-min"])
-  ;(time (compute y 4 "resources/test.csv" :exception false))
+  (time (compute y 4 "resources/test.csv" :exception false))
 
   ;; CRSP Benchmarking
 
