@@ -118,9 +118,11 @@
     [this]
     (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
           col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
+          col-not-deleted (set/difference (set col-set-wo-del) (set col-deleted))
           col-set (if (empty? (.getDeletedCol (.col-info this)))
                     col-set-wo-del ; no columns deleted
-                    (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
+                    (filterv (fn [col] (contains? col-not-deleted col)) col-set-wo-del)
+                  )]
       col-set))
 
   (printCol
