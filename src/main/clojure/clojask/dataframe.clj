@@ -26,6 +26,7 @@
   (setParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [])
   (colTypes [])
+  (getColIndex [])
   (getColNames [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
@@ -114,14 +115,22 @@
     [this]
     (.getType col-info))
 
+  (getColIndex
+    [this]
+    (let [index-key (.getIndexKey (:col-info this))
+          indices-deleted (set (.getDeletedCol (:col-info this)))
+          indices-wo-del (vec (take (count index-key) (iterate inc 0)))
+          index (if (empty? indices-deleted) 
+                    indices-wo-del ;; no columns deleted
+                    (filterv (fn [i] (= false (contains? indices-deleted i))) indices-wo-del))]
+    index))
+
   (getColNames
     [this]
-    (let [col-set-wo-del (map first (.getKeyIndex (.col-info this)))
-          col-deleted (map (.getIndexKey (.col-info this)) (vec (.getDeletedCol (.col-info this))))
-          col-set (if (empty? (.getDeletedCol (.col-info this)))
-                    col-set-wo-del ; no columns deleted
-                    (vec (set/difference (set col-set-wo-del) (set col-deleted))))]
-      col-set))
+    (let [index-key (.getIndexKey (:col-info this))
+          index (.getColIndex this)
+          header (mapv index-key index)]
+      header))
 
   (printCol
   ;; print column names, called by compute
