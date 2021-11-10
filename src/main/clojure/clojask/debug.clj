@@ -12,12 +12,16 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  (def x (dataframe "resources/Employees.csv" :have-col true))
-  (def y (dataframe "resources/Employees-info.csv" :have-col true))
+  (def y (dataframe "resources/Employees.csv" :have-col true))
+  ;(def y (dataframe "resources/Employees-info.csv" :have-col true))
   ;(time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
-  (time (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "Employee" "Employee" 8 "resources/test.csv" :exception false))
+  ;(time (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "Employee" "Employee" 8 "resources/test.csv" :exception false))
 
-  ;(select-col y ["Salary" "EmployeeName"])
+  (select-col y ["Salary" "EmployeeName"])
+  ;(delete-col y ["Salary" "EmployeeName"])
+  (print-df y)
+  (time (compute y 8 "resources/test.csv" :exception true))
+
   ;(println (.getKeys (.col-info y)))
   ;(set-type y "Salary" "double")
   ;(set-type y "EmployeeName" "double") ;; gives exception
@@ -70,15 +74,15 @@
   ;; Benchmarking
 
   ;(def y (dataframe "../clojure-datasets/data-CRSP.csv"))
-  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
-  (set-type y "datacqtr" "double")
+  ;(def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  ;(set-type y "datacqtr" "double")
   ;(operate y - "prccq")
   ;(operate y str ["PERMCO" "PERMNO"] "new-col")
   ;(group-by y "TICKER")
-  (aggregate y min ["datacqtr"] ["datacqtr-min"])
+  ;(aggregate y min ["datacqtr"] ["datacqtr-min"])
   ;(group-by y "TICKER")
   ;(aggregate y min ["PRC"] ["PRC-min"])
-  (time (compute y 4 "resources/test.csv" :exception false))
+  ;(time (compute y 4 "resources/test.csv" :exception false))
 
   ;; CRSP Benchmarking
 
