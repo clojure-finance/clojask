@@ -40,7 +40,7 @@
         operations (.getDesc (:col-info  dataframe))
         types (.getType (:col-info  dataframe))
         filters (.getFilters (:row-info dataframe))
-        indices (vec (take (count operations) (iterate inc 0)))
+        indices index
         no-aggre (= (.getAggreFunc (:row-info dataframe)) []) ;; if need to groupby & aggregate
         no-groupby (= (.getGroupbyKeys (:row-info dataframe)) [])
         ;;
