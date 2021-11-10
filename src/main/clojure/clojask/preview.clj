@@ -21,22 +21,23 @@
   (let [index-key (.getIndexKey (:col-info dataframe))
         formatters (.getFormatter (:col-info dataframe))
         ;index (take (count index-key) (iterate inc 0))
-        indices-deleted (.getDeletedCol (:col-info dataframe))
-        indices-wo-del (vec (take (count index-key) (iterate inc 0)))
-        indices-not-deleted (set/difference (set indices-wo-del) (set indices-deleted))
-        index (if (empty? indices-deleted) 
-                  indices-wo-del ;; no columns deleted
-                  ;(vec (set/difference (set indices-wo-del) (set indices-deleted))) ; minus column indices deleted
-                  (filterv (fn [i] (contains? indices-not-deleted i)) indices-wo-del)
-                  )
-        header (mapv index-key index)    ;; the header of the result in sequence vector
+        ;; indices-deleted (.getDeletedCol (:col-info dataframe))
+        ;; indices-wo-del (vec (take (count index-key) (iterate inc 0)))
+        ;; indices-not-deleted (set/difference (set indices-wo-del) (set indices-deleted))
+        ;; index (if (empty? indices-deleted) 
+        ;;           indices-wo-del ;; no columns deleted
+        ;;           (filterv (fn [i] (contains? indices-not-deleted i)) indices-wo-del)
+        ;;           )
+        ;; header (mapv index-key index)    ;; the header of the result in sequence vector
+        index (.getColIndex dataframe)
+        header (.getColNames dataframe)
         reader (io/reader (:path dataframe))
         csv-data (if (:have-col dataframe)
                    (rest (line-seq reader))
                    (line-seq  reader))
         data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
         sample (take sample-size data)    ;; lazy source data (take sample size)
-        ;;define the variables needed in the following functions
+        ;; define the variables needed in the following functions
         operations (.getDesc (:col-info  dataframe))
         types (.getType (:col-info  dataframe))
         filters (.getFilters (:row-info dataframe))
@@ -69,9 +70,6 @@
                           (if (>= (count res) return-size)
                             (persistent! res)
                             (recur rest res)))))]
-    ;; debug
-    (println header)
-    (println index)
     (if no-aggre
       (mapv (fn [row-v] (zipmap header row-v)) compute-res)
       ;; need to do aggregate

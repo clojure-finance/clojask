@@ -50,11 +50,13 @@
 (deftest col-api-test
     (testing "Column manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
-    (reorder-col y ["Employee" "Department" "EmployeeName" "Salary"])
-    (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary"]))
-    (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary"])
-    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary"]))
-    (delete-col y ["new-Department" "Salary"])
+    (reorder-col y ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"])
+    (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
+    (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"])
+    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"]))
+    (select-col y ["Employee" "new-Department" "EmployeeName"])
+    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName"]))
+    (delete-col y ["new-Department"])
     (is (= (col-names y) ["Employee" "EmployeeName"]))
     ))
 
