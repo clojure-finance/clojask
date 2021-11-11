@@ -26,7 +26,7 @@
     (str dist a-val)))
 
 (defn output-join
-  [writer a-row a-keys a-map b-keys a-format b-format a-index b-index]
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index]
   (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
     ;; (println writer)
     ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
@@ -51,7 +51,7 @@
 
 (defn output-join-loo
   "used for left join right join or outter join"
-  [writer a-row a-keys a-map b-keys count a-format b-format a-index b-index] 
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index]
   (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
     ;; (println writer)
     ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
@@ -114,7 +114,7 @@
 
 
 (defn output-join-forward
-  ""
+  "[writer a-row a-keys a-map b-keys count a-format b-format a-index b-index] "
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index]
   (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
     ;; (println writer)
@@ -174,3 +174,13 @@
                       (format (nth a-row index))
                       (nth a-row index)))]
         (.write writer (str (str/join "," (vec (concat a-row (repeat count "")))) "\n"))))))
+
+(defn defn-join
+  [type]
+  (def output-join
+    (case type
+      1 output-join
+      2 output-join-loo
+      4 output-join-forward
+      5 output-join-backward
+      nil)))
