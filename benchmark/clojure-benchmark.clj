@@ -22,7 +22,7 @@
     ;(operate y - "PRC")
     ;(operate y str ["PERMCO" "PERMNO"] "new-col")
     ;(group-by y "TICKER")
-    ;(aggregate y min ["PRC"] ["PRC-min"])
+    ;(aggregate y aggre/min ["PRC"] ["PRC-min"])
     
     ;; obtain results
     (time (compute y 4 "resources/test.csv" :exception false))
