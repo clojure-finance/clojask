@@ -98,54 +98,66 @@
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (case join-type
-      1 (loop [batch write-batch]
-                (if-let [msg (first batch)]
-                  (do
+    (loop [batch write-batch]
+      (if-let [msg (first batch)]
+        (do
           ;; (swap! example-datasink conj msg)
-                    (if (not= (:d msg) nil)
-                      (do
-                ;(.write wtr (str msg "\n"))
-                ;; !! define argument (debug)
-            ;;   (def groupby-keys [:Department :EmployeeName])
-                        (join/output-join wtr (:d msg) a-keys a-map b-keys a-format b-format a-index b-index)))
-
-                    (recur (rest batch)))))
-      2 (loop [batch write-batch]
-               (if-let [msg (first batch)]
-                 (do
-          ;; (swap! example-datasink conj msg)
-                   (if (not= (:d msg) nil)
-                     (do
-                ;(.write wtr (str msg "\n"))
-                ;; !! define argument (debug)
-            ;;   (def groupby-keys [:Department :EmployeeName])
-                       (join/output-join-loo wtr (:d msg) a-keys a-map b-keys (count b-map) a-format b-format a-index b-index)))
-
-                   (recur (rest batch)))))
-      4 (loop [batch write-batch]
-                  (if-let [msg (first batch)]
-                    (do
-          ;; (swap! example-datasink conj msg)
-                      (if (not= (:d msg) nil)
-                        (do
-                ;(.write wtr (str msg "\n"))
-                ;; !! define argument (debug)
-            ;;   (def groupby-keys [:Department :EmployeeName])
-                          (join/output-join-forward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-                      (recur (rest batch)))))
-      
-      5 (loop [batch write-batch]
-          (if-let [msg (first batch)]
+          (if (not= (:d msg) nil)
             (do
-          ;; (swap! example-datasink conj msg)
-              (if (not= (:d msg) nil)
-                (do
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-                  (join/output-join-backward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-              (recur (rest batch))))))
+              (join/output-join wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
+
+          (recur (rest batch)))))
+    ;; (case join-type
+    ;;   1 (loop [batch write-batch]
+    ;;             (if-let [msg (first batch)]
+    ;;               (do
+    ;;       ;; (swap! example-datasink conj msg)
+    ;;                 (if (not= (:d msg) nil)
+    ;;                   (do
+    ;;             ;(.write wtr (str msg "\n"))
+    ;;             ;; !! define argument (debug)
+    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
+    ;;                     (join/output-join wtr (:d msg) a-keys a-map b-keys a-format b-format a-index b-index)))
+
+    ;;                 (recur (rest batch)))))
+    ;;   2 (loop [batch write-batch]
+    ;;            (if-let [msg (first batch)]
+    ;;              (do
+    ;;       ;; (swap! example-datasink conj msg)
+    ;;                (if (not= (:d msg) nil)
+    ;;                  (do
+    ;;             ;(.write wtr (str msg "\n"))
+    ;;             ;; !! define argument (debug)
+    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
+    ;;                    (join/output-join-loo wtr (:d msg) a-keys a-map b-keys (count b-map) a-format b-format a-index b-index)))
+
+    ;;                (recur (rest batch)))))
+    ;;   4 (loop [batch write-batch]
+    ;;               (if-let [msg (first batch)]
+    ;;                 (do
+    ;;       ;; (swap! example-datasink conj msg)
+    ;;                   (if (not= (:d msg) nil)
+    ;;                     (do
+    ;;             ;(.write wtr (str msg "\n"))
+    ;;             ;; !! define argument (debug)
+    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
+    ;;                       (join/output-join-forward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
+    ;;                   (recur (rest batch)))))
+      
+    ;;   5 (loop [batch write-batch]
+    ;;       (if-let [msg (first batch)]
+    ;;         (do
+    ;;       ;; (swap! example-datasink conj msg)
+    ;;           (if (not= (:d msg) nil)
+    ;;             (do
+    ;;             ;(.write wtr (str msg "\n"))
+    ;;             ;; !! define argument (debug)
+    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
+    ;;               (join/output-join-backward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
+    ;;           (recur (rest batch))))))
     ;; (.close wtr)
     true))
 

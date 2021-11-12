@@ -523,7 +523,7 @@
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
 
 (defn rolling-join-forward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit (fn [a b] true)}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)

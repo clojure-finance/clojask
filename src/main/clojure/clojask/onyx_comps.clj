@@ -10,7 +10,8 @@
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
-            [clojask.utils :refer [eval-res eval-res-ne filter-check]])
+            [clojask.utils :refer [eval-res eval-res-ne filter-check]]
+            [clojask.join :refer [defn-join]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 
@@ -578,6 +579,7 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (join/inject-dataframe dataframe b a-keys b-keys)
+    (defn-join join-type)
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
