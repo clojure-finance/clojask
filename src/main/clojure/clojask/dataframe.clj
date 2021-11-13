@@ -523,7 +523,7 @@
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
 
 (defn rolling-join-forward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit (fn [a b] true)}}]
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -544,11 +544,11 @@
         ;; print column names
         (.printJoinCol a b a-keys b-keys dist)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4)))))
+        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4 limit)))))
 
 ;; all of the code is the same as above except for the last line
 (defn rolling-join-backward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -569,4 +569,4 @@
         ;; print column names
         (.printJoinCol a b a-keys b-keys dist)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 5)))))
+        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 5 nil)))))

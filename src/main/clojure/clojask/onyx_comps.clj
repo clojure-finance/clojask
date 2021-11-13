@@ -568,7 +568,7 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type]
+  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type & [limit]]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
@@ -579,7 +579,8 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (join/inject-dataframe dataframe b a-keys b-keys)
-    (defn-join join-type)
+    (let [limit (or limit (fn [a b] true))]
+     (defn-join join-type limit))
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
