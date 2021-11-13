@@ -213,7 +213,9 @@
 
 (defn get-type-string
   [x]
-  (subs (str (type x)) 6))
+  (if (not= x nil)
+   (subs (str (type x)) 6)
+    "nil"))
 
 (defn check-duplicate-col
   "Check for duplicated column names and return a column names list w/o duplicates"

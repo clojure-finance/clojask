@@ -100,7 +100,7 @@
             ;;   (.write wtr (str (string/join "," (:d msg)) "\n"))
 
             ;;    (swap! memo assoc index (func (get index (deref memo)) (:d msg)))
-              (vreset! memo (map-indexed (fn [ind prev] ((nth (nth aggre-func ind) 0) prev (nth data (nth (nth aggre-func ind) 1)))) (deref memo)))
+              (vreset! memo (doall (map-indexed (fn [ind prev] ((nth (nth aggre-func ind) 0) prev (nth data (nth (nth aggre-func ind) 1)))) (deref memo))))
             ;;   (.write wtr (str (vec (deref memo)) "\n"))
               )))))
     true))
@@ -112,5 +112,5 @@
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
   (let [aggre-func (.getAggreFunc (:row-info (deref df)))]
-   (->ClojaskOutput (volatile! (take (count aggre-func)
-                                     (repeat start))))))
+   (->ClojaskOutput (volatile! (doall (take (count aggre-func)
+                                     (repeat start)))))))

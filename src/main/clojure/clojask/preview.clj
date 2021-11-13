@@ -79,7 +79,7 @@
               keys (.getAggreNewKeys (:row-info dataframe))
               aggre-res (for [[func index] aggre-funcs]
                           (let [res
-                                (reduce func aggre/start (map (fn [row] (nth row index)) compute-res))]
+                                (reduce func aggre/start (mapv (fn [row] (nth row index)) compute-res))]
                             (if (coll? res)
                               res
                               [res])))]
