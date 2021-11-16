@@ -3,6 +3,7 @@
               [clojask.dataframe :refer :all]
               [clojask.utils :refer :all]
               [clojask.groupby :refer :all]
+              [clojask.api.aggregate :as aggre]
               [clojask.sort :refer :all]))
         
 (use '[clojure.java.shell :only [sh]])
@@ -17,7 +18,7 @@
     (is (= clojask.dataframe.DataFrame (type (operate y - "Salary"))))
     (is (= clojask.dataframe.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
     (is (= clojask.dataframe.DataFrame (type (group-by y ["Department"]))))
-    (is (= clojask.dataframe.DataFrame (type (aggregate y min ["Employee"] ["new-employee"]))))
+    (is (= clojask.dataframe.DataFrame (type (aggregate y max ["Salary"] ["Salary-max"]))))
     ;(is (= "success" (compute y 8 "resources/test.csv" :exception false)))
     ))
 
@@ -40,8 +41,9 @@
         (is (= "" (:out result))))
     ;; groupby and aggregate
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (set-type y "Salary" "double")
     (group-by y ["Department"])
-    (aggregate y min ["Employee"] ["new-employee"])
+    (aggregate y max ["Salary"] ["new-Salary"])
     (compute y 8 "test/clojask/test_outputs/1-3.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-3.csv)" "<(sort test/clojask/correct_outputs/1-3.csv)")]
         (is (= "" (:out result))))
