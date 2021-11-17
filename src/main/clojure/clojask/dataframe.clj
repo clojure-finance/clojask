@@ -12,7 +12,8 @@
             [clojask.preview :as preview]
             [clojure.pprint :as pprint])
   (:import [clojask.ColInfo ColInfo]
-           [clojask.RowInfo RowInfo]))
+           [clojask.RowInfo RowInfo])
+  (:refer-clojure :exclude [filter group-by sort]))
 "The clojask lazy dataframe"
 
 (import '[com.clojask.exception Clojask_TypeException]

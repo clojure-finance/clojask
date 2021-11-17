@@ -75,10 +75,6 @@
   "success"
   )
 
-(defn comp
-  [a b]
-  (compare (.get a 0) (.get b 0)))
-
 (defn use-external-sort
   [input output comp]
   ;; clean the output file

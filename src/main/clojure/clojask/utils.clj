@@ -209,20 +209,6 @@
   [cols dataframe]
   (filter (fn [col] (is-in col dataframe)) cols))
 
-(defn max
-  [list]
-  (reduce (fn [a b] (if (> (compare a b) 0)
-                      a
-                      b))
-          list))
-
-(defn min
-  [list]
-  (reduce (fn [a b] (if (< (compare a b) 0)
-                      a
-                      b))
-          list))
-
 (defn init-file
   [out-dir]
   (io/delete-file out-dir true)

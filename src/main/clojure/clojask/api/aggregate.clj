@@ -1,4 +1,5 @@
-(ns clojask.api.aggregate)
+(ns clojask.api.aggregate
+  (:refer-clojure :exclude [max min]))
 "Contains implemented simple aggregation functions"
 
 (def start)

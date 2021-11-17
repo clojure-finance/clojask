@@ -1,4 +1,4 @@
-### Clojask Types
+## Clojask Types
 
 ### Supported Types
 
@@ -7,6 +7,8 @@ string
 int
 
 double
+
+date
 
 datetime
 
@@ -63,7 +65,7 @@ Class: `java.time.LocalDate` (default format string: `yyyy-MM-dd`)
 
 Transform a date string (no time field)
 
-Class: `java.time.LocalDate` (default format string: `yyyy-MM-dd HH:mm:ss`)
+Class: `java.time.LocalDateTime` (default format string: `yyyy-MM-dd HH:mm:ss`)
 
 #### Examples
 
