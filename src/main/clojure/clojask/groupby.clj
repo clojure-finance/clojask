@@ -1,6 +1,5 @@
 (ns clojask.groupby
   (:require [clojure.java.io :as io]
-            [clojure-csv.core :as csv]
             [clojure.core.async :as async]))
 "contains the utility functions to group by and aggregate"
 

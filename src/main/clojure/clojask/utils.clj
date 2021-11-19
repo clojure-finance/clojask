@@ -2,7 +2,7 @@
   (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
             [clojure.java.io :refer [resource]]
             [onyx.plugin.core-async :refer [take-segments!]]
-            [tech.v3.dataset :as ds]
+            ;; [tech.v3.dataset :as ds]
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import (java.util Date)

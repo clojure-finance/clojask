@@ -1,6 +1,5 @@
 (ns clojask.join
   (:require [clojure.java.io :as io]
-            [clojure-csv.core :as csv]
             [clojure.core.async :as async]
             ;; [clojask.onyx-comps :refer [start-onyx-groupby start-onyx-join]]
             [clojask.groupby :refer [read-csv-seq gen-groupby-filenames]]
