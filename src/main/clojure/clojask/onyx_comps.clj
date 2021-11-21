@@ -446,7 +446,8 @@
     {:zookeeper/address "127.0.0.1:2188"
      :zookeeper/server? true
      :zookeeper.server/port 2188
-     :onyx/tenancy-id id})
+     :onyx/tenancy-id id
+     :onyx.log/file "_clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -454,7 +455,8 @@
      :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
-     :onyx.messaging/bind-addr "localhost"})
+     :onyx.messaging/bind-addr "localhost"
+     :onyx.log/file "_clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
