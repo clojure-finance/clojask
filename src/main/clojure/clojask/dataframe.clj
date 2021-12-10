@@ -31,7 +31,7 @@
   (getColNames [])
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
-  (printJoinCol [b-df a-keys b-keys output-path] "print column names to output file for join")
+  (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
   (delCol [col-to-del] "delete column(s) in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "reorder columns in the dataframe")
@@ -156,13 +156,15 @@
 
   (printJoinCol
   ;; print column names, called by join APIs
-    [this b-df this-keys b-keys output-path]
+    [this b-df this-keys b-keys output-path col-prefix]
     (cond (not (= java.lang.String (type output-path)))
           (throw (Clojask_TypeException. "Output path should be a string.")))
-    (let [a-col-set (.getColNames this)
+    (let [a-col-prefix (first col-prefix)
+          b-col-prefix (last col-prefix)
+          a-col-set (.getColNames this)
           b-col-set (.getColNames b-df)
-          a-col-header (map #(str "1_" %) a-col-set)
-          b-col-header (map #(str "2_" %) b-col-set)]
+          a-col-header (map #(str a-col-prefix "_" %) a-col-set)
+          b-col-header (map #(str b-col-prefix "_" %) b-col-set)]
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," (concat a-col-header b-col-header)) "\n")))))
   
@@ -467,7 +469,7 @@
   result))
 
 (defn inner-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys num-worker dist & {:keys [col-prefix exception] :or {col-prefix ["1" "2"] exception false}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -480,13 +482,13 @@
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
     ;; print column names
-    (.printJoinCol a b a-keys b-keys dist)
+    (.printJoinCol a b a-keys b-keys dist col-prefix)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1)))
 
 (defn left-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys num-worker dist & {:keys [col-prefix exception] :or {col-prefix ["1" "2"] exception false}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -495,17 +497,19 @@
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (= (count col-prefix) 2)) 
+      (throw (Clojask_TypeException. "The length of col-prefix should be equal to 2.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
     ;; print column names
-    (.printJoinCol a b a-keys b-keys dist)
+    (.printJoinCol a b a-keys b-keys dist col-prefix)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
     (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 2)))
 
 (defn right-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys num-worker dist & {:keys [col-prefix exception] :or {col-prefix ["1" "2"] exception false}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -518,13 +522,13 @@
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (u/init-file dist)
     ;; print column names
-    (.printJoinCol b a a-keys b-keys dist)
+    (.printJoinCol b a a-keys b-keys dist col-prefix)
     ;; first group b by keys
     (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
     (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
 
 (defn rolling-join-forward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [col-prefix exception limit] :or {col-prefix ["1" "2"] exception false limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -543,13 +547,13 @@
           (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
         (u/init-file dist)
         ;; print column names
-        (.printJoinCol a b a-keys b-keys dist)
+        (.printJoinCol a b a-keys b-keys dist col-prefix)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
         (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4 limit)))))
 
 ;; all of the code is the same as above except for the last line
 (defn rolling-join-backward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
+  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [col-prefix exception limit] :or {col-prefix ["1" "2"] exception false limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -568,6 +572,6 @@
               (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
         (u/init-file dist)
         ;; print column names
-        (.printJoinCol a b a-keys b-keys dist)
+        (.printJoinCol a b a-keys b-keys dist col-prefix)
         (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
         (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 5 nil)))))
