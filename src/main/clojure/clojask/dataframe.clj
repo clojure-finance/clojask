@@ -20,25 +20,27 @@
         '[com.clojask.exception Clojask_OperationException])
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
+  (checkOutputPath [output-path] "check if output path is of string type")
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [type colName] "types supported: int double string date")
   (setParser [parser col] "add the parser for a col which acts like setType")
-  (colDesc [])
-  (colTypes [])
-  (getColIndex [])
-  (getColNames [])
+  (colDesc [] "get column description in ColInfo")
+  (colTypes [] "get column type in ColInfo")
+  (getColIndex [] "get column indices, excluding deleted columns")
+  (getColNames [] "get column names")
   (printCol [output-path] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
   (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
-  (delCol [col-to-del] "delete column(s) in the dataframe")
+  (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
-  (renameCol [new-col-names] "reorder columns in the dataframe")
+  (renameCol [new-col-names] "rename columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
-  (head [n])
+  (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
+  (computeTypeCheck [num-worker output-dir])
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
   (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception])
   (sort [a b] "sort the dataframe based on columns")
@@ -57,6 +59,11 @@
             ^RowInfo row-info
             ^Boolean have-col]
   DFIntf
+
+  (checkOutputPath
+    [this output-path]
+    (cond (not (= java.lang.String (type output-path)))
+          (throw (Clojask_TypeException. "Output path should be a string."))))
 
   (operate ;; has assert
     [this operation colName]
@@ -136,8 +143,7 @@
   (printCol
   ;; print column names, called by compute
     [this output-path]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
+    (.checkOutputPath this output-path)
     (let [col-set (.getColNames this)]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
@@ -145,20 +151,17 @@
   (printAggreCol
   ;; print column names, called by computeAggre
     [this output-path]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
+    (.checkOutputPath this output-path)
     (let [groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
-        ;(println (vec (map #(last %) groupby-key-index)))
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
 
   (printJoinCol
   ;; print column names, called by join APIs
     [this b-df this-keys b-keys output-path col-prefix]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
+    (.checkOutputPath this output-path)
     (let [a-col-prefix (first col-prefix)
           b-col-prefix (last col-prefix)
           a-col-set (.getColNames this)
@@ -233,7 +236,6 @@
     [this]
     (doseq [tmp (.getFormatter (:col-info this))]
       (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
-    ;; currently put read file here
 
   (preview
     [this sample-size return-size format]
@@ -241,9 +243,18 @@
           (throw (Clojask_TypeException. "Arguments passed to preview must be integers.")))
     (preview/preview this sample-size return-size format))
 
+  (computeTypeCheck
+    [this num-worker output-dir]
+    (cond (not (= java.lang.String (type output-dir)))
+      (throw (Clojask_TypeException. "Output directory should be a string.")))
+    (cond (not (integer? num-worker))
+      (throw (Clojask_TypeException. "Number of workers should be an integer.")))
+    (if (> num-worker 8)
+      (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
+
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
-    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
+    (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (try
         (.final this)
@@ -257,10 +268,7 @@
   
   (computeAggre
    [this ^int num-worker ^String output-dir ^boolean exception]
-   (cond (not (= java.lang.String (type output-dir)))
-         (throw (Clojask_TypeException. "Output-dir should be a string.")))
-   (if (> num-worker 8)
-     (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))
+   (.computeTypeCheck this num-worker output-dir)
    (.printAggreCol this output-dir) ;; print column names to output-dir
    (let [res (start-onyx-aggre-only num-worker batch-size this output-dir exception)]
      (if (= res "success")
@@ -269,8 +277,7 @@
   
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception]
-    (cond (not (= java.lang.String (type output-dir)))
-          (throw (Clojask_TypeException. "Output-dir should be a string.")))
+    (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
@@ -371,8 +378,6 @@
       (DataFrame. path 300 col-info row-info have-col))
     (catch Exception e
       (do
-        ;; (println "No such file or directory")
-        ;; (throw e)
         (throw (Clojask_OperationException. "no such file or directory"))
         nil))))
 
