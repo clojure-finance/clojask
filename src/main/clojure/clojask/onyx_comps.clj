@@ -61,17 +61,15 @@
 ;;     (zipmap keys )))
 
 (defn worker-func-gen
-  [df exception]
+  [df exception index]
   (reset! dataframe df)
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
         indices-deleted (.getDeletedCol (:col-info (deref dataframe)))
         indices-wo-del (vec (take (count operations) (iterate inc 0)))
-        indices (if (empty? indices-deleted) 
-                    indices-wo-del ; no columns deleted
-                    (vec (set/difference (set indices-wo-del) (set indices-deleted))) ; minus column indices deleted
-                    )]
+        indices index]
+    ;; (println indices)
     (if exception
       (defn worker-func
         [seg]
@@ -475,11 +473,11 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception order]
+  [num-work batch-size dataframe dist exception order index]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception index) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
@@ -510,7 +508,7 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
     (catalog-aggre-gen num-work batch-size)
     (lifecycle-aggre-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
@@ -542,7 +540,7 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
     (catalog-groupby-gen num-work batch-size)
     (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
@@ -575,7 +573,7 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
     (catalog-join-gen num-work batch-size)
     (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
