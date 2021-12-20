@@ -485,7 +485,14 @@
             prefix]
   JDFIntf
   (getColNames
-    [this])
+    [this]
+    (let [a-col-prefix (first prefix)
+          b-col-prefix (last prefix)
+          a-col-set (.getColNames a)
+          b-col-set (.getColNames b)
+          a-col-header (mapv #(str a-col-prefix "_" %) a-col-set)
+          b-col-header (mapv #(str b-col-prefix "_" %) b-col-set)]
+      (conj a-col-header b-col-header)))
 
   (compute
    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]
