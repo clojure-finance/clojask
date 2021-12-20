@@ -136,9 +136,11 @@
   (getColNames
     [this]
     (let [index-key (.getIndexKey (:col-info this))
-          index (.getColIndex this)
-          header (mapv index-key index)]
-      header))
+          index (.getColIndex this)]
+          ;header (mapv index-key index)]
+      ;(mapv (fn [i] (get {0 "Employee", 1 "EmployeeName", 2 "Department", 3 "Salary"} i)) [0 2 2 2])
+      (mapv (fn [i] (get index-key i)) index)
+      ))
 
   (printCol
   ;; print column names, called by compute
@@ -263,7 +265,7 @@
       (if (<= num-worker 8)
         (try
           (.final this)
-          (.printCol this output-dir) ;; to-do: based on the index
+          (.printCol this output-dir) ;; to-do: based on the index => Done
           (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
             (if (= res "success")
               "success"
