@@ -158,6 +158,7 @@
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
 
+  ;; !! deprecated
   (printJoinCol
   ;; print column names, called by join APIs
     [this b-df this-keys b-keys output-path col-prefix]
@@ -470,7 +471,9 @@
 
 ;; ============= Below is the definition for the joineddataframe ================
 (definterface JDFIntf
+  (checkOutputPath [output-path] "check if output path is of string type")
   (getColNames [] "get the names of all the columns")
+  (printCol [output-path] "print column names to output file")
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]))
 
 (defrecord JoinedDataFrame
@@ -484,6 +487,7 @@
             limit
             prefix]
   JDFIntf
+
   (getColNames
     [this]
     (let [a-col-prefix (first prefix)
@@ -492,16 +496,24 @@
           b-col-set (.getColNames b)
           a-col-header (mapv #(str a-col-prefix "_" %) a-col-set)
           b-col-header (mapv #(str b-col-prefix "_" %) b-col-set)]
-      (conj a-col-header b-col-header)))
+      (concat a-col-header b-col-header)))
 
+  (printCol
+    ;; print column names, called by compute
+      [this output-path]
+      (let [col-set (.getColNames this)]
+        (with-open [wrtr (io/writer output-path)]
+          (.write wrtr (str (str/join "," col-set) "\n")))))
+        
   (compute
-   [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]
-   (let []
-     (u/init-file output-dir)
-        ;; print column names
-    ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames
-     (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-     (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit))))
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]
+    (let []
+      (u/init-file output-dir)
+      ;; print column names
+      ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames => Done
+      (.printCol this output-dir)
+      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+      (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit))))
 
 (defn inner-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -620,6 +632,6 @@
 (defn get-col-names
   "Get the names for the columns in sequence"
   [this]
-  ;; to-do: should implement both for the DataFrame and JoinedDataFrame
+  ;; to-do: should implement both for the DataFrame and JoinedDataFrame => Done
   (.getColNames this)
   )
