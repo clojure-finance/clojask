@@ -135,12 +135,17 @@
 
   (getColNames
     [this]
-    (let [index-key (.getIndexKey (:col-info this))
-          index (.getColIndex this)]
-          ;header (mapv index-key index)]
-      ;(mapv (fn [i] (get {0 "Employee", 1 "EmployeeName", 2 "Department", 3 "Salary"} i)) [0 2 2 2])
-      (mapv (fn [i] (get index-key i)) index)
-      ))
+    (if (and (= 0 (count (.getGroupbyKeys (:row-info this)))) (= 0 (count (.getAggreNewKeys (:row-info this)))))
+        ;; not aggregate
+        (let [index-key (.getIndexKey (:col-info this))
+              index (.getColIndex this)]
+              ;(mapv (fn [i] (get {0 "Employee", 1 "EmployeeName", 2 "Department", 3 "Salary"} i)) [0 2 2 2])
+              (mapv (fn [i] (get index-key i)) index))
+        ;; if aggregate
+        (let [groupby-key-index (.getGroupbyKeys (:row-info this))
+              groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
+              aggre-new-keys (.getAggreNewKeys (:row-info this))]
+              (concat groupby-keys aggre-new-keys))))
 
   (printCol
   ;; print column names, called by compute
@@ -150,6 +155,7 @@
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
+  ;; !! deprecated
   (printAggreCol
   ;; print column names, called by computeAggre
     [this output-path]
@@ -276,7 +282,8 @@
   (computeAggre
    [this ^int num-worker ^String output-dir ^boolean exception]
    (.computeTypeCheck this num-worker output-dir)
-   (.printAggreCol this output-dir) ;; print column names to output-dir
+   ;(.printAggreCol this output-dir) ;; print column names to output-dir
+   (.printCol this output-dir)
    (let [res (start-onyx-aggre-only num-worker batch-size this output-dir exception)]
      (if (= res "success")
        "success"
@@ -288,7 +295,8 @@
     (if (<= num-worker 8)
       (try
         (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
-          (.printAggreCol this output-dir) ;; print column names to output-dir
+          ;(.printAggreCol this output-dir) ;; print column names to output-dir
+          (.printCol this output-dir)
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (if
