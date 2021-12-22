@@ -13,15 +13,16 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  (def y (dataframe "resources/Employees.csv" :have-col true))
-  ;(def y (dataframe "resources/Employees-info.csv" :have-col true))
-  ;(time (left-join x y ["Employee"] ["Employee"] 8 "resources/test.csv" :exception false))
+  (def x (dataframe "resources/Employees.csv" :have-col true))
+  (def y (dataframe "resources/Employees-info.csv" :have-col true))
+  (def z (left-join x y ["Employee"] ["Employee"]))
+  (time (compute x 8 "resources/test.csv" :exception true))
+
   ;(time (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "Employee" "Employee" 8 "resources/test.csv" :exception false))
 
-  (select-col y ["Salary" "EmployeeName"])
+  ;(select-col y ["Salary" "EmployeeName"])
   ;(delete-col y ["Salary" "EmployeeName"])
-  (print-df y)
-  (time (compute y 8 "resources/test.csv" :exception true))
+  ;(print-df y)
 
   ;(println (.getKeys (.col-info y)))
   ;(set-type y "Salary" "double")
