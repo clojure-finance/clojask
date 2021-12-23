@@ -539,12 +539,12 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception groupby-index) ;;need some work
+    (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0)))) ;;need some work
     (catalog-groupby-gen num-work batch-size)
     (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (groupby/inject-dataframe dataframe groupby-keys)
+    (groupby/inject-dataframe dataframe groupby-keys groupby-index)
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -567,7 +567,7 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type & [limit]]
+  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
@@ -577,7 +577,7 @@
     (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (join/inject-dataframe dataframe b a-keys b-keys)
+    (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format)
     (let [limit (or limit (fn [a b] true))]
      (defn-join join-type limit))
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))

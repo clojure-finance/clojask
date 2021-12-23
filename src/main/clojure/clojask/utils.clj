@@ -86,8 +86,6 @@
         (if (= com nil)
           true
           (do
-            ;; (println row)
-            ;; (println (nth com 1))
             (if (apply (first com) (get-val row types (nth com 1)))
               (recur rem)
               false)))))))
@@ -111,28 +109,82 @@
 (def fromString
   (atom (fn [_] (str _))))
 
+;; (def toDate
+;;   (atom (fn [string]
+;;           (try
+;;             (LocalDate/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
+;;             (catch Exception e (throw e))))))
+
+;; (def fromDate
+;;   (atom (fn [date]
+;;           (if (= (type date) java.time.LocalDate)
+;;             (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
+;;             date))))
+
+;; (def toDateTime
+;;   (atom (fn [string]
+;;           (try
+;;             (LocalDateTime/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+;;             (catch Exception e (throw e))))))
+
+;; (def fromDateTime
+;;   (atom (fn [date]
+;;           (if (= (type date) java.time.LocalDateTime)
+;;             (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+;;             date))))
+
+;; (defn set-format-string
+;;   [string]
+;;   (if (or (str/starts-with? string "date:") (str/starts-with? string "datetime:"))
+;;     (let [format-string (subs string (inc (str/index-of string ":")))]
+;;       (reset! toDate
+;;               (fn [string]
+;;                 (try
+;;                   (LocalDate/parse string (DateTimeFormatter/ofPattern format-string))
+;;                   (catch Exception e (throw e)))))
+
+;;       (reset! fromDate
+;;               (fn [date]
+;;                 (if (= (type date) java.time.LocalDate)
+;;                   (.format date (DateTimeFormatter/ofPattern format-string))
+;;                   date)))
+
+;;       (reset! toDateTime
+;;               (fn [string]
+;;                 (try
+;;                   (LocalDateTime/parse string (DateTimeFormatter/ofPattern format-string))
+;;                   (catch Exception e (throw e)))))
+
+;;       (reset! fromDateTime
+;;               (fn [date]
+;;                 (if (= (type date) java.time.LocalDateTime)
+;;                   (.format date (DateTimeFormatter/ofPattern format-string))
+;;                   date))))
+;;     ))
+
+;; ;; (def operation-type-map
+;; ;;   {toInt "int"
+;; ;;    toDouble "double"
+;; ;;    toString "string"
+;; ;;    toDate "date"})
+
+;; (def type-operation-map
+;;   {"int" [toInt fromString]
+;;    "double" [toDouble fromString]
+;;    "string" [toString fromString]
+;;    "date" [toDate fromDate]
+;;    "datetime" [toDateTime fromDateTime]})
+
 (def toDate
   (atom (fn [string]
           (try
-            (LocalDate/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
+            (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
             (catch Exception e (throw e))))))
 
 (def fromDate
   (atom (fn [date]
-          (if (= (type date) java.time.LocalDate)
-            (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
-            date))))
-
-(def toDateTime
-  (atom (fn [string]
-          (try
-            (LocalDateTime/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
-            (catch Exception e (throw e))))))
-
-(def fromDateTime
-  (atom (fn [date]
-          (if (= (type date) java.time.LocalDateTime)
-            (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
+          (if (= (type date) java.util.Date)
+            (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
             date))))
 
 (defn set-format-string
@@ -142,52 +194,33 @@
       (reset! toDate
               (fn [string]
                 (try
-                  (LocalDate/parse string (DateTimeFormatter/ofPattern format-string))
+                  (.parse (java.text.SimpleDateFormat. format-string) string)
                   (catch Exception e (throw e)))))
 
       (reset! fromDate
               (fn [date]
-                (if (= (type date) java.time.LocalDate)
-                  (.format date (DateTimeFormatter/ofPattern format-string))
-                  date)))
-
-      (reset! toDateTime
+                (if (= (type date) java.util.Date)
+                  (.format (java.text.SimpleDateFormat. format-string) date)
+                  date))))
+    (do
+      (reset! toDate
               (fn [string]
                 (try
-                  (LocalDateTime/parse string (DateTimeFormatter/ofPattern format-string))
+                  (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
                   (catch Exception e (throw e)))))
 
-      (reset! fromDateTime
+      (reset! fromDate
               (fn [date]
-                (if (= (type date) java.time.LocalDateTime)
-                  (.format date (DateTimeFormatter/ofPattern format-string))
-                  date))))
-    ;; (do
-    ;;   (reset! toDate
-    ;;           (fn [string]
-    ;;             (try
-    ;;               (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-    ;;               (catch Exception e (throw e)))))
-
-    ;;   (reset! fromDate
-    ;;           (fn [date]
-    ;;             (if (= (type date) java.util.Date)
-    ;;               (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
-    ;;               date))))
-    ))
-
-;; (def operation-type-map
-;;   {toInt "int"
-;;    toDouble "double"
-;;    toString "string"
-;;    toDate "date"})
+                (if (= (type date) java.util.Date)
+                  (.format (java.text.SimpleDateFormat. "yyyy-MM-dd") date)
+                  date))))))
 
 (def type-operation-map
   {"int" [toInt fromString]
    "double" [toDouble fromString]
    "string" [toString fromString]
    "date" [toDate fromDate]
-   "datetime" [toDateTime fromDateTime]})
+   "datetime" [toDate fromDate]})
 
 (defn type-detection
   [file]

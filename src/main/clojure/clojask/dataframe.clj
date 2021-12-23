@@ -283,7 +283,6 @@
    [this ^int num-worker ^String output-dir ^boolean exception select]
    (.computeTypeCheck this num-worker output-dir)
    ;(.printAggreCol this output-dir) ;; print column names to output-dir
-   (.printCol this output-dir)
    (let [aggre-keys (.getAggreFunc row-info)
          select (if (coll? select) select [select])
          select (if (= select [nil])
@@ -297,6 +296,7 @@
                                       (.indexOf index num))])
          aggre-func (mapv shift-func aggre-func)
         ;;  test (println [select index aggre-func])
+         tmp (.printCol this output-dir) ;; todo: based on "select"
          res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
      (if (= res "success")
        "success"
@@ -319,7 +319,7 @@
               ;; test (println [groupby-keys aggre-keys select pre-index data-index])
               res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
-          (.printCol this output-dir)
+          (.printCol this output-dir) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
@@ -513,7 +513,7 @@
   (checkOutputPath [output-path] "check if output path is of string type")
   (getColNames [] "get the names of all the columns")
   (printCol [output-path] "print column names to output file")
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]))
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select]))
 
 (defrecord JoinedDataFrame
            [^DataFrame a
@@ -549,14 +549,24 @@
     (let [select (if (coll? select) select [select])
           select (if (= select [nil])
                    (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
-                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select)) 
+          a-index (vec (apply sorted-set (remove (fn [num] (>= num (count (.getKeyIndex (.col-info a))))) select)))
+          ;; a-write 
+          b-index (mapv #(- % (count (.getKeyIndex (.col-info a)))) (apply sorted-set (remove (fn [num] (< num (count (.getKeyIndex (.col-info a))))) select)))
+          b-index (if b-roll (vec (apply sorted-set (conj b-index b-roll))) b-index)
+          b-roll (if b-roll (count (remove #(>= % b-roll) b-index)) nil)
+          ;; b-write
+          ;; a-format
+          b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
+          write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
+          ;; test (println a-index b-index b-format write-index b-roll)
           ]
       (u/init-file output-dir)
       ;; print column names
       ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames => Done
-      (.printCol this output-dir)
-      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception []) ;; todo
-      (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit))))
+      (.printCol this output-dir) ;; todo: based on "select"
+      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
+      (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
 
 (defn inner-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -657,20 +667,19 @@
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
   (u/init-file output-dir)
   ;; check which type of dataframe this is
-  (if (= (type this) clojask.dataframe.DataFrame)
-    (let [exclude (if (coll? exclude) exclude [exclude])
-          select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
-      (assert (not= select []) "must select at least on column")
+  (let [exclude (if (coll? exclude) exclude [exclude])
+        select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
+    (assert (not= select []) "must select at least 1 column")
+    (if (= (type this) clojask.dataframe.DataFrame)
       (if (= (.getAggreFunc (:row-info this)) [])
         (.compute this num-worker output-dir exception order select)
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (.computeGroupAggre this num-worker output-dir exception select)
-          (.computeAggre this num-worker output-dir exception select))))
-    (if (= (type this) clojask.dataframe.JoinedDataFrame)
-      (.compute this num-worker output-dir exception order select)
-      (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))
-      )))
-
+          (.computeAggre this num-worker output-dir exception select)))
+      (if (= (type this) clojask.dataframe.JoinedDataFrame)
+        (.compute this num-worker output-dir exception order select)
+        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe")))))
+)
 (defn get-col-names
   "Get the names for the columns in sequence"
   [this]

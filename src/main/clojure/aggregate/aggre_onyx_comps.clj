@@ -67,7 +67,7 @@
           (if (= aggre-funcs [])
             ;; {:d (vec (concat pre res))}
             (if (= res [])
-              {:d (u/gets [pre] index)}
+              {:d [(u/gets pre index)]}
               {:d (mapv reorder (repeat pre) (apply map vector res))})
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
