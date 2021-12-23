@@ -11,6 +11,12 @@
            (java.time.format DateTimeFormatter)))
 "Utility function used in dataframe"
 
+(defn gets
+  "unlike core/get, get elements from indices"
+  [coll indices]
+  (mapv #(nth coll %) indices)
+  )
+
 (defn get-key
   [row types key-index key]
   (let [index (get key-index key)]

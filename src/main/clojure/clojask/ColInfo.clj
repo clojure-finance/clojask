@@ -107,7 +107,7 @@
 
   (getKeys
     [this]
-    col-keys)
+    (mapv (fn [index] (get index-key index)) (take (count index-key) (iterate inc 0))))
 
   (getKeyIndex
    [this]

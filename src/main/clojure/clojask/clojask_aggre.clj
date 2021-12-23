@@ -4,14 +4,19 @@
             [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
             [clojure.string :as string]
-            [clojask.api.aggregate :refer [start]])
+            [clojask.api.aggregate :refer [start]]
+            [clojask.utils :as u])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def df (atom nil))
+(def aggre-func (atom nil))
+(def select (atom nil))
 
 (defn inject-dataframe
-  [dataframe]
+  [dataframe a b]
   (reset! df dataframe)
+  (reset! aggre-func a)
+  (reset! select b)
   )
 
 (defn c-count
@@ -39,7 +44,9 @@
    :lifecycle/after-task-stop close-writer})
 
 (defrecord ClojaskOutput
-           [memo]
+           [memo
+            aggre-func
+            select]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -52,7 +59,7 @@
         (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))]
           ;; (.write (:clojask/wtr event) (str data "\n"))
           (if (apply = (map count data))
-            (mapv #(.write (:clojask/wtr event) (str (string/join "," %) "\n")) (apply map vector data))
+            (mapv #(.write (:clojask/wtr event) (str (string/join "," (u/gets % select)) "\n")) (apply map vector data))
             (throw (Exception. "aggregation result is not of the same length"))))
         this)
 
@@ -86,7 +93,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/aggre-func]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
@@ -111,6 +118,8 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (let [aggre-func (.getAggreFunc (:row-info (deref df)))]
-   (->ClojaskOutput (volatile! (doall (take (count aggre-func)
-                                     (repeat start)))))))
+  (let []
+   (->ClojaskOutput (volatile! (doall (take (count (deref aggre-func))
+                                     (repeat start))))
+                    (deref aggre-func)
+                    (deref select))))

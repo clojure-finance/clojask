@@ -66,8 +66,6 @@
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
-        indices-deleted (.getDeletedCol (:col-info (deref dataframe)))
-        indices-wo-del (vec (take (count operations) (iterate inc 0)))
         indices index]
     ;; (println indices)
     (if exception
@@ -504,16 +502,16 @@
 
 (defn start-onyx-aggre-only
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception]
+  [num-work batch-size dataframe dist exception aggre-func index select]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
+    (worker-func-gen dataframe exception index) ;;need some work
     (catalog-aggre-gen num-work batch-size)
     (lifecycle-aggre-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (aggre/inject-dataframe dataframe)
+    (aggre/inject-dataframe dataframe aggre-func select)
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -536,11 +534,12 @@
 
 (defn start-onyx-groupby
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist groupby-keys exception]
+  [num-work batch-size dataframe dist groupby-keys groupby-index exception]
+  ;; (println groupby-index)
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
+    (worker-func-gen dataframe exception groupby-index) ;;need some work
     (catalog-groupby-gen num-work batch-size)
     (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)

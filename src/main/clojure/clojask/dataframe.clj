@@ -41,8 +41,8 @@
   (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
   (computeTypeCheck [num-worker output-dir])
-  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception])
-  (computeAggre [^int num-worker ^String output-dir ^boolean exception])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select])
+  (computeAggre [^int num-worker ^String output-dir ^boolean exception select])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
@@ -280,31 +280,60 @@
         (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))))
   
   (computeAggre
-   [this ^int num-worker ^String output-dir ^boolean exception]
+   [this ^int num-worker ^String output-dir ^boolean exception select]
    (.computeTypeCheck this num-worker output-dir)
    ;(.printAggreCol this output-dir) ;; print column names to output-dir
    (.printCol this output-dir)
-   (let [res (start-onyx-aggre-only num-worker batch-size this output-dir exception)]
+   (let [aggre-keys (.getAggreFunc row-info)
+         select (if (coll? select) select [select])
+         select (if (= select [nil])
+                  (vec (take (count aggre-keys) (iterate inc 0)))
+                  (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+         aggre-func (u/gets aggre-keys (vec (apply sorted-set select)))
+         select (mapv (fn [num] (count (remove #(>= % num) select))) select)
+         index (vec (apply sorted-set (mapv #(nth % 1) aggre-func)))
+         shift-func (fn [pair]
+                      [(first pair) (let [num (nth pair 1)]
+                                      (.indexOf index num))])
+         aggre-func (mapv shift-func aggre-func)
+        ;;  test (println [select index aggre-func])
+         res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
      (if (= res "success")
        "success"
        "failed")))
   
   (computeGroupAggre
-    [this ^int num-worker ^String output-dir ^boolean exception]
+    [this ^int num-worker ^String output-dir ^boolean exception select]
     (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (try
-        (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
+        (let [groupby-keys (.getGroupbyKeys row-info)
+              aggre-keys (.getAggreFunc row-info)
+              select (if (coll? select) select [select])
+              select (if (= select [nil])
+                       (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
+                       (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+              ;; pre-index (remove #(>= % (count groupby-keys)) select)
+              data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
+              groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
+              ;; test (println [groupby-keys aggre-keys select pre-index data-index])
+              res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
           (.printCol this output-dir)
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (if
+            (let [shift-func (fn [pair]
+                               [(first pair) (let [index (nth pair 1)]
+                                               (.indexOf groupby-index index))])
+                  aggre-func (mapv shift-func (u/gets aggre-keys data-index))
+                  formatter (.getFormatter (.col-info this))
+                  formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+             (if
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             (start-onyx-aggre num-worker batch-size this output-dir exception)
+             (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter)
               "success"
-              (throw (Clojask_OperationException. "Error in running start-onyx-aggre.")))
-            (throw (Clojask_OperationException. "Error in running start-onyx-groupby."))))
+              (throw (Clojask_OperationException. "Error when aggregating."))))
+            (throw (Clojask_OperationException. "Error when grouping by."))))
         (catch Exception e e))
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
 
@@ -516,13 +545,17 @@
           (.write wrtr (str (str/join "," col-set) "\n")))))
         
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select exclude]
-    (let []
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
+    (let [select (if (coll? select) select [select])
+          select (if (= select [nil])
+                   (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+          ]
       (u/init-file output-dir)
       ;; print column names
       ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames => Done
       (.printCol this output-dir)
-      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
+      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception []) ;; todo
       (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit))))
 
 (defn inner-join
@@ -541,7 +574,7 @@
           b-file (io/file (:path b))]
       (if (<= (.length a-file) (.length b-file))
         (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix)
-        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 2)])))
+        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)])))
     ))
 
 
@@ -573,7 +606,7 @@
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 2)])))
+    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)])))
 
 
 (defn rolling-join-forward
@@ -625,17 +658,16 @@
   (u/init-file output-dir)
   ;; check which type of dataframe this is
   (if (= (type this) clojask.dataframe.DataFrame)
-    (if (= (.getAggreFunc (:row-info this)) [])
-      (let [exclude (if (coll? exclude) exclude [exclude])
-            select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (keys (.getKeyIndex (:col-info this))))) nil))]
-        (.compute this num-worker output-dir exception order select))
-      (if (not= (.getGroupbyKeys (:row-info this)) [])
-        (let [exclude (if (coll? exclude) exclude [exclude])
-              select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (keys (.getKeyIndex (:col-info this))))) nil))]
-          (.computeGroupAggre this num-worker output-dir exception))
-        (.computeAggre this num-worker output-dir exception)))
+    (let [exclude (if (coll? exclude) exclude [exclude])
+          select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
+      (assert (not= select []) "must select at least on column")
+      (if (= (.getAggreFunc (:row-info this)) [])
+        (.compute this num-worker output-dir exception order select)
+        (if (not= (.getGroupbyKeys (:row-info this)) [])
+          (.computeGroupAggre this num-worker output-dir exception select)
+          (.computeAggre this num-worker output-dir exception select))))
     (if (= (type this) clojask.dataframe.JoinedDataFrame)
-      (.compute this num-worker output-dir exception order select exclude)
+      (.compute this num-worker output-dir exception order select)
       (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))
       )))
 

@@ -8,7 +8,7 @@
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
-            [clojask.utils :refer [eval-res eval-res-ne filter-check]]
+            [clojask.utils :as u]
             [clojure.set :as set]
             [clojask.groupby :refer [read-csv-seq]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
@@ -38,10 +38,11 @@
 
 
 (defn worker-func-gen
-  [df exception]
+  [df exception aggre-funcs index formatter]
   (reset! dataframe df)
-  (let [aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
-        formatters (.getFormatter (.col-info (deref dataframe)))
+  (let [
+        ;; aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
+        formatters formatter
         ;; key-index (.getKeyIndex (.col-info (deref dataframe)))
         ;; formatters (set/rename-keys formatters key-index)
         ]
@@ -52,7 +53,10 @@
       (let [data (read-csv-seq (:file seq))
             pre (:d seq)
             data-map (-> (iterate inc 0)
-                         (zipmap (apply map vector data)))]
+                         (zipmap (apply map vector data)))
+            reorder (fn [a b]
+                      ;; (println [a b])
+                      (u/gets (concat a b) index))]
         ;; (mapv (fn [_]
         ;;        (let [func (first _)
         ;;              index (nth _ 1)]
@@ -62,7 +66,9 @@
                res []]
           (if (= aggre-funcs [])
             ;; {:d (vec (concat pre res))}
-            {:d (mapv concat (repeat pre) (apply map vector res))}
+            (if (= res [])
+              {:d (u/gets [pre] index)}
+              {:d (mapv reorder (repeat pre) (apply map vector res))})
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
                   res-funcs (rest aggre-funcs)
@@ -252,11 +258,11 @@
 
 (defn start-onyx-aggre
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception]
+  [num-work batch-size dataframe dist exception aggre-func index formatter]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen "./_clojask/grouped" dist)
     (flow-cond-gen num-work)
