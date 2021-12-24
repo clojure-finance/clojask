@@ -30,7 +30,7 @@
   (colTypes [] "get column type in ColInfo")
   (getColIndex [] "get column indices, excluding deleted columns")
   (getColNames [] "get column names")
-  (printCol [output-path] "print column names to output file")
+  (printCol [output-path selected-col] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
   (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
@@ -148,10 +148,10 @@
               (concat groupby-keys aggre-new-keys))))
 
   (printCol
-  ;; print column names, called by compute
-    [this output-path]
+  ;; print column names, called by compute and computeAggre
+    [this output-path selected-col]
     (.checkOutputPath this output-path)
-    (let [col-set (.getColNames this)]
+    (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
@@ -271,7 +271,7 @@
       (if (<= num-worker 8)
         (try
           (.final this)
-          (.printCol this output-dir) ;; to-do: based on the index => Done
+          (.printCol this output-dir select) ;; to-do: based on the index => Done
           (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
             (if (= res "success")
               "success"
@@ -296,7 +296,7 @@
                                       (.indexOf index num))])
          aggre-func (mapv shift-func aggre-func)
         ;;  test (println [select index aggre-func])
-         tmp (.printCol this output-dir) ;; todo: based on "select"
+         tmp (.printCol this output-dir select) ;; todo: based on "select"
          res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
      (if (= res "success")
        "success"
@@ -319,7 +319,7 @@
               ;; test (println [groupby-keys aggre-keys select pre-index data-index])
               res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
-          (.printCol this output-dir) ;; todo: based on "select"
+          (.printCol this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
@@ -512,7 +512,7 @@
 (definterface JDFIntf
   (checkOutputPath [output-path] "check if output path is of string type")
   (getColNames [] "get the names of all the columns")
-  (printCol [output-path] "print column names to output file")
+  (printCol [output-path selected-col] "print column names to output file")
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select]))
 
 (defrecord JoinedDataFrame
@@ -539,8 +539,8 @@
 
   (printCol
     ;; print column names, called by compute
-      [this output-path]
-      (let [col-set (.getColNames this)]
+      [this output-path selected-col]
+      (let [col-set (if (= selected-col [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-col))]
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," col-set) "\n")))))
         
@@ -564,7 +564,7 @@
       (u/init-file output-dir)
       ;; print column names
       ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames => Done
-      (.printCol this output-dir) ;; todo: based on "select"
+      (.printCol this output-dir select) ;; todo: based on "select"
       (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
       (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
 
