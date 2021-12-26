@@ -56,10 +56,18 @@
     (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
     (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"])
     (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"]))
-    (select-col y ["Employee" "new-Department" "EmployeeName"])
-    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName"]))
-    (delete-col y ["new-Department"])
-    (is (= (col-names y) ["Employee" "EmployeeName"]))
+    ;; (select-col y ["Employee" "new-Department" "EmployeeName"])
+    ;; (is (= (col-names y) ["Employee" "new-Department" "EmployeeName"]))
+    ;; (delete-col y ["new-Department"])
+    ;; (is (= (col-names y) ["Employee" "EmployeeName"]))
+    ))
+
+(deftest col-select-output-test
+    (testing "Select column(s) argument"
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (compute y 8 "test/clojask/test_outputs/1-9.csv" :select ["Employee", "EmployeeName"] :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-9.csv)" "<(sort test/clojask/correct_outputs/1-9.csv)")]
+        (is (= "" (:out result))))
     ))
 
 (deftest join-api-test

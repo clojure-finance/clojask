@@ -539,8 +539,8 @@
 
   (printCol
     ;; print column names, called by compute
-      [this output-path selected-col]
-      (let [col-set (if (= selected-col [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-col))]
+      [this output-path selected-index]
+      (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
         (with-open [wrtr (io/writer output-path)]
           (.write wrtr (str (str/join "," col-set) "\n")))))
         
@@ -563,8 +563,7 @@
           ]
       (u/init-file output-dir)
       ;; print column names
-      ;;  (.printJoinCol a b a-keys b-keys output-dir) to-do: make use of getColNames => Done
-      (.printCol this output-dir select) ;; todo: based on "select"
+      (.printCol this output-dir select) ;; todo: based on "select" => Done
       (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
       (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
 
