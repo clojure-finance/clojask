@@ -392,14 +392,6 @@
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
   (.preview dataframe sample-size return-size format))
 
-(defn print-df
-  [dataframe & [sample-size return-size]]
-  (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
-        tmp (first data)
-        types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
-        data (conj (apply list data) types)]
-    (pprint/print-table data)))
-
 (defn generate-col
   "Generate column names if there are none"
   [col-count]
@@ -513,6 +505,7 @@
   (checkOutputPath [output-path] "check if output path is of string type")
   (getColNames [] "get the names of all the columns")
   (printCol [output-path selected-col] "print column names to output file")
+  (preview [] "preview the column names")
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select]))
 
 (defrecord JoinedDataFrame
@@ -539,17 +532,22 @@
 
   (printCol
     ;; print column names, called by compute
-      [this output-path selected-index]
-      (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
-        (with-open [wrtr (io/writer output-path)]
-          (.write wrtr (str (str/join "," col-set) "\n")))))
-        
+    [this output-path selected-index]
+    (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," col-set) "\n")))))
+
+  (preview
+    [this]
+   (.getColNames this)
+   )
+
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
     (let [select (if (coll? select) select [select])
           select (if (= select [nil])
                    (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
-                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select)) 
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
           a-index (vec (apply sorted-set (remove (fn [num] (>= num (count (.getKeyIndex (.col-info a))))) select)))
           ;; a-write 
           b-index (mapv #(- % (count (.getKeyIndex (.col-info a)))) (apply sorted-set (remove (fn [num] (< num (count (.getKeyIndex (.col-info a))))) select)))
@@ -685,3 +683,15 @@
   ;; to-do: should implement both for the DataFrame and JoinedDataFrame => Done
   (.getColNames this)
   )
+
+(defn print-df
+  [dataframe & [sample-size return-size]]
+  (if (= (type dataframe) DataFrame)
+    (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+          tmp (first data)
+          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
+          data (conj (apply list data) types)]
+      (pprint/print-table data))
+    (do
+      (println (str (str/join "," (.preview dataframe))))
+      (println "The content of joined dataframe is not available."))))
