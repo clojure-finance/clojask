@@ -31,6 +31,7 @@
   (getColIndex [] "get column indices, excluding deleted columns")
   (getColNames [] "get column names")
   (printCol [output-path selected-col] "print column names to output file")
+  (printColByIndex [output-path selected-index] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
   (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
@@ -152,6 +153,13 @@
     [this output-path selected-col]
     (.checkOutputPath this output-path)
     (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," col-set) "\n")))))
+
+  (printColByIndex
+    ;; print column names, called by compute
+    [this output-path selected-index]
+    (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
@@ -319,7 +327,7 @@
               ;; test (println [groupby-keys aggre-keys select pre-index data-index])
               res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
-          (.printCol this output-dir select) ;; todo: based on "select"
+          (.printColByIndex this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
