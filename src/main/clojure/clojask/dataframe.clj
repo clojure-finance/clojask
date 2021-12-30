@@ -602,7 +602,8 @@
     (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix)))
 
 (defn right-join
-  [a b a-keys b-keys num-worker dist & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  ;[a b a-keys b-keys num-worker dist & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)

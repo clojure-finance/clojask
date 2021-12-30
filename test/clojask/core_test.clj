@@ -75,7 +75,7 @@
     (def x (dataframe "test/clojask/Employees-example.csv"))
     (def y (dataframe "test/clojask/Employees-example.csv"))
     (is (= "success" (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
-    ;; (is (= "success" (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
+    (is (= "success" (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
     (is (= "success" (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
     (is (= "success" (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false)))
     ))
@@ -87,9 +87,9 @@
     (compute (left-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-4.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-4.csv)" "<(sort test/clojask/correct_outputs/1-4.csv)")]
         (is (= "" (:out result))))
-    ;; (compute (right-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-5.csv" :exception false)
-    ;; (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-5.csv)" "<(sort test/clojask/correct_outputs/1-5.csv)")]
-    ;;     (is (= "" (:out result))))
+    (compute (right-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-5.csv" :exception false)
+    (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-5.csv)" "<(sort test/clojask/correct_outputs/1-5.csv)")]
+        (is (= "" (:out result))))
     (inner-join x y ["Employee"] ["Employee"] 8 "test/clojask/test_outputs/1-6.csv" :exception false)
     (let [result (sh "diff" "<(sort test/clojask/test_outputs/1-6.csv)" "<(sort test/clojask/correct_outputs/1-6.csv)")]
         (is (= "" (:out result))))
