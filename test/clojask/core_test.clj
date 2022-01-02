@@ -3,6 +3,7 @@
               [clojask.dataframe :refer :all]
               [clojask.utils :refer :all]
               [clojask.groupby :refer :all]
+              [clojask.api.gb-aggregate :as gb-aggre]
               [clojask.api.aggregate :as aggre]
               [clojask.sort :refer :all]))
         
@@ -45,7 +46,7 @@
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
     (set-type y "Salary" "double")
     (group-by y ["Department"])
-    (aggregate y max ["Salary"] ["new-salary"])
+    (aggregate y gb-aggre/max ["Salary"] ["new-Salary"])
     (compute y 8 "test/clojask/test_outputs/1-3.csv" :exception false)
     (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-3.csv) <(sort test/clojask/correct_outputs/1-3.csv)")]
         (is (= "" (:out result))) 
@@ -78,10 +79,10 @@
     (testing "Join dataframes APIs"
     (def x (dataframe "test/clojask/Employees-example.csv"))
     (def y (dataframe "test/clojask/Employees-example.csv"))
-    (is (= "success" (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
-    (is (= "success" (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
-    (is (= "success" (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false)))
-    (is (= "success" (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false)))
+    (is (= clojask.dataframe.DataFrame (type (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.dataframe.DataFrame (type (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.dataframe.DataFrame (type (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.dataframe.DataFrame (type (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false))))
     ))
 
 (deftest join-api-output-test
