@@ -678,14 +678,22 @@
     (assert (not= select []) "must select at least 1 column")
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (= (.getAggreFunc (:row-info this)) [])
-        (.compute this num-worker output-dir exception order select)
+        (do ;; simple compute
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true)) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
-          (.computeGroupAggre this num-worker output-dir exception select)
-          (.computeAggre this num-worker output-dir exception select)))
+          (do ;; groupby-aggre
+            (.computeGroupAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))
+          (do ;; aggre
+            (.computeAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))))
       (if (= (type this) clojask.dataframe.JoinedDataFrame)
-        (.compute this num-worker output-dir exception order select)
-        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe")))))
-)
+        (do ;; join
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true))
+        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))))))
+
 (defn get-col-names
   "Get the names for the columns in sequence"
   [this]
