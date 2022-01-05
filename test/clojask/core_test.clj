@@ -51,6 +51,21 @@
     (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-3.csv) <(sort test/clojask/correct_outputs/1-3.csv)")]
         (is (= "" (:out result))) 
         (is (= "" (:err result))))
+    ;; aggregate only
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (set-type y "Salary" "double")
+    (aggregate y aggre/max ["Salary"] ["new-Salary"])
+    (compute y 8 "test/clojask/test_outputs/1-10.csv" :exception false)
+    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-10.csv) <(sort test/clojask/correct_outputs/1-10.csv)")]
+        (is (= "" (:out result))) 
+        (is (= "" (:err result))))
+    ;; groupby only
+    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (group-by y ["Department"])
+    (compute y 8 "test/clojask/test_outputs/1-11.csv" :exception false)
+    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-11.csv) <(sort test/clojask/correct_outputs/1-11.csv)")]
+        (is (= "" (:out result))) 
+        (is (= "" (:err result))))
     ))
 
 (deftest col-api-test
