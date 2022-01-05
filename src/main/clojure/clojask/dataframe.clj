@@ -30,8 +30,7 @@
   (colTypes [] "get column type in ColInfo")
   (getColIndex [] "get column indices, excluding deleted columns")
   (getColNames [] "get column names")
-  (printCol [output-path selected-col] "print column names to output file")
-  (printColByIndex [output-path selected-index] "print column names to output file")
+  (printCol [output-path selected-index] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "rename columns in the dataframe")
@@ -145,16 +144,17 @@
               aggre-new-keys (.getAggreNewKeys (:row-info this))]
               (concat groupby-keys aggre-new-keys))))
 
-  (printCol
-  ;; print column names, called by compute and computeAggre
-    [this output-path selected-col]
-    (.checkOutputPath this output-path)
-    (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
-      (with-open [wrtr (io/writer output-path)]
-        (.write wrtr (str (str/join "," col-set) "\n")))))
+  ;; !! deprecated
+  ;; (printCol
+  ;; ;; print column names, called by compute and computeAggre
+  ;;   [this output-path selected-col]
+  ;;   (.checkOutputPath this output-path)
+  ;;   (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
+  ;;     (with-open [wrtr (io/writer output-path)]
+  ;;       (.write wrtr (str (str/join "," col-set) "\n")))))
 
-  (printColByIndex
-    ;; print column names, called by computeGroupByAggre
+  (printCol
+    ;; print column names, called by compute, computeAggre and computeGroupByAggre
     [this output-path selected-index]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
@@ -251,7 +251,7 @@
       (if (<= num-worker 8)
         (try
           (.final this)
-          (.printCol this output-dir select) ;; to-do: based on the index => Done
+          (.printCol this output-dir index) ;; to-do: based on the index => Done
           (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
             (if (= res "success")
               "success"
@@ -302,7 +302,7 @@
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys."))
           ;; (.printCol this output-dir select) ;; todo: based on "select"
-          (.printColByIndex this output-dir select) ;; todo: based on "select"
+          (.printCol this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
