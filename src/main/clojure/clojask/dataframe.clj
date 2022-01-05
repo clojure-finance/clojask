@@ -319,6 +319,8 @@
               ;; test (println [groupby-keys aggre-keys select pre-index data-index])
               res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
+          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                        "the groupby keys."))
           (.printCol this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
@@ -573,6 +575,8 @@
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
@@ -593,6 +597,8 @@
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (= (count col-prefix) 2)) 
@@ -609,6 +615,8 @@
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
@@ -630,6 +638,8 @@
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (or (not= (.getAggreFunc(:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
@@ -648,6 +658,8 @@
           (throw (Clojask_TypeException. "Rolling keys should be strings")))
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame)))
           (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
@@ -668,7 +680,7 @@
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
     (assert (not= select []) "must select at least 1 column")
     (if (= (type this) clojask.dataframe.DataFrame)
-      (if (= (.getAggreFunc (:row-info this)) [])
+      (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (.compute this num-worker output-dir exception order select)
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (.computeGroupAggre this num-worker output-dir exception select)
