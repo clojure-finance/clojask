@@ -32,8 +32,6 @@
   (getColNames [] "get column names")
   (printCol [output-path selected-col] "print column names to output file")
   (printColByIndex [output-path selected-index] "print column names to output file")
-  (printAggreCol [output-path] "print column names to output file for aggregate")
-  (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [new-col-names] "rename columns in the dataframe")
