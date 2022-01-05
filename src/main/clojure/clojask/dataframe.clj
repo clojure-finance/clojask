@@ -31,6 +31,7 @@
   (getColIndex [] "get column indices, excluding deleted columns")
   (getColNames [] "get column names")
   (printCol [output-path selected-col] "print column names to output file")
+  (printColByIndex [output-path selected-index] "print column names to output file")
   (printAggreCol [output-path] "print column names to output file for aggregate")
   (printJoinCol [b-df a-keys b-keys output-path col-prefix] "print column names to output file for join")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
@@ -152,6 +153,13 @@
     [this output-path selected-col]
     (.checkOutputPath this output-path)
     (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," col-set) "\n")))))
+
+  (printColByIndex
+    ;; print column names, called by compute
+    [this output-path selected-index]
+    (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
@@ -321,7 +329,8 @@
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys."))
-          (.printCol this output-dir select) ;; todo: based on "select"
+          ;; (.printCol this output-dir select) ;; todo: based on "select"
+          (.printColByIndex this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
@@ -608,7 +617,8 @@
     (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix)))
 
 (defn right-join
-  [a b a-keys b-keys num-worker dist & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  ;[a b a-keys b-keys num-worker dist & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -681,14 +691,22 @@
     (assert (not= select []) "must select at least 1 column")
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
-        (.compute this num-worker output-dir exception order select)
+        (do ;; simple compute
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true)) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
-          (.computeGroupAggre this num-worker output-dir exception select)
-          (.computeAggre this num-worker output-dir exception select)))
+          (do ;; groupby-aggre
+            (.computeGroupAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))
+          (do ;; aggre
+            (.computeAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))))
       (if (= (type this) clojask.dataframe.JoinedDataFrame)
-        (.compute this num-worker output-dir exception order select)
-        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe")))))
-)
+        (do ;; join
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true))
+        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))))))
+
 (defn get-col-names
   "Get the names for the columns in sequence"
   [this]
