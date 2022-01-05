@@ -140,7 +140,6 @@
         ;; not aggregate
         (let [index-key (.getIndexKey (:col-info this))
               index (.getColIndex this)]
-              ;(mapv (fn [i] (get {0 "Employee", 1 "EmployeeName", 2 "Department", 3 "Salary"} i)) [0 2 2 2])
               (mapv (fn [i] (get index-key i)) index))
         ;; if aggregate
         (let [groupby-key-index (.getGroupbyKeys (:row-info this))
@@ -157,36 +156,11 @@
         (.write wrtr (str (str/join "," col-set) "\n")))))
 
   (printColByIndex
-    ;; print column names, called by compute
+    ;; print column names, called by computeGroupByAggre
     [this output-path selected-index]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
-
-  ;; !! deprecated
-  (printAggreCol
-  ;; print column names, called by computeAggre
-    [this output-path]
-    (.checkOutputPath this output-path)
-    (let [groupby-key-index (.getGroupbyKeys (:row-info this))
-          groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
-          aggre-new-keys (.getAggreNewKeys (:row-info this))]
-      (with-open [wrtr (io/writer output-path)]
-        (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
-
-  ;; !! deprecated
-  (printJoinCol
-  ;; print column names, called by join APIs
-    [this b-df this-keys b-keys output-path col-prefix]
-    (.checkOutputPath this output-path)
-    (let [a-col-prefix (first col-prefix)
-          b-col-prefix (last col-prefix)
-          a-col-set (.getColNames this)
-          b-col-set (.getColNames b-df)
-          a-col-header (map #(str a-col-prefix "_" %) a-col-set)
-          b-col-header (map #(str b-col-prefix "_" %) b-col-set)]
-        (with-open [wrtr (io/writer output-path)]
-          (.write wrtr (str (str/join "," (concat a-col-header b-col-header)) "\n")))))
   
   (delCol
     [this col-to-del]
