@@ -299,8 +299,9 @@
               ;; test (println [groupby-keys aggre-keys select pre-index data-index])
               res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
           ;(.printAggreCol this output-dir) ;; print column names to output-dir
-          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
-                        "the groupby keys."))
+          (if (= aggre-keys [])
+            (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                          "the groupby keys.")))
           ;; (.printCol this output-dir select) ;; todo: based on "select"
           (.printCol this output-dir select) ;; todo: based on "select"
           (if (= res "success")
