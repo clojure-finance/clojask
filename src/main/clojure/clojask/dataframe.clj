@@ -688,6 +688,8 @@
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
+  ;; initialise file
+  (u/init-file output-dir)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
