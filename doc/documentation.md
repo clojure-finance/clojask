@@ -207,7 +207,76 @@ You can also group by the combination of keys. (Use the above two rules together
   ;; get the min of the two columns grouped by ...
   ```
 
+
+
+
+- inner-join / left-join / right-join
+
+  Inner / left / right join two dataframes by some columns
+
+  *Remarks:*
+
+  *Join functions are immediate actions, which will be executed at once.*
+
+  *Will automatically pipeline the registered operations and filters like `compute`. You could think of join as first compute the two dataframes then join.*
+
+  | Argument      | Type                | Function                    | Remarks                                      |
+  | ------------- | ------------------- | --------------------------- | -------------------------------------------- |
+  | `dataframe a` | Clojask.DataFrame   | The operated object         |                                              |
+  | `dataframe b` | Clojask.DataFrame   | The operated object         |                                              |
+  | `a join keys` | String / Collection | The keys of a to be aligned | Find the specification [here](#groupby-keys) |
+  | `b join keys` | String / Collection | The keys of b to be aligned | Find the specification [here](#groupby-keys) |
+
+**Return**
+
+A Clojask.JoinedDataFrame
+
+- Unlike Clojask.DataFrame, it only supports three operations:
+  - `print-df`
+  - `get-col-names`
+  - `compute`
+- This means you cannot further apply complicated operations to a joined dataframe. An alternative is to first compute the result, then read it in as a new dataframe.
+
+**Example**
+
+  ```clojure
+  (def x (dataframe "path/to/a"))
+  (def y (dataframe "path/to/b"))
   
+  (def z (inner-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"]))
+  (compute z 8 "path/to/output")
+  ;; inner join x and y
+  
+  (def z (left-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"]))
+  (compute z 8 "path/to/output")
+  ;; left join x and y
+  
+  (def z (right-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"]))
+  (compute z 8 "path/to/output")
+  ;; right join x and y
+  ```
+
+
+
+- reorderCol / renameCol
+
+  Reorder the columns / rename the column names in the dataframe
+
+  | Argument      | Type               | Function                    | Remarks                                                      |
+  | ------------- | ------------------ | --------------------------- | ------------------------------------------------------------ |
+  | `dataframe a` | Clojask.DataFrame  | The operated object         |                                                              |
+  | `a columns`   | Clojure.collection | The new set of column names | Should be existing headers in dataframe a if it is `reorderCol` |
+
+
+  **Example**
+
+  ```clojure
+  (.reorderCol y ["Employee" "Department" "EmployeeName" "Salary"])
+  (.renameCol y ["Employee" "new-Department" "EmployeeName" "Salary"])
+  ```
+
+
+
 
 - sort
 
@@ -232,72 +301,28 @@ You can also group by the combination of keys. (Use the above two rules together
 
   Compute the result. The pre-defined lazy operations will be executed in pipeline, ie the result of the previous operation becomes the argument of the next operation.
 
-  | Argument         | Type              | Function                                                     | Remarks                                                      |
-  | ---------------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-  | `dataframe`      | Clojask.DataFrame | The operated object                                          |                                                              |
-  | `num of workers` | int (max 8)       | The number of worker instances (except the input and output nodes) | If this argument >= 2, will use [onyx](http://www.onyxplatform.org/) as the distributed platform |
-  | `output path`    | String            | The path of the output csv file                              | Could exist or not.                                          |
-  | [`exception`]    | boolean           | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields            |
-  
+  | Argument         | Type                           | Function                                                     | Remarks                                                      |
+  | ---------------- | ------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+  | `dataframe`      | Clojask.DataFrame              | The operated object                                          |                                                              |
+  | `num of workers` | int (max 8)                    | The number of worker instances (except the input and output nodes) | Use [onyx](http://www.onyxplatform.org/) as the distributed platform |
+  | `output path`    | String                         | The path of the output csv file                              | Could exist or not.                                          |
+  | [`exception`]    | boolean                        | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields            |
+  | [`select`]       | String / Collection of strings | The name of the columns to select. Better to first refer to function `get-col-names` about all the names. (Similar to `SELECT` in sql ) | Can only specify either of select and exclude                |
+  | [`exclude`]      | String / Collection of strings | The name of the columns to exclude                           | Can only specify either of select and exclude                |
+
   **Example**
-  
+
   ```clojure
   (compute x 8 "../resources/test.csv" :exception true)
   ;; computes all the pre-registered operations
-  ```
   
+  (compute x 8 "../resources/test.csv" :select "col a")
+  ;; only select column a
   
-
-- inner-join / left-join / right-join
-
-  Inner / left / right join two dataframes by some columns
-
-  *Remarks:*
-
-  *Join functions are immediate actions, which will be executed at once.*
-
-  *Will automatically pipeline the registered operations and filters like `compute`. You could think of join as first compute the two dataframes then join.*
-
-  | Argument            | Type                | Function                                                     | Remarks                                           |
-  | ------------------- | ------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-  | `dataframe a`       | Clojask.DataFrame   | The operated object                                          |                                                   |
-  | `dataframe b`       | Clojask.DataFrame   | The operated object                                          |                                                   |
-  | `a join keys`       | String / Collection | The keys of a to be aligned                                  | Find the specification [here](#groupby-keys)      |
-  | `b join keys`       | String / Collection | The keys of b to be aligned                                  | Find the specification [here](#groupby-keys)      |
-  | `number of workers` | int (max 8)         | Number of worker nodes doing the joining                     |                                                   |
-  | `distination file`  | string              | The file path to the distination                             | Will be emptied first                             |
-  | [`exception`]       | boolean             | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields |
-
-  **Example**
-
-  ```clojure
-  (def x (dataframe "path/to/a"))
-  (def y (dataframe "path/to/b"))
+  (compute x 8 "../resources/test.csv" :select ["col b" "col a"])
+  ;; select two columns, column b and column a in order
   
-  (inner-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
-  ;; inner join x and y
-  
-  (left-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
-  ;; left join x and y
-  
-  (right-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] 8 "path/to/distination" :exception true)
-  ;; right join x and y
-  ```
-
-- reorderCol / renameCol
-
-  Reorder the columns / rename the column names in the dataframe
-
-  | Argument            | Type               | Function                                                     | Remarks                                           |
-  | ------------------- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------- |
-  | `dataframe a`       | Clojask.DataFrame  | The operated object                                          |                                                   |
-  | `a columns`         | Clojure.collection | The new set of column names                                  | Should be existing headers in dataframe a if it is `reorderCol`         |
-
-
-  **Example**
-
-  ```clojure
-  (.reorderCol y ["Employee" "Department" "EmployeeName" "Salary"])
-  (.renameCol y ["Employee" "new-Department" "EmployeeName" "Salary"])
+  (compute x 8 "../resources/test.csv" :exclude ["col b" "col a"])
+  ;; select all columns except column b and column a, other columns are in order
   ```
 

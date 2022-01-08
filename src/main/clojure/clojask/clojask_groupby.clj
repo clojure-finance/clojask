@@ -8,11 +8,13 @@
 
 (def dataframe (atom nil))
 (def groupby-keys (atom nil))
+(def write-index (atom nil))
 
 (defn inject-dataframe
-  [df groupby-key]
+  [df groupby-key index]
   (reset! dataframe df)
-  (reset! groupby-keys groupby-key))
+  (reset! groupby-keys groupby-key)
+  (reset! write-index index))
 
 (defn- inject-into-eventmap
   [event lifecycle]
@@ -35,7 +37,7 @@
 (def writer-aggre-calls
   {:lifecycle/before-task-start inject-into-eventmap})
 
-(defrecord ClojaskGroupby []
+(defrecord ClojaskGroupby [write-index]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -90,7 +92,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-groupby dist (:d msg) groupby-keys key-index formatter)))
+              (output-groupby dist (:d msg) groupby-keys key-index formatter write-index)))
 
           (recur (rest batch)))))
     true))
@@ -101,4 +103,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn groupby [pipeline-data]
-  (->ClojaskGroupby))
+  (->ClojaskGroupby (deref write-index)))

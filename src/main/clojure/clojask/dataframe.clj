@@ -12,35 +12,37 @@
             [clojask.preview :as preview]
             [clojure.pprint :as pprint])
   (:import [clojask.ColInfo ColInfo]
-           [clojask.RowInfo RowInfo])
+           [clojask.RowInfo RowInfo]
+           [com.clojask.exception Clojask_TypeException]
+           [com.clojask.exception Clojask_OperationException])
   (:refer-clojure :exclude [filter group-by sort]))
 "The clojask lazy dataframe"
 
-(import '[com.clojask.exception Clojask_TypeException]
-        '[com.clojask.exception Clojask_OperationException])
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order])
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select] "final evaluatation")
+  (getPath [] "get input path of dataframe")
+  (checkOutputPath [output-path] "check if output path is of string type")
+  (checkInputPathClash [path] "check if path clashs with dataframe input path")
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [type colName] "types supported: int double string date")
   (setParser [parser col] "add the parser for a col which acts like setType")
-  (colDesc [])
-  (colTypes [])
-  (getColIndex [])
-  (getColNames [])
-  (printCol [output-path] "print column names to output file")
-  (printAggreCol [output-path] "print column names to output file for aggregate")
-  (printJoinCol [b-df a-keys b-keys output-path] "print column names to output file for join")
-  (delCol [col-to-del] "delete column(s) in the dataframe")
+  (colDesc [] "get column description in ColInfo")
+  (colTypes [] "get column type in ColInfo")
+  (getColIndex [] "get column indices, excluding deleted columns")
+  (getColNames [] "get column names")
+  (printCol [output-path selected-index] "print column names to output file")
+  (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
-  (renameCol [new-col-names] "reorder columns in the dataframe")
+  (renameCol [new-col-names] "rename columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
-  (head [n])
+  (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
-  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception])
-  (computeAggre [^int num-worker ^String output-dir ^boolean exception])
+  (computeTypeCheck [num-worker output-dir])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select])
+  (computeAggre [^int num-worker ^String output-dir ^boolean exception select])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
@@ -57,6 +59,33 @@
             ^RowInfo row-info
             ^Boolean have-col]
   DFIntf
+
+  (getPath
+    [this]
+    path)
+
+  (checkOutputPath
+    [this output-path]
+    (cond (not (= java.lang.String (type output-path)))
+          (throw (Clojask_TypeException. "Output path should be a string."))))
+
+  (checkInputPathClash
+    [this path]
+    (defn get-path-str 
+      [path]
+      (if (str/starts-with? path "./")
+                       (str "file:///" (str/replace-first path "./" ""))
+                       (if (str/starts-with? path "/")
+                           (str "file:///" (str/replace-first path "./" ""))
+                           (str "file:///" path))))
+    (let [path-str (get-path-str path)
+          input-path-str (get-path-str (.getPath this))
+          path-obj (java.nio.file.Paths/get (new java.net.URI path-str))
+          input-path-obj (java.nio.file.Paths/get (new java.net.URI input-path-str))
+          paths-equal (java.nio.file.Paths/.equals path-obj input-path-obj)]
+          (cond paths-equal
+            (throw (Clojask_OperationException. "Output path should be different from input path of dataframe argument.")))
+          ))
 
   (operate ;; has assert
     [this operation colName]
@@ -128,43 +157,32 @@
 
   (getColNames
     [this]
-    (let [index-key (.getIndexKey (:col-info this))
-          index (.getColIndex this)
-          header (mapv index-key index)]
-      header))
+    (if (and (= 0 (count (.getGroupbyKeys (:row-info this)))) (= 0 (count (.getAggreNewKeys (:row-info this)))))
+        ;; not aggregate
+        (let [index-key (.getIndexKey (:col-info this))
+              index (.getColIndex this)]
+              (mapv (fn [i] (get index-key i)) index))
+        ;; if aggregate
+        (let [groupby-key-index (.getGroupbyKeys (:row-info this))
+              groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
+              aggre-new-keys (.getAggreNewKeys (:row-info this))]
+              (concat groupby-keys aggre-new-keys))))
+
+  ;; !! deprecated
+  ;; (printCol
+  ;; ;; print column names, called by compute and computeAggre
+  ;;   [this output-path selected-col]
+  ;;   (.checkOutputPath this output-path)
+  ;;   (let [col-set (if (= selected-col [nil]) (.getColNames this) selected-col)]
+  ;;     (with-open [wrtr (io/writer output-path)]
+  ;;       (.write wrtr (str (str/join "," col-set) "\n")))))
 
   (printCol
-  ;; print column names, called by compute
-    [this output-path]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
-    (let [col-set (.getColNames this)]
+    ;; print column names, called by compute, computeAggre and computeGroupByAggre
+    [this output-path selected-index]
+    (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
-
-  (printAggreCol
-  ;; print column names, called by computeAggre
-    [this output-path]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
-    (let [groupby-key-index (.getGroupbyKeys (:row-info this))
-          groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
-          aggre-new-keys (.getAggreNewKeys (:row-info this))]
-        ;(println (vec (map #(last %) groupby-key-index)))
-      (with-open [wrtr (io/writer output-path)]
-        (.write wrtr (str (str/join "," (concat groupby-keys aggre-new-keys)) "\n")))))
-
-  (printJoinCol
-  ;; print column names, called by join APIs
-    [this b-df this-keys b-keys output-path]
-    (cond (not (= java.lang.String (type output-path)))
-          (throw (Clojask_TypeException. "Output path should be a string.")))
-    (let [a-col-set (.getColNames this)
-          b-col-set (.getColNames b-df)
-          a-col-header (map #(str "1_" %) a-col-set)
-          b-col-header (map #(str "2_" %) b-col-set)]
-        (with-open [wrtr (io/writer output-path)]
-          (.write wrtr (str (str/join "," (concat a-col-header b-col-header)) "\n")))))
   
   (delCol
     [this col-to-del]
@@ -231,7 +249,6 @@
     [this]
     (doseq [tmp (.getFormatter (:col-info this))]
       (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
-    ;; currently put read file here
 
   (preview
     [this sample-size return-size format]
@@ -239,48 +256,92 @@
           (throw (Clojask_TypeException. "Arguments passed to preview must be integers.")))
     (preview/preview this sample-size return-size format))
 
-  (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order]
-    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
-    (if (<= num-worker 8)
-      (try
-        (.final this)
-        (.printCol this output-dir) ;; print column names to output-dir
-        (let [res (start-onyx num-worker batch-size this output-dir exception order)]
-          (if (= res "success")
-            "success"
-            "failed"))
-        (catch Exception e e))
+  (computeTypeCheck
+    [this num-worker output-dir]
+    (cond (not (= java.lang.String (type output-dir)))
+      (throw (Clojask_TypeException. "Output directory should be a string.")))
+    (cond (not (integer? num-worker))
+      (throw (Clojask_TypeException. "Number of workers should be an integer.")))
+    (if (> num-worker 8)
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
+
+  (compute
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
+    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
+    (let [key-index (.getKeyIndex (:col-info this))
+          select (if (coll? select) select [select])
+          index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
+      (assert (or (= (count select) (count index)) (= select [nil]))(Clojask_OperationException. "Must select existing columns. You may check it using"))
+      (if (<= num-worker 8)
+        (try
+          (.final this)
+          (.printCol this output-dir index) ;; to-do: based on the index => Done
+          (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
+            (if (= res "success")
+              "success"
+              "failed"))
+          (catch Exception e e))
+        (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))))
   
   (computeAggre
-   [this ^int num-worker ^String output-dir ^boolean exception]
-   (cond (not (= java.lang.String (type output-dir)))
-         (throw (Clojask_TypeException. "Output-dir should be a string.")))
-   (if (> num-worker 8)
-     (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))
-   (.printAggreCol this output-dir) ;; print column names to output-dir
-   (let [res (start-onyx-aggre-only num-worker batch-size this output-dir exception)]
+   [this ^int num-worker ^String output-dir ^boolean exception select]
+   (.computeTypeCheck this num-worker output-dir)
+   ;(.printAggreCol this output-dir) ;; print column names to output-dir
+   (let [aggre-keys (.getAggreFunc row-info)
+         select (if (coll? select) select [select])
+         select (if (= select [nil])
+                  (vec (take (count aggre-keys) (iterate inc 0)))
+                  (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+         aggre-func (u/gets aggre-keys (vec (apply sorted-set select)))
+         select (mapv (fn [num] (count (remove #(>= % num) select))) select)
+         index (vec (apply sorted-set (mapv #(nth % 1) aggre-func)))
+         shift-func (fn [pair]
+                      [(first pair) (let [num (nth pair 1)]
+                                      (.indexOf index num))])
+         aggre-func (mapv shift-func aggre-func)
+        ;;  test (println [select index aggre-func])
+         tmp (.printCol this output-dir select) ;; todo: based on "select"
+         res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
      (if (= res "success")
        "success"
        "failed")))
   
   (computeGroupAggre
-    [this ^int num-worker ^String output-dir ^boolean exception]
-    (cond (not (= java.lang.String (type output-dir)))
-          (throw (Clojask_TypeException. "Output-dir should be a string.")))
+    [this ^int num-worker ^String output-dir ^boolean exception select]
+    (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (try
-        (let [res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" (.getGroupbyKeys (:row-info this)) exception)]
-          (.printAggreCol this output-dir) ;; print column names to output-dir
+        (let [groupby-keys (.getGroupbyKeys row-info)
+              aggre-keys (.getAggreFunc row-info)
+              select (if (coll? select) select [select])
+              select (if (= select [nil])
+                       (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
+                       (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+              ;; pre-index (remove #(>= % (count groupby-keys)) select)
+              data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
+              groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
+              ;; test (println [groupby-keys aggre-keys select pre-index data-index])
+              res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
+          ;(.printAggreCol this output-dir) ;; print column names to output-dir
+          (if (= aggre-keys [])
+            (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                          "the groupby keys.")))
+          ;; (.printCol this output-dir select) ;; todo: based on "select"
+          (.printCol this output-dir select) ;; todo: based on "select"
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (if
+            (let [shift-func (fn [pair]
+                               [(first pair) (let [index (nth pair 1)]
+                                               (.indexOf groupby-index index))])
+                  aggre-func (mapv shift-func (u/gets aggre-keys data-index))
+                  formatter (.getFormatter (.col-info this))
+                  formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+             (if
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             (start-onyx-aggre num-worker batch-size this output-dir exception)
+             (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter)
               "success"
-              (throw (Clojask_OperationException. "Error in running start-onyx-aggre.")))
-            (throw (Clojask_OperationException. "Error in running start-onyx-groupby."))))
+              (throw (Clojask_OperationException. "Error when aggregating."))))
+            (throw (Clojask_OperationException. "Error when grouping by."))))
         (catch Exception e e))
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
 
@@ -339,14 +400,6 @@
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
   (.preview dataframe sample-size return-size format))
 
-(defn print-df
-  [dataframe & [sample-size return-size]]
-  (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
-        tmp (first data)
-        types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
-        data (conj (apply list data) types)]
-    (pprint/print-table data)))
-
 (defn generate-col
   "Generate column names if there are none"
   [col-count]
@@ -369,8 +422,6 @@
       (DataFrame. path 300 col-info row-info have-col))
     (catch Exception e
       (do
-        ;; (println "No such file or directory")
-        ;; (throw e)
         (throw (Clojask_OperationException. "no such file or directory"))
         nil))))
 
@@ -389,15 +440,6 @@
   (let [result (.operate this operation colName newCol)]
     (.errorPredetect this "this function cannot be appended into the current pipeline")
     result)))
-
-(defn compute
-  [this num-worker output-dir & {:keys [exception order] :or {exception false order true}}]
-  (u/init-file output-dir)
-  (if (= (.getAggreFunc (:row-info this)) [])
-    (.compute this num-worker output-dir exception order)
-    (if (not= (.getGroupbyKeys (:row-info this)) [])
-      (.computeGroupAggre this num-worker output-dir exception)
-      (.computeAggre this num-worker output-dir exception))))
 
 (defn group-by
   [this key]
@@ -466,65 +508,136 @@
     (.errorPredetect this "invalid arguments passed to rename-col function")
   result))
 
+;; ============= Below is the definition for the joineddataframe ================
+(definterface JDFIntf
+  (checkInputPathClash [path] "check if paths clashes with dataframes a/b input path")
+  (getColNames [] "get the names of all the columns")
+  (printCol [output-path selected-col] "print column names to output file")
+  (preview [] "preview the column names")
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select]))
+
+(defrecord JoinedDataFrame
+           [^DataFrame a
+            ^DataFrame b
+            a-keys
+            b-keys
+            a-roll
+            b-roll
+            type
+            limit
+            prefix]
+  JDFIntf
+  
+  (checkInputPathClash 
+    [this path]
+    (.checkInputPathClash a path)
+    (.checkInputPathClash b path))
+
+  (getColNames
+    [this]
+    (let [a-col-prefix (first prefix)
+          b-col-prefix (last prefix)
+          a-col-set (.getColNames a)
+          b-col-set (.getColNames b)
+          a-col-header (mapv #(str a-col-prefix "_" %) a-col-set)
+          b-col-header (mapv #(str b-col-prefix "_" %) b-col-set)]
+      (concat a-col-header b-col-header)))
+
+  (printCol
+    ;; print column names, called by compute
+    [this output-path selected-index]
+    (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
+      (with-open [wrtr (io/writer output-path)]
+        (.write wrtr (str (str/join "," col-set) "\n")))))
+
+  (preview
+    [this]
+   (.getColNames this)
+   )
+
+  (compute
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
+    (let [select (if (coll? select) select [select])
+          select (if (= select [nil])
+                   (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+          a-index (vec (apply sorted-set (remove (fn [num] (>= num (count (.getKeyIndex (.col-info a))))) select)))
+          ;; a-write 
+          b-index (mapv #(- % (count (.getKeyIndex (.col-info a)))) (apply sorted-set (remove (fn [num] (< num (count (.getKeyIndex (.col-info a))))) select)))
+          b-index (if b-roll (vec (apply sorted-set (conj b-index b-roll))) b-index)
+          b-roll (if b-roll (count (remove #(>= % b-roll) b-index)) nil)
+          ;; b-write
+          ;; a-format
+          b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
+          write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
+          ;; test (println a-index b-index b-format write-index b-roll)
+          ]
+      (u/init-file output-dir)
+      ;; print column names
+      (.printCol this output-dir select) ;; todo: based on "select" => Done
+      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
+      (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
+
 (defn inner-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (u/init-file dist)
-    ;; print column names
-    (.printJoinCol a b a-keys b-keys dist)
-    ;; first group b by keys
-    (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 1)))
+    (let [a-file (io/file (:path a))
+          b-file (io/file (:path b))]
+      (if (<= (.length a-file) (.length b-file))
+        (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix)
+        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)])))
+    ))
+
 
 (defn left-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (= (count col-prefix) 2)) 
+      (throw (Clojask_TypeException. "The length of col-prefix should be equal to 2.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (u/init-file dist)
-    ;; print column names
-    (.printJoinCol a b a-keys b-keys dist)
-    ;; first group b by keys
-    (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-    (start-onyx-join num-worker 10 a b dist exception a-keys b-keys nil nil 2)))
+    (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix)))
 
 (defn right-join
-  [a b a-keys b-keys num-worker dist & {:keys [exception] :or {exception false}}]
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  ;[a b a-keys b-keys num-worker dist & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
         b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame))) 
       (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
-    (u/init-file dist)
-    ;; print column names
-    (.printJoinCol b a a-keys b-keys dist)
-    ;; first group b by keys
-    (start-onyx-groupby num-worker 10 a "./_clojask/join/b/" a-keys exception)
-    (start-onyx-join num-worker 10 b a dist exception b-keys a-keys nil nil 2)))
+    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)])))
+
 
 (defn rolling-join-forward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
+  [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -537,19 +650,18 @@
       (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
+    (cond (or (not= (.getAggreFunc(:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
           (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
-        (u/init-file dist)
-        ;; print column names
-        (.printJoinCol a b a-keys b-keys dist)
-        (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 4 limit)))))
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix)))))
+
 
 ;; all of the code is the same as above except for the last line
 (defn rolling-join-backward
-  [a b a-keys b-keys a-roll b-roll num-worker dist & {:keys [exception limit] :or {exception false limit nil}}]
+  [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
   (let [a-keys (u/proc-groupby-key a-keys)
         b-keys (u/proc-groupby-key b-keys)
         a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
@@ -558,6 +670,8 @@
           (throw (Clojask_TypeException. "Rolling keys should be strings")))
     (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame)))
           (throw (Clojask_TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (Clojask_TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (Clojask_TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
@@ -566,8 +680,53 @@
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
               (throw (Clojask_TypeException. "Rolling keys include non-existent column name(s).")))
-        (u/init-file dist)
-        ;; print column names
-        (.printJoinCol a b a-keys b-keys dist)
-        (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys exception)
-        (start-onyx-join num-worker 10 a b dist exception a-keys b-keys a-roll b-roll 5 nil)))))
+        ;; (.printJoinCol a b a-keys b-keys dist col-prefix)
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
+
+(defn compute
+  [this num-worker output-dir & {:keys [exception order select exclude] :or {exception false order true select nil exclude nil}}]
+  (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
+  ;; check if output-dir clashes with input file path
+  (.checkInputPathClash this output-dir)
+  ;; initialise file
+  (u/init-file output-dir)
+  ;; check which type of dataframe this is
+  (let [exclude (if (coll? exclude) exclude [exclude])
+        select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
+    (assert (not= select []) "must select at least 1 column")
+    (if (= (type this) clojask.dataframe.DataFrame)
+      (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
+        (do ;; simple compute
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true)) ;; return output dataframe
+        (if (not= (.getGroupbyKeys (:row-info this)) [])
+          (do ;; groupby-aggre
+            (.computeGroupAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))
+          (do ;; aggre
+            (.computeAggre this num-worker output-dir exception select)
+            (dataframe output-dir :have-col true))))
+      (if (= (type this) clojask.dataframe.JoinedDataFrame)
+        (do ;; join
+          (.compute this num-worker output-dir exception order select)
+          (dataframe output-dir :have-col true))
+        (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))))))
+
+(defn get-col-names
+  "Get the names for the columns in sequence"
+  [this]
+  ;; to-do: should implement both for the DataFrame and JoinedDataFrame => Done
+  (.getColNames this)
+  )
+
+(defn print-df
+  [dataframe & [sample-size return-size]]
+  (if (= (type dataframe) DataFrame)
+    (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+          tmp (first data)
+          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
+          data (conj (apply list data) types)]
+      (pprint/print-table data))
+    (do
+      (println (str (str/join "," (.preview dataframe))))
+      (println "The content of joined dataframe is not available."))))

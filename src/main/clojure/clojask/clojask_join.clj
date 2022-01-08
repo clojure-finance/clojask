@@ -11,13 +11,21 @@
 (def b (atom nil))
 (def a-keys (atom nil))
 (def b-keys (atom nil))
+(def a-index (atom nil))
+(def b-index (atom nil))
+(def b-format (atom nil))
+(def join-index (atom nil))
 
 (defn inject-dataframe
-  [d-a d-b a-key b-key]
+  [d-a d-b a-key b-key -a-index -b-index -join-index -b-format]
   (reset! a d-a)
   (reset! b d-b)
   (reset! a-keys a-key)
-  (reset! b-keys b-key))
+  (reset! b-keys b-key)
+  (reset! a-index -a-index)
+  (reset! b-index -b-index)
+  (reset! b-format -b-format)
+  (reset! join-index -join-index))
 
 (defn- inject-into-eventmap
   [event lifecycle]
@@ -38,8 +46,6 @@
      :clojask/b-map (:clojask/b-map lifecycle)
      :clojask/a-format a-format
      :clojask/b-format b-format
-     :clojask/a-index (take (count (:clojask/a-map lifecycle)) (iterate inc 0))
-     :clojask/b-index (take (count (:clojask/b-map lifecycle)) (iterate inc 0))
      :clojask/join-type (:clojask/join-type lifecycle)}))
 
 (defn- close-writer [event lifecycle]
@@ -52,7 +58,7 @@
   {:lifecycle/before-task-start inject-into-eventmap
   :lifecycle/after-task-stop close-writer})
 
-(defrecord ClojaskJoin []
+(defrecord ClojaskJoin [a-index b-index join-index]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -94,7 +100,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/a-format clojask/b-format clojask/a-index clojask/b-index clojask/join-type]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/a-format]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
@@ -107,58 +113,9 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (join/output-join wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
+              (join/output-join wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index join-index)))
 
           (recur (rest batch)))))
-    ;; (case join-type
-    ;;   1 (loop [batch write-batch]
-    ;;             (if-let [msg (first batch)]
-    ;;               (do
-    ;;       ;; (swap! example-datasink conj msg)
-    ;;                 (if (not= (:d msg) nil)
-    ;;                   (do
-    ;;             ;(.write wtr (str msg "\n"))
-    ;;             ;; !! define argument (debug)
-    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
-    ;;                     (join/output-join wtr (:d msg) a-keys a-map b-keys a-format b-format a-index b-index)))
-
-    ;;                 (recur (rest batch)))))
-    ;;   2 (loop [batch write-batch]
-    ;;            (if-let [msg (first batch)]
-    ;;              (do
-    ;;       ;; (swap! example-datasink conj msg)
-    ;;                (if (not= (:d msg) nil)
-    ;;                  (do
-    ;;             ;(.write wtr (str msg "\n"))
-    ;;             ;; !! define argument (debug)
-    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
-    ;;                    (join/output-join-loo wtr (:d msg) a-keys a-map b-keys (count b-map) a-format b-format a-index b-index)))
-
-    ;;                (recur (rest batch)))))
-    ;;   4 (loop [batch write-batch]
-    ;;               (if-let [msg (first batch)]
-    ;;                 (do
-    ;;       ;; (swap! example-datasink conj msg)
-    ;;                   (if (not= (:d msg) nil)
-    ;;                     (do
-    ;;             ;(.write wtr (str msg "\n"))
-    ;;             ;; !! define argument (debug)
-    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
-    ;;                       (join/output-join-forward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-    ;;                   (recur (rest batch)))))
-      
-    ;;   5 (loop [batch write-batch]
-    ;;       (if-let [msg (first batch)]
-    ;;         (do
-    ;;       ;; (swap! example-datasink conj msg)
-    ;;           (if (not= (:d msg) nil)
-    ;;             (do
-    ;;             ;(.write wtr (str msg "\n"))
-    ;;             ;; !! define argument (debug)
-    ;;         ;;   (def groupby-keys [:Department :EmployeeName])
-    ;;               (join/output-join-backward wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index)))
-    ;;           (recur (rest batch))))))
-    ;; (.close wtr)
     true))
 
 ;; Builder function for your output plugin.
@@ -167,4 +124,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn join [pipeline-data]
-  (->ClojaskJoin))
+  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index)))

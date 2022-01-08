@@ -61,17 +61,13 @@
 ;;     (zipmap keys )))
 
 (defn worker-func-gen
-  [df exception]
+  [df exception index]
   (reset! dataframe df)
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
-        indices-deleted (.getDeletedCol (:col-info (deref dataframe)))
-        indices-wo-del (vec (take (count operations) (iterate inc 0)))
-        indices (if (empty? indices-deleted) 
-                    indices-wo-del ; no columns deleted
-                    (vec (set/difference (set indices-wo-del) (set indices-deleted))) ; minus column indices deleted
-                    )]
+        indices index]
+    ;; (println indices)
     (if exception
       (defn worker-func
         [seg]
@@ -446,7 +442,8 @@
     {:zookeeper/address "127.0.0.1:2188"
      :zookeeper/server? true
      :zookeeper.server/port 2188
-     :onyx/tenancy-id id})
+     :onyx/tenancy-id id
+     :onyx.log/file "_clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -454,7 +451,8 @@
      :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
-     :onyx.messaging/bind-addr "localhost"})
+     :onyx.messaging/bind-addr "localhost"
+     :onyx.log/file "_clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
@@ -473,11 +471,11 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception order]
+  [num-work batch-size dataframe dist exception order index]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception index) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
@@ -504,16 +502,16 @@
 
 (defn start-onyx-aggre-only
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception]
+  [num-work batch-size dataframe dist exception aggre-func index select]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception index) ;;need some work
     (catalog-aggre-gen num-work batch-size)
     (lifecycle-aggre-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (aggre/inject-dataframe dataframe)
+    (aggre/inject-dataframe dataframe aggre-func select)
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -536,16 +534,17 @@
 
 (defn start-onyx-groupby
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist groupby-keys exception]
+  [num-work batch-size dataframe dist groupby-keys groupby-index exception]
+  ;; (println groupby-index)
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0)))) ;;need some work
     (catalog-groupby-gen num-work batch-size)
     (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (groupby/inject-dataframe dataframe groupby-keys)
+    (groupby/inject-dataframe dataframe groupby-keys groupby-index)
     (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
@@ -568,17 +567,17 @@
 
 (defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type & [limit]]
+  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception) ;;need some work
+    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
     (catalog-join-gen num-work batch-size)
     (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (join/inject-dataframe dataframe b a-keys b-keys)
+    (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format)
     (let [limit (or limit (fn [a b] true))]
      (defn-join join-type limit))
     (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
