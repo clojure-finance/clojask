@@ -21,7 +21,9 @@
 
 (definterface DFIntf
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select] "final evaluatation")
+  (getPath [] "get input path of dataframe")
   (checkOutputPath [output-path] "check if output path is of string type")
+  (checkInputPathClash [path] "check if path clashs with dataframe input path")
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
   (setType [type colName] "types supported: int double string date")
@@ -58,10 +60,32 @@
             ^Boolean have-col]
   DFIntf
 
+  (getPath
+    [this]
+    path)
+
   (checkOutputPath
     [this output-path]
     (cond (not (= java.lang.String (type output-path)))
           (throw (Clojask_TypeException. "Output path should be a string."))))
+
+  (checkInputPathClash
+    [this path]
+    (defn get-path-str 
+      [path]
+      (if (str/starts-with? path "./")
+                       (str "file:///" (str/replace-first path "./" ""))
+                       (if (str/starts-with? path "/")
+                           (str "file:///" (str/replace-first path "./" ""))
+                           (str "file:///" path))))
+    (let [path-str (get-path-str path)
+          input-path-str (get-path-str (.getPath this))
+          path-obj (java.nio.file.Paths/get (new java.net.URI path-str))
+          input-path-obj (java.nio.file.Paths/get (new java.net.URI input-path-str))
+          paths-equal (java.nio.file.Paths/.equals path-obj input-path-obj)]
+          (cond paths-equal
+            (throw (Clojask_OperationException. "Output path should be different from input path of dataframe argument.")))
+          ))
 
   (operate ;; has assert
     [this operation colName]
@@ -485,7 +509,7 @@
 
 ;; ============= Below is the definition for the joineddataframe ================
 (definterface JDFIntf
-  (checkOutputPath [output-path] "check if output path is of string type")
+  (checkInputPathClash [path] "check if paths clashes with dataframes a/b input path")
   (getColNames [] "get the names of all the columns")
   (printCol [output-path selected-col] "print column names to output file")
   (preview [] "preview the column names")
@@ -502,6 +526,11 @@
             limit
             prefix]
   JDFIntf
+  
+  (checkInputPathClash 
+    [this path]
+    (.checkInputPathClash a path)
+    (.checkInputPathClash b path))
 
   (getColNames
     [this]
@@ -656,7 +685,8 @@
 (defn compute
   [this num-worker output-dir & {:keys [exception order select exclude] :or {exception false order true select nil exclude nil}}]
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
-  (u/init-file output-dir)
+  ;; check if output-dir clashes with input file path
+  (.checkInputPathClash this output-dir)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
