@@ -509,7 +509,7 @@
 
 ;; ============= Below is the definition for the joineddataframe ================
 (definterface JDFIntf
-  (checkOutputPath [output-path] "check if output path is of string type")
+  (checkInputPathClash [path] "check if paths clashes with dataframes a/b input path")
   (getColNames [] "get the names of all the columns")
   (printCol [output-path selected-col] "print column names to output file")
   (preview [] "preview the column names")
@@ -526,6 +526,11 @@
             limit
             prefix]
   JDFIntf
+  
+  (checkInputPathClash 
+    [this path]
+    (.checkInputPathClash a path)
+    (.checkInputPathClash b path))
 
   (getColNames
     [this]
