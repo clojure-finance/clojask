@@ -20,7 +20,7 @@
     (is (= clojask.dataframe.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
     (is (= clojask.dataframe.DataFrame (type (group-by y ["Department"]))))
     (is (= clojask.dataframe.DataFrame (type (aggregate y max ["Salary"] ["Salary-max"]))))
-    ;(is (= "success" (compute y 8 "resources/test.csv" :exception false)))
+    (is (= clojask.dataframe.DataFrame (type (compute y 8 "resources/test.csv" :exception false))))
     ))
 
 (deftest df-api-output-test
@@ -75,10 +75,6 @@
     (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
     (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"])
     (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"]))
-    ;; (select-col y ["Employee" "new-Department" "EmployeeName"])
-    ;; (is (= (col-names y) ["Employee" "new-Department" "EmployeeName"]))
-    ;; (delete-col y ["new-Department"])
-    ;; (is (= (col-names y) ["Employee" "EmployeeName"]))
     ))
 
 (deftest col-select-output-test

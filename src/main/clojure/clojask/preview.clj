@@ -20,7 +20,7 @@
   ;; outer loop is the input node
   (let [index-key (.getIndexKey (:col-info dataframe))
         formatters (.getFormatter (:col-info dataframe))
-        ;index (take (count index-key) (iterate inc 0))
+        ;; index (take (count index-key) (iterate inc 0))
         ;; indices-deleted (.getDeletedCol (:col-info dataframe))
         ;; indices-wo-del (vec (take (count index-key) (iterate inc 0)))
         ;; indices-not-deleted (set/difference (set indices-wo-del) (set indices-deleted))

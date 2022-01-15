@@ -7,16 +7,16 @@
 
 (definterface ColIntf
   (init [colNames])
-  (operate [b c])
-  (operate [b c d])
-  (setType [b c])
-  (getDesc [])
-  (getType [])
-  (getKeys [])
-  (getKeyIndex [])
-  (getIndexKey [])
+  (operate [operation col])
+  (operate [operation col newCol])
+  (setType [operation col])
+  (getDesc [] "get column description")
+  (getType [] "get column type")
+  (getKeys [] "get collection of keys")
+  (getKeyIndex [] "get map with key = column name, value = index")
+  (getIndexKey [] "get map with key = index, value = column name")
   (getDeletedCol [] "get indices of deleted columns")
-  (setFormatter [b c])
+  (setFormatter [format col])
   (getFormatter [])
   (delCol [col-to-del])
   (setColInfo [new-col-set])
@@ -35,10 +35,6 @@
 
   ;; method
   ColIntf
-  ;; (init
-  ;;   [this colNames]
-  ;;   (set! col-keys (map keyword colNames))
-  ;;   (set! col-dsp (zipmap col-keys (map (fn [_] (wrap-res _ row)) col-keys))))
 
   (init
     [this colNames]
@@ -53,10 +49,9 @@
     (if (contains? key-index col)
       (do
         (set! col-dsp (assoc col-dsp (get key-index col) (conj (get col-dsp (get key-index col)) operation)))
-        ; "success"
-        nil)
-      (str col " is not an existing column name") ;; would not come here otherwise deprecate
-      ))
+          ;; "success"
+          nil)
+          (throw (Clojask_OperationException. "Column name passed to operate not found"))))
 
   (operate
     [this operation col newCol]
@@ -72,7 +67,7 @@
             (set! key-index (assoc key-index newCol (count key-index)))
             (set! index-key (assoc index-key (count index-key) newCol))
             (set! col-dsp (assoc col-dsp (get key-index newCol) (conj [(vec (map (fn [_] (get key-index _)) col))] operation)))
-            ; "success"
+            ;; "success"
             nil))
         (do
           (throw (Clojask_OperationException. (str external " are not original column names")))
@@ -84,18 +79,18 @@
       ;; if this column has been assigned a type
       (do
         (set! col-type (assoc col-type (get key-index col)  operation))
-          ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
-        ; "success"
+        ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
+        ;; "success"
         nil)
       (throw (Clojask_OperationException. "Column name passed to setType not found"))))
 
   (setFormatter
-   [this format col]
-   (set! col-format (assoc col-format (get key-index col) format)))
+    [this format col]
+    (set! col-format (assoc col-format (get key-index col) format)))
 
   (getFormatter
-   [this]
-   col-format)
+    [this]
+    col-format)
 
   (getDesc
     [this]
@@ -107,7 +102,8 @@
 
   (getKeys
     [this]
-    (mapv (fn [index] (get index-key index)) (take (count index-key) (iterate inc 0))))
+    (mapv (fn [index] (get index-key index)) 
+          (take (count index-key) (iterate inc 0))))
 
   (getKeyIndex
    [this]
@@ -139,12 +135,10 @@
       (if (not (empty? (.getType this)))
           (set! col-type (zipmap (map #(first (first (get col-dsp (first %)))) original-type) (map last original-type))))
       (if (not (empty? (.getFormatter this)))
-          (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))
-    ))
+          (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))))
   
   (renameColInfo
     [this new-col-names]
     (set! col-keys (vec new-col-names))
     (set! key-index (zipmap new-col-names (map #(last %) (.getKeyIndex this))))
-    (set! index-key (zipmap (map #(first %) (.getIndexKey this)) new-col-names))
-    ))
+    (set! index-key (zipmap (map #(first %) (.getIndexKey this)) new-col-names))))
