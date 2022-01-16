@@ -432,9 +432,6 @@
     (.errorPredetect this "invalid arguments passed to groupby function")
     result))
 
-(defn docstring [symbol]
-  (:doc (meta (resolve symbol))))
-
 (defn aggregate
   [this func old-key & [new-key]]
   (let [old-key (if (coll? old-key)
