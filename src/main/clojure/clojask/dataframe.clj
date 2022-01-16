@@ -1,5 +1,6 @@
 (ns clojask.dataframe
   (:require [clojure.set :as set]
+            [clojure.string :as string]
             [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
@@ -440,7 +441,12 @@
                   new-key
                   (if (not= new-key nil)
                     [new-key]
-                    (mapv (fn [_] (str func "(" _ ")")) old-key)))]
+                    (let [func-str (str func)
+                          bgn-idx (+ (string/index-of func-str "$") 1)
+                          end-idx (string/index-of func-str "@" bgn-idx)
+                          col-func-str (subs func-str bgn-idx end-idx)]
+                          (mapv (fn [_] (str col-func-str "(" _ ")")) old-key))
+                    ))]
     (let [result (.aggregate this func old-key new-key)]
       (.errorPredetect this "invalid arguments passed to aggregate function")
       result)))
