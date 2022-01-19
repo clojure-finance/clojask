@@ -32,6 +32,7 @@
   (colDesc [] "get column description in ColInfo")
   (colTypes [] "get column type in ColInfo")
   (getColIndex [] "get column indices, excluding deleted columns")
+  (getAggreColNames [] "get column names if there is aggregate")
   (getColNames [] "get column names")
   (printCol [output-path selected-index] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
@@ -156,6 +157,24 @@
                     (filterv (fn [i] (= false (contains? indices-deleted i))) indices-wo-del))]
     index))
 
+  (getAggreColNames  ;; called by getColNames and preview
+    [this]
+    (let [index-key (.getIndexKey (.col-info this))
+          groupby-key-index (.getGroupbyKeys (:row-info this))
+          groupby-keys (.getGroupbyKeys (:row-info this))
+          groupby-keys-value (vec (map #(if (nth % 0)
+                                    (let [func-str (str (nth % 0))
+                                          tmp-idx (+ (string/index-of func-str "$") 1)
+                                          bgn-idx (+ (string/index-of func-str "$" tmp-idx) 1)
+                                          end-idx (string/index-of func-str "__" bgn-idx) 
+                                          col-func-str (subs func-str bgn-idx end-idx)]
+                                          (str col-func-str "(" (index-key (nth % 1)) ")"))
+                                    (index-key (nth % 1))) groupby-keys))
+        ;; Deprecated
+        ;groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
+        aggre-new-keys (.getAggreNewKeys (:row-info this))]
+        (concat groupby-keys-value aggre-new-keys)))
+
   (getColNames
     [this]
     (if (and (= 0 (count (.getGroupbyKeys (:row-info this)))) (= 0 (count (.getAggreNewKeys (:row-info this)))))
@@ -164,10 +183,7 @@
               index (.getColIndex this)]
               (mapv (fn [i] (get index-key i)) index))
         ;; if aggregate
-        (let [groupby-key-index (.getGroupbyKeys (:row-info this))
-              groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
-              aggre-new-keys (.getAggreNewKeys (:row-info this))]
-              (concat groupby-keys aggre-new-keys))))
+        (.getAggreColNames this)))
 
   (printCol
     ;; print column names, called by compute, computeAggre and computeGroupByAggre
