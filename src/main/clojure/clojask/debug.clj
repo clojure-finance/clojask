@@ -16,11 +16,20 @@
   ;(def x (dataframe "./resources/Employees.csv" :have-col true))
   ;; (set-type x "Employee" "double")
   ;; (group-by x ["Department"])
+<<<<<<< HEAD
   ;; (aggregate x max ["Employee"] ["new-employee"])
   ;; (def y (dataframe "resources/Employees-info.csv" :have-col true))
   ;; (def z (left-join x y ["Employee"] ["Employee"]))
   ;(time (compute z 8 "resources/test.csv" :select ["1_Employee" "2_EmployeeName"] :exception true))
   ;; (def output-df (compute z 8 "resources/test.csv" :exception true))
+=======
+  (aggregate x aggre/min ["Employee"])
+  (print-df x)
+  ;; (def y (dataframe "resources/Employees-info.csv" :have-col true))
+  ;; (def z (left-join x y ["Employee"] ["Employee"]))
+  ;(time (compute z 8 "resources/test.csv" :select ["1_Employee" "2_EmployeeName"] :exception true))
+  (def output-df (compute x 8 "resources/test.csv" :exception true))
+>>>>>>> 14d3f0e9765f7585c43fa5115292c3291e58ee2b
   ;(compute z 8 "resources/test.csv" :exception true)
   ;(time (compute x 8 "resources/test.csv" :select ["new-employee"] :exception true))
 
