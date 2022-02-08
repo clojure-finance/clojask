@@ -13,14 +13,14 @@
   (apply map (fn [a b & cs] (string/join "," (concat [a b] cs))) seq))
 
 (defn cbind-csv
-  "joins some csv files into a new dataframe vertically"
+  "joins some csv files into a new dataframe by columns"
   [a b & cs]
   (let [files (concat [a b] cs)
         func (fn [] (_cbind (map #(line-seq (io/reader %)) files)))]
     (dataframe func)))
 
 (defn rbind-csv
-  "Joins some csv files into a new dataframe horizontally.\n
+  "Joins some csv files into a new dataframe by rows\n
    Will by default use the header names of the first file"
   [a b & cs]
   (let [files (concat [a b] cs)
