@@ -79,6 +79,7 @@
         ;; (spit "resources/debug.txt" (str types) :append true)
         ;; (spit "resources/debug.txt" (str operations) :append true)
         ;; (spit "resources/debug.txt" index :append true)
+          (println data)
           (if (filter-check filters types data)
             {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
             {:id id})))
@@ -270,7 +271,9 @@
 
 
 (defn inject-in-reader [event lifecycle]
-  (let [rdr (FileReader. (:buffered-reader/filename lifecycle))
+  (let [path (:buffered-reader/filename lifecycle)
+        ;; tmp (println path)
+        rdr (if (= path nil) nil (FileReader. path))
         ;; csv-data (csv/read-csv (BufferedReader. rdr))
         ]
     {:seq/rdr rdr
@@ -285,7 +288,8 @@
      }))
 
 (defn close-reader [event lifecycle]
-  (.close (:seq/rdr event)))
+  (if (not= (:seq/rdr event) nil)
+   (.close (:seq/rdr event))))
 
 ;; (defn inject-out-writer [event lifecycle]
 ;;   (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
@@ -307,7 +311,7 @@
   [source dist order]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
       ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
@@ -322,7 +326,7 @@
   [source dist]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
       ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
@@ -337,7 +341,7 @@
   [source dist keys key-index]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
@@ -351,7 +355,7 @@
   [source dist a b a-keys b-keys a-roll b-roll join-type]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}

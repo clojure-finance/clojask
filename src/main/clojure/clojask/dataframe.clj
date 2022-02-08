@@ -76,10 +76,10 @@
     (defn get-path-str 
       [path]
       (if (str/starts-with? path "./")
-                       (str "file:///" (str/replace-first path "./" ""))
-                       (if (str/starts-with? path "/")
-                           (str "file:///" (str/replace-first path "./" ""))
-                           (str "file:///" path))))
+        (str "file:///" (str/replace-first path "./" ""))
+        (if (str/starts-with? path "/")
+          (str "file:///" (str/replace-first path "./" ""))
+          (str "file:///" path))))
     (let [path-str (get-path-str path)
           input-path-str (get-path-str (.getPath this))
           path-obj (java.nio.file.Paths/get (new java.net.URI path-str))
@@ -280,14 +280,13 @@
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
       (assert (or (= (count select) (count index)) (= select [nil]))(Clojask_OperationException. "Must select existing columns. You may check it using"))
       (if (<= num-worker 8)
-        (try
+        (do
           (.final this)
           (.printCol this output-dir index)
           (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
             (if (= res "success")
               "success"
-              "failed"))
-          (catch Exception e e))
+              "failed")))
         (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))))
   
   (computeAggre
@@ -409,21 +408,32 @@
 (defn dataframe
   [path & {:keys [have-col] :or {have-col true}}]
   (try
-    (let [reader (io/reader path)
-          file (csv/read-csv reader)
-          colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
-          col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
-          row-info (RowInfo. [] [] [] [])]
+    (if (fn? path)
+      ;; if the path is the input function
+      (let [headers (string/split (doall (first (path))) #",")
+            colNames (u/check-duplicate-col (if have-col headers (generate-col (count headers))))
+            col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
+            row-info (RowInfo. [] [] [] [])
+            func (if have-col #(rest (path)) path)]
+        (.init col-info colNames)
+        (DataFrame. func 300 col-info row-info have-col))
+      ;; if the path is csv
+      (let [reader (io/reader path)
+            file (csv/read-csv reader)
+            colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
+            col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
+            row-info (RowInfo. [] [] [] [])]
       ;; (type-detection file)
-      (.close reader)
-      (.init col-info colNames)
+        (.close reader)
+        (.init col-info colNames)
       ;; 
       ;; type detection
       ;; 
-      (DataFrame. path 300 col-info row-info have-col))
+        (DataFrame. path 300 col-info row-info have-col)))
     (catch Exception e
       (do
-        (throw (Clojask_OperationException. "no such file or directory"))
+        (throw e)
+        ;; (throw (Clojask_OperationException. "no such file or directory"))
         nil))))
 
 (defn filter
