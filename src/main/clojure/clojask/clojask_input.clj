@@ -7,22 +7,6 @@
             [taoensso.timbre :refer [fatal info debug] :as timbre])
   (:import (java.io BufferedReader)))
 
-(defn mem-usage
-  []
-  (quot (- (.totalMemory (Runtime/getRuntime)) (.freeMemory (Runtime/getRuntime))) 1048576))
-
-(defn mem-total
-  []
-  (quot (.totalMemory (Runtime/getRuntime)) 1048576))
-
-(defn mem-free
-  []
-  (quot (.freeMemory (Runtime/getRuntime)) 1048576))
-
-(defn mem-max
-  []
-  (quot (.maxMemory (Runtime/getRuntime)) 1048576))
-
 (defrecord AbsSeqReader [event reader filters types have-col rst completed? checkpoint? offset]
   p/Plugin
 
@@ -65,27 +49,13 @@
 
   p/Input
   (poll! [this _ _]
-    ;; (if (> (mem-usage) 500)
-    ;;   (Thread/sleep 10))
-    ;; (while (not (filter-check filters types (:d (first @rst))))
-    ;;   (vswap! rst rest))
     (if-let [seg (first @rst)]
       (do
         (vswap! rst rest)
-        ;; (if (= (count @rst) 0) 
-        ;;   (assoc seg :last true)
-        ;;   seg)
         seg
         )
       (do (vreset! completed? true)
           nil))
-    ;; (if-let [seg (first @rst)]
-    ;;   (do (vswap! rst rest)
-    ;;       (vswap! offset inc)
-    ;;       ;; (spit "resources/debug.txt" (str seg) :append true)
-    ;;       seg)
-    ;;   (do (vreset! completed? true)
-    ;;       nil))
          ))
 
 (defn inject-dataframe

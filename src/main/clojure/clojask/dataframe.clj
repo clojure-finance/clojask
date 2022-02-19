@@ -21,7 +21,7 @@
 
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select] "final evaluatation")
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt] "final evaluatation")
   (getPath [] "get input path of dataframe")
   (checkOutputPath [output-path] "check if output path is of string type")
   (checkInputPathClash [path] "check if path clashs with dataframe input path")
@@ -274,7 +274,8 @@
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
 
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt]
+    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
@@ -282,8 +283,8 @@
       (if (<= num-worker 8)
         (do
           (.final this)
-          (.printCol this output-dir index)
-          (let [res (start-onyx num-worker batch-size this output-dir exception order index)]
+          (.printCol this output-dir index) ;; to-do: based on the index => Done
+          (let [res (start-onyx num-worker batch-size this output-dir exception order index melt)]
             (if (= res "success")
               "success"
               "failed")))
@@ -695,7 +696,7 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order select exclude] :or {exception false order true select nil exclude nil}}]
+  [this num-worker output-dir & {:keys [exception order select exclude melt] :or {exception false order true select nil exclude nil melt vector}}]
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
@@ -705,10 +706,11 @@
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
     (assert (not= select []) "must select at least 1 column")
+    (assert (and (not= melt vector) (= (type this) clojask.dataframe.DataFrame) (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute
-          (.compute this num-worker output-dir exception order select)
+          (.compute this num-worker output-dir exception order select melt)
           (dataframe output-dir :have-col true)) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (do ;; groupby-aggre
