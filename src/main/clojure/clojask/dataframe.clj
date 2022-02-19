@@ -21,7 +21,7 @@
 
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt] "final evaluatation")
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader] "final evaluatation")
   (getPath [] "get input path of dataframe")
   (checkOutputPath [output-path] "check if output path is of string type")
   (checkInputPathClash [path] "check if path clashs with dataframe input path")
@@ -43,8 +43,8 @@
   (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
   (computeTypeCheck [num-worker output-dir])
-  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select])
-  (computeAggre [^int num-worker ^String output-dir ^boolean exception select])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select ifheader])
+  (computeAggre [^int num-worker ^String output-dir ^boolean exception select ifheader])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
@@ -191,7 +191,7 @@
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
         (.write wrtr (str (str/join "," col-set) "\n")))))
-  
+  ;; deprecated
   (delCol
     [this col-to-del]
     (cond (not (= 0 (count (u/are-in col-to-del this))))
@@ -199,7 +199,7 @@
     (.delCol (.col-info this) col-to-del)
     ;; "success"
     this)
-
+  ;; deprecated
   (reorderCol
     [this new-col-order]
     (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order)))
@@ -274,7 +274,7 @@
       (throw (Clojask_OperationException. "Max number of worker nodes is 8."))))
 
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader]
     ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
@@ -283,7 +283,7 @@
       (if (<= num-worker 8)
         (do
           (.final this)
-          (.printCol this output-dir index) ;; to-do: based on the index => Done
+          (if (= ifheader nil) (.printCol this output-dir index))
           (let [res (start-onyx num-worker batch-size this output-dir exception order index melt)]
             (if (= res "success")
               "success"
@@ -291,7 +291,7 @@
         (throw (Clojask_OperationException. "Max number of worker nodes is 8.")))))
   
   (computeAggre
-    [this ^int num-worker ^String output-dir ^boolean exception select]
+    [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
     (.computeTypeCheck this num-worker output-dir)
     (let [aggre-keys (.getAggreFunc row-info)
           select (if (coll? select) select [select])
@@ -305,14 +305,14 @@
                       [(first pair) (let [num (nth pair 1)]
                                       (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
-          tmp (.printCol this output-dir select)
+          tmp (if (= ifheader nil) (.printCol this output-dir select))
           res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
      (if (= res "success")
        "success"
        "failed")))
   
   (computeGroupAggre
-    [this ^int num-worker ^String output-dir ^boolean exception select]
+    [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
     (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (try
@@ -329,7 +329,7 @@
           (if (= aggre-keys [])
             (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                           "the groupby keys.")))
-          (.printCol this output-dir select)
+          (if (= ifheader nil) (.printCol this output-dir select))
           (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
             (let [shift-func (fn [pair]
@@ -480,7 +480,7 @@
 
 (defn sort
   [this list output-dir]
-  (u/init-file output-dir)
+  (u/init-file output-dir nil)
   (.sort this list output-dir))
 
 (defn set-type
@@ -531,7 +531,7 @@
   (getColNames [] "get the names of all the columns")
   (printCol [output-path selected-col] "print column names to output file")
   (preview [] "preview the column names")
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select]))
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader]))
 
 (defrecord JoinedDataFrame
            [^DataFrame a
@@ -572,7 +572,7 @@
    (.getColNames this))
 
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader]
     (let [select (if (coll? select) select [select])
           select (if (= select [nil])
                    (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
@@ -588,9 +588,9 @@
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
           ;; test (println a-index b-index b-format write-index b-roll)
           ]
-      (u/init-file output-dir)
+      ;; (u/init-file output-dir)
       ;; print column names
-      (.printCol this output-dir select)
+      (if (= ifheader nil) (.printCol this output-dir select))
       (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
       (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
 
@@ -696,12 +696,12 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order select exclude melt] :or {exception false order true select nil exclude nil melt vector}}]
+  [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order true select nil exclude nil melt vector header nil}}]
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
   ;; initialise file
-  (u/init-file output-dir)
+  (u/init-file output-dir header)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
@@ -710,18 +710,18 @@
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute
-          (.compute this num-worker output-dir exception order select melt)
+          (.compute this num-worker output-dir exception order select melt header)
           (dataframe output-dir :have-col true)) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (do ;; groupby-aggre
-            (.computeGroupAggre this num-worker output-dir exception select)
+            (.computeGroupAggre this num-worker output-dir exception select header)
             (dataframe output-dir :have-col true))
           (do ;; aggre
-            (.computeAggre this num-worker output-dir exception select)
+            (.computeAggre this num-worker output-dir exception select header)
             (dataframe output-dir :have-col true))))
       (if (= (type this) clojask.dataframe.JoinedDataFrame)
         (do ;; join
-          (.compute this num-worker output-dir exception order select)
+          (.compute this num-worker output-dir exception order select header)
           (dataframe output-dir :have-col true))
         (throw (Clojask_TypeException. "Must compute on a clojask dataframe or joined dataframe"))))))
 

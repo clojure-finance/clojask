@@ -2,6 +2,7 @@
   "Contains functions that extends the power of clojask, while not directly applying to the dataframe class"
   (:require [clojure.data.csv :as csv]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojask.dataframe :refer [dataframe compute]]
             [clojure.string :as string]))
 
@@ -31,7 +32,9 @@
 (defn melt
   "A melt function generator for Clojask"
   [df output-dir id measure]
-  (let [func nil]
-    (compute df 1 output-dir :select (concat id measure) :melt func))
+  (let [id-count (count id)
+        mea-count (count measure)
+        func (fn [x] (map concat (repeat (take id-count x)) (map vector measure (take-last mea-count x))))]
+    (compute df 1 output-dir :select (concat id measure) :melt func :header (concat id ["measure" "value"])))
   )
 
