@@ -706,7 +706,7 @@
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
     (assert (not= select []) "must select at least 1 column")
-    (assert (and (not= melt vector) (= (type this) clojask.dataframe.DataFrame) (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
+    (assert (or (= melt vector) (and (= (type this) clojask.dataframe.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute

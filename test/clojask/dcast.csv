@@ -1,0 +1,16 @@
+family_id,age_mother,measure,value
+1,30,dob_child1,1998-11-26
+1,30,dob_child2,2000-01-29
+1,30,dob_child3,
+2,27,dob_child1,1996-06-22
+2,27,dob_child2,
+2,27,dob_child3,
+3,26,dob_child1,2002-07-11
+3,26,dob_child2,2004-04-05
+3,26,dob_child3,2007-09-02
+4,32,dob_child1,2004-10-10
+4,32,dob_child2,2009-08-27
+4,32,dob_child3,2012-07-21
+5,29,dob_child1,2000-12-05
+5,29,dob_child2,2005-02-28
+5,29,dob_child3,
