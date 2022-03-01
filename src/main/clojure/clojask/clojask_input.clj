@@ -7,22 +7,6 @@
             [taoensso.timbre :refer [fatal info debug] :as timbre])
   (:import (java.io BufferedReader)))
 
-(defn mem-usage
-  []
-  (quot (- (.totalMemory (Runtime/getRuntime)) (.freeMemory (Runtime/getRuntime))) 1048576))
-
-(defn mem-total
-  []
-  (quot (.totalMemory (Runtime/getRuntime)) 1048576))
-
-(defn mem-free
-  []
-  (quot (.freeMemory (Runtime/getRuntime)) 1048576))
-
-(defn mem-max
-  []
-  (quot (.maxMemory (Runtime/getRuntime)) 1048576))
-
 (defrecord AbsSeqReader [event reader filters types have-col rst completed? checkpoint? offset]
   p/Plugin
 
@@ -38,9 +22,11 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (let [csv-data (if have-col 
-                     (rest (line-seq (BufferedReader. reader)))
-                     (line-seq (BufferedReader. reader)))
+    (let [csv-data (if (fn? reader)
+                     (reader)
+                     (if have-col
+                       (rest (line-seq (BufferedReader. reader)))
+                       (line-seq (BufferedReader. reader))))
           data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
           ]
       (if (nil? checkpoint)
@@ -63,27 +49,13 @@
 
   p/Input
   (poll! [this _ _]
-    ;; (if (> (mem-usage) 500)
-    ;;   (Thread/sleep 10))
-    ;; (while (not (filter-check filters types (:d (first @rst))))
-    ;;   (vswap! rst rest))
     (if-let [seg (first @rst)]
       (do
         (vswap! rst rest)
-        ;; (if (= (count @rst) 0) 
-        ;;   (assoc seg :last true)
-        ;;   seg)
         seg
         )
       (do (vreset! completed? true)
           nil))
-    ;; (if-let [seg (first @rst)]
-    ;;   (do (vswap! rst rest)
-    ;;       (vswap! offset inc)
-    ;;       ;; (spit "resources/debug.txt" (str seg) :append true)
-    ;;       seg)
-    ;;   (do (vreset! completed? true)
-    ;;       nil))
          ))
 
 (defn inject-dataframe
@@ -94,8 +66,8 @@
   ;; (println (:seq/rdr event))
   (map->AbsSeqReader {:event event
                       ;; :sequential (:seq/seq event)
-                      :reader (:seq/rdr event)
-                      :filters (.getFilters (:row-info  df))
+                      :reader (if (not= nil (:seq/rdr event)) (:seq/rdr event) (:path df))
+                      :filters (.getFilters (:row-info df))
                       :types (.getType (:col-info df))
                       :have-col (:have-col df)
                       :rst (volatile! nil)

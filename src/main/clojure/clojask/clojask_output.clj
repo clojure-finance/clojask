@@ -22,7 +22,13 @@
   {:lifecycle/before-task-start inject-into-eventmap
    :lifecycle/after-task-stop close-writer})
 
-(defrecord ClojaskOutput []
+(def melt (atom nil))
+
+(defn inject-melt
+  [tmp]
+  (reset! melt tmp))
+
+(defrecord ClojaskOutput [melt]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -74,8 +80,8 @@
       (do
           ;; (swap! example-datasink conj msg)
         (if (not= (:d msg) nil)
-          (do
-            (.write wtr (str (string/join "," (:d msg)) "\n"))
+          (doseq [msg (melt (:d msg))]
+            (.write wtr (str (string/join "," msg) "\n"))
                 ;; !! define argument (debug)
             )))))
     true))
@@ -86,4 +92,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput))
+  (->ClojaskOutput (deref melt)))

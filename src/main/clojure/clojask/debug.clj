@@ -4,7 +4,9 @@
             [clojask.groupby :refer :all]
             [clojask.sort :as sort]
             [clojask.api.aggregate :as aggre]
-            [clojask.api.gb-aggregate :as gb-aggre])
+            [clojask.api.gb-aggregate :as gb-aggre]
+            [clojask.extensions.bind :refer :all]
+            [clojask.extensions.reshape :refer :all])
   (:refer-clojure :exclude [group-by filter]))
 "For debugging purposes only, will not be used in production."
 
@@ -13,10 +15,17 @@
   ;(def x "Hello world")
   ;(-> (clojure.core/format "Expression '%s' not defined." x)(MyOwnException.)(throw))
 
-  (def x (dataframe "resources/Employees.csv" :have-col true))
-  (def y (dataframe "resources/Employees-info.csv" :have-col true))
-  (def z (left-join x y ["Employee"] ["Employee"]))
-  (time (compute x 8 "resources/test.csv" :exception true))
+  (def x (dataframe "./resources/Employees.csv" :have-col true))
+  ;; (set-type x "Employee" "double")
+  ;; (group-by x ["Department"])
+  (aggregate x aggre/min ["Employee"])
+  (print-df x)
+  ;; (def y (dataframe "resources/Employees-info.csv" :have-col true))
+  ;; (def z (left-join x y ["Employee"] ["Employee"]))
+  ;(time (compute z 8 "resources/test.csv" :select ["1_Employee" "2_EmployeeName"] :exception true))
+  (def output-df (compute x 8 "resources/test.csv" :exception true))
+  ;(compute z 8 "resources/test.csv" :exception true)
+  ;(time (compute x 8 "resources/test.csv" :select ["new-employee"] :exception true))
 
   ;(time (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "Employee" "Employee" 8 "resources/test.csv" :exception false))
 
@@ -76,15 +85,14 @@
   ;; Benchmarking
 
   ;(def y (dataframe "../clojure-datasets/data-CRSP.csv"))
-  ;(def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
-  ;(set-type y "datacqtr" "double")
-  ;(operate y - "prccq")
-  ;(operate y str ["PERMCO" "PERMNO"] "new-col")
-  ;(group-by y "TICKER")
-  ;(aggregate y min ["datacqtr"] ["datacqtr-min"])
-  ;(group-by y "TICKER")
-  ;(aggregate y min ["PRC"] ["PRC-min"])
-  ;(time (compute y 4 "resources/test.csv" :exception false))
+  (def y (dataframe "../clojure-datasets/data-Compustat-lohi.csv"))
+  (set-type y "prccq" "double")
+  ;(operate y (fn [val] (if val (+ val 10.0) 0.0)) "prccq")
+  ;(operate y str ["datadate" "tic"] "new-col")
+  (group-by y "tic")
+  (aggregate y gb-aggre/max ["prccq"] ["prccq-max"])
+  (time (compute y 4 "resources/test.csv" :select ["tic" "prccq-max"] :exception false))
+  ;(time (compute y 4 "resources/test.csv" :select ["datadate" "TICKER" "prccq"] :exception false))
 
   ;; CRSP Benchmarking
 

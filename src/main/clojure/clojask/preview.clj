@@ -20,7 +20,7 @@
   ;; outer loop is the input node
   (let [index-key (.getIndexKey (:col-info dataframe))
         formatters (.getFormatter (:col-info dataframe))
-        ;index (take (count index-key) (iterate inc 0))
+        ;; index (take (count index-key) (iterate inc 0))
         ;; indices-deleted (.getDeletedCol (:col-info dataframe))
         ;; indices-wo-del (vec (take (count index-key) (iterate inc 0)))
         ;; indices-not-deleted (set/difference (set indices-wo-del) (set indices-deleted))
@@ -87,9 +87,9 @@
             (mapv (fn [row-v] (zipmap keys row-v)) (apply map vector aggre-res))
             (throw (Exception. "aggregation result is not of the same length"))))
         ;; need to do groupby aggregate
-        (let [groupby-keys (.getGroupbyKeys (:row-info dataframe))
-              key-index (.getKeyIndex (:col-info dataframe))
+        (let [key-index (.getKeyIndex (:col-info dataframe))
               index-key (.getIndexKey (.col-info dataframe))
+              groupby-keys (.getGroupbyKeys (:row-info dataframe))
               groupby-res (loop [sample compute-res groupby {}]
                             (if-let [row (first sample)]
                               (let [res (rest sample)
@@ -97,12 +97,8 @@
                                 (recur res (assoc groupby key (conj (or (get groupby key) []) row))))
                               groupby))
               aggre-funcs (.getAggreFunc (.row-info dataframe))
-            ;;  groupby-key-index (mapv #(nth % 1) (.getGroupbyKeys (:row-info dataframe)))
-              groupby-keys-value (vec (map #(if (nth % 0)
-                                              (str (nth % 0) "(" (index-key (nth % 1)) ")")
-                                              (index-key (nth % 1))) groupby-keys))
-              aggre-new-keys (.getAggreNewKeys (:row-info dataframe))
-              keys (concat groupby-keys-value aggre-new-keys)
+              ;; keys = column names
+              keys (.getAggreColNames dataframe)
               preview-aggre-func (fn [key v-of-v]
                                    (let [data v-of-v
                                         ;; pre 

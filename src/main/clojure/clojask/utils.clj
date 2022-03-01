@@ -249,7 +249,7 @@
   (filter (fn [col] (is-in col dataframe)) cols))
 
 (defn init-file
-  [out-dir]
+  [out-dir header]
   (io/delete-file out-dir true)
   (doseq [file (rest (file-seq (io/file "./_clojask/grouped/")))]
     (try
@@ -262,7 +262,10 @@
   (io/make-parents "./_clojask/grouped/a.txt")
   (io/make-parents "./_clojask/join/a/a.txt")
   (io/make-parents "./_clojask/join/b/a.txt")
-  (io/make-parents "./_clojask/sort/a.txt"))
+  (io/make-parents "./_clojask/sort/a.txt")
+  (if (not= header nil)
+    (with-open [wrtr (io/writer out-dir)]
+      (.write wrtr (str (str/join "," header) "\n")))))
 
 (defn get-type-string
   [x]

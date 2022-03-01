@@ -54,11 +54,6 @@
 
 (def dataframe (atom nil))
 
-;; the body of the worker function
-;; (defn worker-body
-;;   [seg]
-;;   (let [df (deref dataframe)]
-;;     (zipmap keys )))
 
 (defn worker-func-gen
   [df exception index]
@@ -73,12 +68,6 @@
         [seg]
         (let [id (:id seg)
               data (string/split (:d seg) #"," -1)] ;; -1 is very important here!
-        ;; (doseq [index (take (count operations) (iterate inc 0))]
-        ;;   )
-        ;; (spit "resources/debug.txt" (str seg "\n") :append true)
-        ;; (spit "resources/debug.txt" (str types) :append true)
-        ;; (spit "resources/debug.txt" (str operations) :append true)
-        ;; (spit "resources/debug.txt" index :append true)
           (if (filter-check filters types data)
             {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
             {:id id})))
@@ -270,7 +259,9 @@
 
 
 (defn inject-in-reader [event lifecycle]
-  (let [rdr (FileReader. (:buffered-reader/filename lifecycle))
+  (let [path (:buffered-reader/filename lifecycle)
+        ;; tmp (println path)
+        rdr (if (= path nil) nil (FileReader. path))
         ;; csv-data (csv/read-csv (BufferedReader. rdr))
         ]
     {:seq/rdr rdr
@@ -285,7 +276,8 @@
      }))
 
 (defn close-reader [event lifecycle]
-  (.close (:seq/rdr event)))
+  (if (not= (:seq/rdr event) nil)
+   (.close (:seq/rdr event))))
 
 ;; (defn inject-out-writer [event lifecycle]
 ;;   (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
@@ -307,7 +299,7 @@
   [source dist order]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
       ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
@@ -322,7 +314,7 @@
   [source dist]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
       ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
@@ -337,7 +329,7 @@
   [source dist keys key-index]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
@@ -351,7 +343,7 @@
   [source dist a b a-keys b-keys a-roll b-roll join-type]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename source
+      :buffered-reader/filename (if (fn? source) nil source)
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
@@ -471,7 +463,7 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception order index]
+  [num-work batch-size dataframe dist exception order index melt]
   (try
     (workflow-gen num-work)
     (config-env)
@@ -480,6 +472,7 @@
     (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
+    (output/inject-melt melt)
     (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
