@@ -37,7 +37,7 @@
   (printCol [output-path selected-index] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
-  (renameCol [new-col-names] "rename columns in the dataframe")
+  (renameCol [old-col new-col] "rename columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
   (head [n] "return first n lines in dataframe")
@@ -78,7 +78,7 @@
       (if (str/starts-with? path "./")
         (str "file:///" (str/replace-first path "./" ""))
         (if (str/starts-with? path "/")
-          (str "file:///" (str/replace-first path "./" ""))
+          (str "file:///" (str/replace-first path "/" ""))
           (str "file:///" path))))
     (let [path-str (get-path-str path)
           input-path-str (get-path-str (.getPath this))
@@ -210,10 +210,10 @@
     this)
 
   (renameCol
-    [this new-col-names]
-    (cond (not (= (count (.getKeys (.col-info this))) (count new-col-names)))
-          (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
-    (.renameColInfo (.col-info this) new-col-names)
+    [this old-col new-col]
+    ;; (cond (not (= (count (.getKeys (.col-info this))) (count new-col)))
+    ;;       (throw (Clojask_TypeException. "Number of new column names not equal to number of existing columns.")))
+    (.renameColInfo (.col-info this) old-col new-col)
     ;; "success"
     this)
 
@@ -495,11 +495,11 @@
     (.errorPredetect this "invalid arguments passed to set-parser function")
   result))
 
-(defn col-names
-  [this]
-  (let [result (.getColNames this)]
-    (.errorPredetect this "invalid arguments passed to col-names function")
-  result))
+;; (defn col-names
+;;   [this]
+;;   (let [result (.getColNames this)]
+;;     (.errorPredetect this "invalid arguments passed to col-names function")
+;;   result))
 
 (defn select-col
   [this col-to-keep]
@@ -519,8 +519,8 @@
   result))
 
 (defn rename-col
-  [this new-col-names]
-  (let [result (.renameCol this new-col-names)]
+  [this old-col new-col]
+  (let [result (.renameCol this old-col new-col)]
     (.errorPredetect this "invalid arguments passed to rename-col function")
   result))
 
@@ -699,7 +699,7 @@
   [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order true select nil exclude nil melt vector header nil}}]
   (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
   ;; check if output-dir clashes with input file path
-  (.checkInputPathClash this output-dir)
+  ;; (.checkInputPathClash this output-dir)
   ;; initialise file
   (u/init-file output-dir header)
   ;; check which type of dataframe this is

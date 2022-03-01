@@ -1,4 +1,4 @@
-(defproject clojask "1.2.0"
+(defproject clojask "1.1.1"
   :description "Data analysis and manipulation library with parallel computing for larger-than-memory datasets"
   :url "https://github.com/clojure-finance/clojask"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"

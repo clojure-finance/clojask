@@ -147,15 +147,15 @@ Reshape the dataframe from wide to long.
 
 Reshape the dataframe from long to wide.
 
-| Argument     | Type                                 | Function                              | Remarks                                                      |
-| ------------ | ------------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
-| dataframe    | clojask.DataFrame                    | Specify the dataframe                 |                                                              |
-| output-path  | String                               | The path of the output                | Can be absolute or relative path with respect to the `project.clj` file. |
-| id           | vector of strings                    | The fixed portion of the columns      | These columns must have a perfect correlation.               |
-| measure-name | String                               | The name of the measurement           | By default "measure"                                         |
-| value-name   | String                               | The name of the value                 | By default "value"                                           |
-| values       | vector of string/int/double/datetime | The value choices of the value column | The order matters as in the result file.                     |
-| [vals-name]  | vector of string                     | The name of the value columns         | By default, same as `values`                                 |
+| Argument     | Type                                 | Function                                    | Remarks                                                      |
+| ------------ | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
+| dataframe    | clojask.DataFrame                    | Specify the dataframe                       |                                                              |
+| output-path  | String                               | The path of the output                      | Can be absolute or relative path with respect to the `project.clj` file. |
+| id           | vector of strings                    | The fixed portion of the columns            | These columns must have a perfect correlation.               |
+| measure-name | String                               | The name of the measurement                 | By default "measure"                                         |
+| value-name   | String                               | The name of the value                       | By default "value"                                           |
+| values       | vector of string/int/double/datetime | The value choices of the measurement column | The order matters as in the result file.                     |
+| [vals-name]  | vector of string                     | The name of the value columns               | By default, same as `values`                                 |
 
 **Example**
 
