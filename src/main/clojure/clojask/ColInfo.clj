@@ -20,7 +20,7 @@
   (getFormatter [])
   (delCol [col-to-del])
   (setColInfo [new-col-set])
-  (renameColInfo [new-col-names]))
+  (renameColInfo [old-col new-col]))
 
 
 (deftype ColInfo
@@ -138,7 +138,8 @@
           (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))))
   
   (renameColInfo
-    [this new-col-names]
-    (set! col-keys (vec new-col-names))
-    (set! key-index (zipmap new-col-names (map #(last %) (.getKeyIndex this))))
-    (set! index-key (zipmap (map #(first %) (.getIndexKey this)) new-col-names))))
+    [this old-col new-col]
+    (set! col-keys (mapv (fn [_] (if (= _ old-col) new-col _)) col-keys))
+    (let [index (get key-index old-col)]
+     (set! key-index (set/rename-keys key-index {old-col new-col}))
+     (set! index-key (update index-key index (fn [_] new-col))))))
