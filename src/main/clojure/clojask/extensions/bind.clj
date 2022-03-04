@@ -11,7 +11,7 @@
   (apply map (fn [a b & cs] (str/join "," (concat [a b] cs))) seq))
 
 (defn cbind-csv
-  "joins some csv files into a new dataframe by columns"
+  "Joins some csv files into a new dataframe by columns"
   [a b & cs]
   (let [files (concat [a b] cs)
         func (fn [] (_cbind (map #(line-seq (io/reader %)) files)))]
