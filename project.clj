@@ -12,11 +12,11 @@
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]]
   :repl-options {:init-ns clojask.debug
                  :timeout 180000}
-;;   :plugins [[lein-update-dependency "0.1.2"]]
-;;   :main ^:skip-aot clojask.debug/-main
-;;   :source-paths      ["src/main/clojure"]
-;;   :java-source-paths ["src/main/java"]
-;;   :test-paths        ["test/clojask"]
+  :plugins [[lein-update-dependency "0.1.2"]]
+  :main ^:skip-aot clojask.debug/-main
+  :source-paths      ["src/main/clojure"]
+  :java-source-paths ["src/main/java"]
+  :test-paths        ["test/clojask"]
   ;:java-test-paths   ["test/java"]
   ;;:injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
   )
