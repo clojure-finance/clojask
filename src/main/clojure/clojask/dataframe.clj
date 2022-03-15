@@ -733,10 +733,14 @@
 (defn print-df
   [dataframe & [sample-size return-size]]
   (if (= (type dataframe) DataFrame)
-    (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+    (let [data (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false)
           tmp (first data)
           types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
-          data (conj (apply list data) types)]
+          omit (zipmap (keys tmp) (repeat "..."))
+          data (vec (conj (apply list data) types))
+          data (if (= (count data) (inc (or return-size 11)))
+                 (conj (vec (take (or return-size 10) data)) omit)
+                 data)]
       (pprint/print-table data))
     (do
       (println (str (str/join "," (.preview dataframe))))
