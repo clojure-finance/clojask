@@ -1,11 +1,11 @@
 # Clojask
-Clojure data frame with parallel computing on larger-than-memory datasets
+> Clojure data processing frame with parallel computing on larger-than-memory datasets
 
 ### Features
 
 - **Unlimited size**
 
-  Theoretically speaking, it supports dataset larger than memory, even to infinity!
+  It supports datasets larger than memory!
 
 - **Fast**
 
@@ -27,6 +27,10 @@ Clojure data frame with parallel computing on larger-than-memory datasets
 
   Most operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
 
+- **Various Operations**
+
+  Although Clojask is designed for large datasets, it does not sacrifice common operations on relational dataframes, such as [group by](https://clojure-finance.github.io/clojask-website/posts-output/API/#group-by), [aggregate](https://clojure-finance.github.io/clojask-website/posts-output/API/#aggregate), [join](https://clojure-finance.github.io/clojask-website/posts-output/API/#inner-join--left-join--right-join).
+
 ### Installation
 
 Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask). 
@@ -42,6 +46,15 @@ Insert this line into your `deps.edn` if using CLI.
 ```
 com.github.clojure-finance/clojask {:mvn/version "1.1.0"}
 ```
+
+**Requirements:**
+
+- MacOS / Linux
+- Java 8 - 11
+
+### Supported Functions and Procedure
+
+![clojask functions](/Users/lyc/Downloads/clojask functions.png)
 
 ### Documentation
 
