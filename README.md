@@ -7,6 +7,10 @@
 
   It supports datasets larger than memory!
 
+- **Various Operations**
+
+  Although Clojask is designed for larger-than-memory datasets, like NoSQLs, it does not sacrifice common operations on relational dataframes, such as [group by](https://clojure-finance.github.io/clojask-website/posts-output/API/#group-by), [aggregate](https://clojure-finance.github.io/clojask-website/posts-output/API/#aggregate), [join](https://clojure-finance.github.io/clojask-website/posts-output/API/#inner-join--left-join--right-join).
+
 - **Fast**
 
   Faster than Dask in most operations, and the larger the dataframe is, the bigger the advantage
@@ -27,10 +31,6 @@
 
   Most operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
 
-- **Various Operations**
-
-  Although Clojask is designed for large datasets, it does not sacrifice common operations on relational dataframes, such as [group by](https://clojure-finance.github.io/clojask-website/posts-output/API/#group-by), [aggregate](https://clojure-finance.github.io/clojask-website/posts-output/API/#aggregate), [join](https://clojure-finance.github.io/clojask-website/posts-output/API/#inner-join--left-join--right-join).
-
 ### Installation
 
 Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask). 
@@ -38,13 +38,13 @@ Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask).
 Insert this line into your `project.clj` if using Leiningen.
 
 ```
-[com.github.clojure-finance/clojask "1.1.0"]
+[com.github.clojure-finance/clojask "1.2.1"]
 ```
 
 Insert this line into your `deps.edn` if using CLI.
 
-```
-com.github.clojure-finance/clojask {:mvn/version "1.1.0"}
+```clojure
+com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
 ```
 
 **Requirements:**
@@ -52,9 +52,9 @@ com.github.clojure-finance/clojask {:mvn/version "1.1.0"}
 - MacOS / Linux
 - Java 8 - 11
 
-### Supported Functions and Procedure
+### Supported Functions and Procedures
 
-![clojask functions](/Users/lyc/Downloads/clojask functions.png)
+![clojask functions](./doc/clojask functions.png)
 
 ### Documentation
 
