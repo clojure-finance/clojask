@@ -54,7 +54,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
 
 ### Supported Functions and Procedures
 
-![clojask functions](./doc/clojask functions.png)
+![clojask functions](docs/clojask functions.png)
 
 ### Documentation
 
