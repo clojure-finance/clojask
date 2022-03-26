@@ -149,13 +149,8 @@
 
   (getColIndex
     [this]
-    (let [index-key (.getIndexKey (:col-info this))
-          indices-deleted (set (.getDeletedCol (:col-info this)))
-          indices-wo-del (vec (take (count index-key) (iterate inc 0)))
-          index (if (empty? indices-deleted) 
-                    indices-wo-del ;; no columns deleted
-                    (filterv (fn [i] (= false (contains? indices-deleted i))) indices-wo-del))]
-    index))
+    (let [index-key (.getIndexKey (:col-info this))]
+      (take (count index-key) (iterate inc 0))))
 
   (getAggreColNames  ;; called by getColNames and preview
     [this]
@@ -282,7 +277,7 @@
       (assert (or (= (count select) (count index)) (= select [nil]))(Clojask_OperationException. "Must select existing columns. You may check it using"))
       (if (<= num-worker 8)
         (do
-          (.final this)
+          ;; (.final this)
           (if (= ifheader nil) (.printCol this output-dir index))
           (let [res (start-onyx num-worker batch-size this output-dir exception order index melt)]
             (if (= res "success")
@@ -733,11 +728,16 @@
 (defn print-df
   [dataframe & [sample-size return-size]]
   (if (= (type dataframe) DataFrame)
-    (let [data (.preview dataframe (or sample-size 1000) (or return-size 10) false)
+    (let [data (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false)
           tmp (first data)
           types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
-          data (conj (apply list data) types)]
-      (pprint/print-table data))
+          omit (zipmap (keys tmp) (repeat "..."))
+          data (vec (conj (apply list data) types))
+          data (if (= (count data) (inc (or return-size 11)))
+                 (conj (vec (take (or return-size 10) data)) omit)
+                 data)
+          header (.getColNames dataframe)]
+      (pprint/print-table header data))
     (do
       (println (str (str/join "," (.preview dataframe))))
       (println "The content of joined dataframe is not available."))))
