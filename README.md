@@ -1,5 +1,5 @@
 # Clojask
-> Clojure data processing frame with parallel computing on larger-than-memory datasets
+> Clojure data processing framework with parallel computing on larger-than-memory datasets
 
 ### Features
 
