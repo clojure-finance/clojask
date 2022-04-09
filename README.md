@@ -52,13 +52,75 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
 - MacOS / Linux
 - Java 8 - 11
 
+### Example Usage
+
+1. Import `Clojask`
+
+   ```clojure
+   (require '[clojask.dataframe :as ck])
+   ```
+
+2. Initialize a dataframe
+
+   ```clojure
+   (def df (ck/dataframe "Employees-example.csv"))
+   ```
+
+   The source file can be found [here](https://github.com/clojure-finance/clojask/blob/1.x.x/test/clojask/Employees-example.csv).
+
+   See [`dataframe`](https://clojure-finance.github.io/clojask-website/posts-output/API/#dataframe)
+
+3. Preview the first few lines of the dataframe
+
+   ```clojure
+   (ck/print-df df)
+   ```
+
+   ![image-20220405210757274](/Users/lyc/Library/Application Support/typora-user-images/image-20220405210757274.png)
+
+   See [`print-df`](https://clojure-finance.github.io/clojask-website/posts-output/API/#print-df)
+
+4. Change the data type of some columns
+
+   ```clojure
+   (ck/set-type df "Salary" "double")
+   (ck/set-type df "UpdateDate" "date:yyyy/MM/dd")
+   (ck/print-df df)
+   ```
+
+   ![image-20220405210826777](/Users/lyc/Library/Application Support/typora-user-images/image-20220405210826777.png)
+
+   See [`set-type`](https://clojure-finance.github.io/clojask-website/posts-output/API/#set-type)
+
+5. Add 100 to Bob as `NewSalary`
+
+   ```clojure
+   (ck/operate df (fn [EmployeeName Salary] (if (= EmployeeName "Bob") (+ Salary 100) Salary)) ["EmployeeName" "Salary"] "NewSalary")
+   (ck/print-df df)
+   ```
+
+   ![image-20220405211348723](/Users/lyc/Library/Application Support/typora-user-images/image-20220405211348723.png)
+
+   See [`operate`](https://clojure-finance.github.io/clojask-website/posts-output/API/#operate-in-place-modification)
+
+6. Output the resultant dataset to "result.csv" (Use 8 threads)
+
+   ```clojure
+   (ck/compute df 8 "result.csv" :select ["Employee"	"EmployeeName"	"Department"	"newSalary"	"UpdateDate"])
+   ```
+
+   See [`compute`](https://clojure-finance.github.io/clojask-website/posts-output/API/#compute)
+
 ### Supported Functions and Procedures
 
 ![clojask functions](docs/clojask_functions.png)
 
+- *The solid arrows point to the fixed next step; dotted arrows point to all possible next steps.*
+- *Any step except for Initialization is optional.*
+
 ### Documentation
 
-The detailed doc for every API can be found [here](https://clojure-finance.github.io/clojask-website/posts-output/API/).
+The detailed documentation for every API can be found [here](https://clojure-finance.github.io/clojask-website/posts-output/API/).
 
 ### Examples
 
