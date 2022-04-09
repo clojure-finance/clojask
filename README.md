@@ -13,7 +13,7 @@
 
 - **Fast**
 
-  Faster than Dask in most operations, and the larger the dataframe is, the bigger the advantage
+  Faster than Dask in most operations, and the larger the dataframe is, the bigger the advantage. Please find the benchmarks [here](https://clojure-finance.github.io/clojask-website/pages-output/about/#benchmarks).
 
 - **All native types**
 
