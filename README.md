@@ -76,7 +76,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
    (ck/print-df df)
    ```
 
-   ![image-20220405210757274](/Users/lyc/Library/Application Support/typora-user-images/image-20220405210757274.png)
+   ![image-20220405210757274](docs/img/image-20220405210757274.png)
 
    See [`print-df`](https://clojure-finance.github.io/clojask-website/posts-output/API/#print-df)
 
@@ -88,7 +88,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
    (ck/print-df df)
    ```
 
-   ![image-20220405210826777](/Users/lyc/Library/Application Support/typora-user-images/image-20220405210826777.png)
+   ![image-20220405210826777](docs/img/image-20220405210826777.png)
 
    See [`set-type`](https://clojure-finance.github.io/clojask-website/posts-output/API/#set-type)
 
@@ -99,7 +99,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
    (ck/print-df df)
    ```
 
-   ![image-20220405211348723](/Users/lyc/Library/Application Support/typora-user-images/image-20220405211348723.png)
+   ![image-20220405211348723](docs/img/image-20220405211348723.png)
 
    See [`operate`](https://clojure-finance.github.io/clojask-website/posts-output/API/#operate-in-place-modification)
 
