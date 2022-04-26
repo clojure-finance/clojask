@@ -48,7 +48,6 @@
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
-  (final [] "prepare the dataframe for computation")
   (previewDF [] "preview function used for error predetection")
   (errorPredetect [msg] "prints exception with msg if error is detected in preview")
   )
@@ -248,11 +247,6 @@
           (throw (Clojask_TypeException. "Input includes non-existent column name(s).")))
     (.setFormatter col-info format col))
 
-  (final
-    [this]
-    (doseq [tmp (.getFormatter (:col-info this))]
-      (.operate this (nth tmp 1) (get (.getIndexKey col-info) (nth tmp 0)))))
-
   (preview
     [this sample-size return-size format]
     (cond (not (and (integer? sample-size) (integer? return-size)))
@@ -277,7 +271,6 @@
       (assert (or (= (count select) (count index)) (= select [nil]))(Clojask_OperationException. "Must select existing columns. You may check it using"))
       (if (<= num-worker 8)
         (do
-          ;; (.final this)
           (if (= ifheader nil) (.printCol this output-dir index))
           (let [res (start-onyx num-worker batch-size this output-dir exception order index melt)]
             (if (= res "success")
