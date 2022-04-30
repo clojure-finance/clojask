@@ -5,7 +5,7 @@
 
 - **Unlimited size**
 
-  It supports datasets larger than memory!
+  It supports datasets larger than memory.
 
 - **Various Operations**
 
@@ -17,11 +17,11 @@
 
 - **All native types**
 
-  All the datatypes used to store data is native Clojure (or Java) types!
+  All the datatypes used to store data are native Clojure (or Java) types.
 
 - **From file to file**
 
-  Integrate IO inside the dataframe. No need to write your own read-in and output functions!
+  Integrate IO inside the dataframe. No need to write your own read-in and output functions.
 
 - **Parallel**
 
@@ -49,7 +49,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.1"}
 
 **Requirements:**
 
-- MacOS / Linux
+- MacOS or Linux
 - Java 8 - 11
 
 ### Example Usage
@@ -128,4 +128,4 @@ A separate repository for some typical usage of Clojask can be found [here](http
 
 ### Problem Feedback
 
-If your question is not answered in existing [issues](https://github.com/clojure-finance/clojask/issues). Feel free to create a new one.
+If your question is not answered in existing [issues](https://github.com/clojure-finance/clojask/issues), feel free to create a new one.
