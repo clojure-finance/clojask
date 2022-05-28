@@ -6,7 +6,8 @@
             [clojure.string :as string]
             [clojask.api.aggregate :refer [start]]
             [clojask.utils :as u])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+  (:import [java.io BufferedReader FileReader BufferedWriter FileWriter]
+           [com.clojask.exception ExecutionException]))
 
 (def df (atom nil))
 (def aggre-func (atom nil))
@@ -60,7 +61,7 @@
           ;; (.write (:clojask/wtr event) (str data "\n"))
           (if (apply = (map count data))
             (mapv #(.write (:clojask/wtr event) (str (string/join "," (u/gets % select)) "\n")) (apply map vector data))
-            (throw (Exception. "aggregation result is not of the same length"))))
+            (throw (ExecutionException. "aggregation result is not of the same length"))))
         this)
 
   p/Checkpointed

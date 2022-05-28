@@ -11,7 +11,8 @@
             [clojask.utils :as u]
             [clojure.set :as set]
             [clojask.groupby :refer [read-csv-seq]])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
+           [com.clojask.exception ExecutionException]))
 
 
 (def id (java.util.UUID/randomUUID))
@@ -268,7 +269,9 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
 
-    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -282,8 +285,8 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")

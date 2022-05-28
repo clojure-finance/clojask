@@ -12,7 +12,8 @@
             [clojure.data.csv :as csv]
             [clojask.utils :refer [eval-res eval-res-ne filter-check]]
             [clojask.join :refer [defn-join]])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+  (:import [java.io BufferedReader FileReader BufferedWriter FileWriter]
+           [com.clojask.exception ExecutionException]))
 
 
 ;; sample workflow
@@ -473,7 +474,9 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (output/inject-melt melt)
-    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -487,10 +490,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-aggre-only
@@ -505,7 +508,9 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (aggre/inject-dataframe dataframe aggre-func select)
-    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -519,10 +524,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage (aggregate)] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage (aggregate)] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-groupby
@@ -538,7 +543,9 @@
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (groupby/inject-dataframe dataframe groupby-keys groupby-index)
-    (catch Exception e (throw (Exception. (str "[preparing stage (group by)] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -552,10 +559,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage (group by)] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage (group by)] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-join
@@ -573,7 +580,9 @@
     (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format)
     (let [limit (or limit (fn [a b] true))]
      (defn-join join-type limit))
-    (catch Exception e (throw (Exception. (str "[preparing stage (join)] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -587,10 +596,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage (join)] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage (join)] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 
