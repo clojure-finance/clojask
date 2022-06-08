@@ -41,9 +41,11 @@
                           _ (nth _ 1)]
                      (if func
                        (func (nth msg _))
-                       (if-let [formatter (get formatters _)]
-                         (formatter (nth msg _))
-                         (nth msg _))))) 
+                      ;;  (if-let [formatter (get formatters _)]
+                      ;;    (formatter (nth msg _))
+                      ;;    (nth msg _))
+                       (nth msg _)
+                       ))) 
                   index)]
     (str dist val)))
 
@@ -58,7 +60,7 @@
   (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index formatter) ;; generate output filename
         groupby-wrtr (io/writer output-filename :append true)]
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
-    (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
+    (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
 
     ;; write as csv format e.g. Tim,62,0.1,12
     ;(.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))

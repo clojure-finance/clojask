@@ -10,7 +10,7 @@
             [clojask.sort :as sort]
             [clojask.join :as join]
             [clojure.string :as string]
-            [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
+            [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
             [clojask.api.aggregate :as aggre]))

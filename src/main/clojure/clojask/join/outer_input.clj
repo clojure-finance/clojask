@@ -1,4 +1,4 @@
-(ns aggregate.aggre-input
+(ns clojask.join.outer-input
   (:require [clojure.core.async :refer [poll! timeout chan close!]]
             [clojure.set :refer [join]]
             [onyx.plugin.protocols :as p]
@@ -32,7 +32,7 @@
                 (def tmp (volatile! -1))
                 (map (fn [file] 
                        (vswap! tmp inc)
-                       {:id @tmp :file file :d (read-string (subs (str file) (inc (count (str directory)))))}) 
+                       {:id @tmp :d (str file)}) 
                      files))
          ]
      (if (nil? checkpoint)
@@ -40,7 +40,7 @@
          (vreset! rst data)
          (vreset! offset 0))
        (do
-         (info "aggregate.aggre-input is recovering state by dropping" checkpoint "elements.")
+         (info "clojask.join.outer-input is recovering state by dropping" checkpoint "elements.")
          (vreset! rst (drop checkpoint data))
          (vreset! offset checkpoint)))))
 

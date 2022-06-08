@@ -17,6 +17,16 @@
   (mapv #(nth coll %) indices)
   )
 
+(defn gets-format
+  "gets with format"
+  [coll indices formatters]
+  (mapv (fn [_] 
+          (let [val (nth coll _)]
+            (if-let [formatter (get formatters _)]
+              (formatter val)
+              val))) indices)
+  )
+
 (defn get-key
   [row types key-index key]
   (let [index (get key-index key)]

@@ -1,4 +1,4 @@
-(ns aggregate.aggre-output
+(ns clojask.join.outer-output
   (:require [onyx.peer.function :as function]
             [onyx.plugin.protocols :as p]
             [clojure.java.io :as io]

@@ -3,12 +3,14 @@
             [clojure.string :as string]
             [clojask.ColInfo :refer [->ColInfo]]
             [clojask.RowInfo :refer [->RowInfo]]
+            [clojask.DataStat :refer [->DataStat]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :as u]
             [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
             [clojask.sort :as sort]
-            [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
+            [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
+            [clojask.join.outer-onyx-comps :refer [start-onyx-outer]]
             [clojure.string :as str]
             [clojask.preview :as preview]
             [clojure.pprint :as pprint]
@@ -590,7 +592,8 @@
         (do
           (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys a-index exception)
           (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception)
-          (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))))
+          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index)
+          )))))
 
 (defn inner-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -608,7 +611,7 @@
       (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
-      (if (<= size-a size-b)
+      (if (>= size-a size-b)
         (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix)
         (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)])))))
 
