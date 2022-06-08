@@ -565,7 +565,7 @@
     (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
-(defn start-onyx-join
+(defn start-onyx-join ;; to-do
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index]
   ;; dataframe means a

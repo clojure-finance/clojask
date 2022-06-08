@@ -11,9 +11,11 @@
             [aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
-            [clojure.pprint :as pprint])
+            [clojure.pprint :as pprint]
+            [clojask.DataStat :refer [compute-stat]])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]
+           [clojask.DataStat DataStat]
            [com.clojask.exception TypeException OperationException])
   (:refer-clojure :exclude [filter group-by sort]))
 "The clojask lazy dataframe"
@@ -57,6 +59,7 @@
             ^Integer batch-size
             ^ColInfo col-info
             ^RowInfo row-info
+            ^DataStat stat
             ^Boolean have-col]
   DFIntf
 
@@ -402,22 +405,24 @@
             colNames (u/check-duplicate-col (if have-col headers (generate-col (count headers))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [])
+            stat (compute-stat path)
             func (if have-col #(rest (path)) path)]
         (.init col-info colNames)
-        (DataFrame. func 300 col-info row-info have-col))
+        (DataFrame. func 300 col-info row-info stat have-col))
       ;; if the path is csv
       (let [reader (io/reader path)
             file (csv/read-csv reader)
             colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
-            row-info (RowInfo. [] [] [] [])]
+            row-info (RowInfo. [] [] [] [])
+            stat (compute-stat path)]
       ;; (type-detection file)
         (.close reader)
         (.init col-info colNames)
       ;; 
       ;; type detection
       ;; 
-        (DataFrame. path 300 col-info row-info have-col)))
+        (DataFrame. path 300 col-info row-info stat have-col)))
     (catch Exception e
       (do
         (throw e)
@@ -578,8 +583,14 @@
       ;; (u/init-file output-dir)
       ;; print column names
       (if (= ifheader nil) (.printCol this output-dir select))
-      (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
-      (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))
+      (if (not= type 3)
+        (do
+          (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
+          (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))
+        (do
+          (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys a-index exception)
+          (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception)
+          (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))))))
 
 (defn inner-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -595,9 +606,9 @@
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
-    (let [a-file (io/file (:path a))
-          b-file (io/file (:path b))]
-      (if (<= (.length a-file) (.length b-file))
+    (let [size-a (.getSize (:stat a))
+          size-b (.getSize (:stat b))]
+      (if (<= size-a size-b)
         (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix)
         (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)])))))
 
@@ -635,6 +646,25 @@
       (throw (TypeException. "Input includes non-existent column name(s).")))
     (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)])))
 
+(defn outer-join
+  [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
+  (let [a-keys (u/proc-groupby-key a-keys)
+        b-keys (u/proc-groupby-key b-keys)
+        a-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info a)) (nth _ 1))]) a-keys)
+        b-keys (mapv (fn [_] [(nth _ 0) (get (.getKeyIndex (.col-info b)) (nth _ 1))]) b-keys)]
+    (cond (not (and (= (type a) clojask.dataframe.DataFrame) (= (type b) clojask.dataframe.DataFrame)))
+          (throw (TypeException. "First two arguments should be Clojask dataframes.")))
+    (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
+          (throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join.")))
+    (cond (not (= (count a-keys) (count b-keys)))
+          (throw (TypeException. "The length of left keys and right keys should be equal.")))
+    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+          (throw (TypeException. "Input includes non-existent column name(s).")))
+    (let [size-a (.getSize (:stat a))
+          size-b (.getSize (:stat b))]
+      (if (<= size-a size-b)
+        (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix)
+        (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)])))))
 
 (defn rolling-join-forward
   [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
@@ -684,7 +714,7 @@
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order true select nil exclude nil melt vector header nil}}]
-  (assert (or (nil? select) (nil? exclude)) "can only specify either of them")
+  (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
   ;; (.checkInputPathClash this output-dir)
   ;; initialise file
@@ -692,7 +722,7 @@
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
-    (assert (not= select []) "must select at least 1 column")
+    (assert (not= select []) "Must select at least 1 column")
     (assert (or (= melt vector) (and (= (type this) clojask.dataframe.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
