@@ -1,14 +1,14 @@
-(defproject com.github.clojure-finance/clojask "1.2.0"
+(defproject com.github.clojure-finance/clojask "1.2.3"
   :description "Data analysis and manipulation library with parallel computing for larger-than-memory datasets"
   :url "https://github.com/clojure-finance/clojask"
-  :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
-            :url "https://www.eclipse.org/legal/epl-2.0/"}
+  :license {:name "MIT"
+            :url "https://github.com/clojure-finance/clojask/blob/1.x.x/LICENSE"}
   :dependencies [[org.clojure/clojure "1.10.1"]
-                 [org.clojure/math.numeric-tower "0.0.4"]
+                ;;  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/data.csv "1.0.0"]
                  ^{:voom {:repo "git@github.com:onyx-platform/onyx.git" :branch "master"}}
                  [org.onyxplatform/onyx "0.14.6"]
-                 [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
+                ;;  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]]
   :repl-options {:init-ns clojask.debug
                  :timeout 180000}

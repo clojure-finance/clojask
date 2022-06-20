@@ -2,8 +2,8 @@
   (:require [clojure.set :as set]
             [clojask.utils :refer []]))
 
-(import '[com.clojask.exception Clojask_TypeException]
-        '[com.clojask.exception Clojask_OperationException])
+(import '[com.clojask.exception TypeException]
+        '[com.clojask.exception OperationException])
 
 (definterface ColIntf
   (init [colNames])
@@ -51,7 +51,7 @@
         (set! col-dsp (assoc col-dsp (get key-index col) (conj (get col-dsp (get key-index col)) operation)))
           ;; "success"
           nil)
-          (throw (Clojask_OperationException. "Column name passed to operate not found"))))
+          (throw (OperationException. "Column name passed to operate not found"))))
 
   (operate
     [this operation col newCol]
@@ -70,7 +70,7 @@
             ;; "success"
             nil))
         (do
-          (throw (Clojask_OperationException. (str external " are not original column names")))
+          (throw (OperationException. (str external " are not original column names")))
           ))))
 
   (setType
@@ -82,7 +82,7 @@
         ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
         ;; "success"
         nil)
-      (throw (Clojask_OperationException. "Column name passed to setType not found"))))
+      (throw (OperationException. "Column name passed to setType not found"))))
 
   (setFormatter
     [this format col]

@@ -111,7 +111,7 @@ When defining a clojask.DataFrame using `dataframe` function, you can specify th
 
 ```clojure
 (fn [x]
-  (replicate 2 x))
+  (repeat 2 x))
 ```
 
 , then each row will be output twice.
@@ -139,13 +139,12 @@ Reshape the dataframe from wide to long.
 ;; 3,26,2002-07-11,2004-04-05,2007-09-02
 ;; 4,32,2004-10-10,2009-08-27,2012-07-21
 ;; 5,29,2000-12-05,2005-02-28,
-(melt x "path/to/output" ["family_id" "age_mother"["dob_child1" "dob_child2" "dob_child3"])
-;; y
+(melt x "path/to/output" ["family_id" "age_mother"] ["dob_child1" "dob_child2" "dob_child3"])
 ```
 
 #### `dcast`
 
-Reshape the dataframe from long to wide.
+Reshape the dataframe from long to wide. Reversible to `melt`.
 
 | Argument     | Type                                 | Function                                    | Remarks                                                      |
 | ------------ | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |

@@ -106,7 +106,7 @@ com.github.clojure-finance/clojask {:mvn/version "1.2.2"}
 6. Output the resultant dataset to "result.csv" (Use 8 threads)
 
    ```clojure
-   (ck/compute df 8 "result.csv" :select ["Employee"	"EmployeeName" "Department"	"NewSalary"	"UpdateDate"])
+   (ck/compute df 8 "result.csv" :select ["Employee" "EmployeeName" "Department" "NewSalary" "UpdateDate"])
    ```
 
    See [`compute`](https://clojure-finance.github.io/clojask-website/posts-output/API/#compute)

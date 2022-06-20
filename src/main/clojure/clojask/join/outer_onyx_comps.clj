@@ -1,17 +1,16 @@
-(ns aggregate.aggre-onyx-comps
-  (:require [aggregate.aggre-input :as input]
-            [aggregate.aggre-output :as output]
-            ;; [clojask.clojask-groupby :as groupby]
-            ;; [clojask.clojask-join :as join]
+(ns clojask.join.outer-onyx-comps
+  (:require [clojask.join.outer-input :as input]
+            [clojask.join.outer-output :as output]
             [onyx.api :refer :all]
             [clojure.string :as string]
             [onyx.test-helper :refer [with-test-env feedback-exception!]]
-            ;; [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
+            [clojure.java.io :as io]
             [clojask.groupby :refer [read-csv-seq]])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
+           [com.clojask.exception ExecutionException]))
 
 
 (def id (java.util.UUID/randomUUID))
@@ -38,52 +37,43 @@
 
 
 (defn worker-func-gen
-  [df exception aggre-funcs index formatter]
-  (reset! dataframe df)
-  (let [
-        ;; aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
-        formatters formatter
-        ;; key-index (.getKeyIndex (.col-info (deref dataframe)))
-        ;; formatters (set/rename-keys formatters key-index)
+  [a b exception a-index b-index]
+  (let [a-count (count a-index)
+        b-count (count b-index)
+        b-nil (repeat b-count nil)
+        add-nil (fn [row] (concat row b-nil))
         ]
     (defn worker-func
       "refered in preview"
       [seq]
-      ;; (println formatters)
-      (let [data (read-csv-seq (:file seq))
-            pre (:d seq)
-            data-map (-> (iterate inc 0)
-                         (zipmap (apply map vector data)))
-            reorder (fn [a b]
-                      ;; (println [a b])
-                      (u/gets (concat a b) index))]
-        ;; (mapv (fn [_]
-        ;;        (let [func (first _)
-        ;;              index (nth _ 1)]
-        ;;          (func (get data-map index))))
-        ;;      aggre-funcs)
-        (loop [aggre-funcs aggre-funcs
-               res []]
-          (if (= aggre-funcs [])
-            ;; {:d (vec (concat pre res))}
-            (if (= res [])
-              {:d [(u/gets pre index)]}
-              {:d (mapv reorder (repeat pre) (apply map vector res))})
-            (let [func (first (first aggre-funcs))
-                  index (nth (first aggre-funcs) 1)
-                  res-funcs (rest aggre-funcs)
-                  new (func (get data-map index))
-                  new (if (coll? new)
-                        new
-                        (vector new))
-                  new (mapv (fn [_] (if-let [formatter (get formatters index)]
-                                     (formatter _)
-                                     _)) new)]
-              (if (or (= res []) (= (count new) (count (last res))))
-                (recur res-funcs (conj res new))
-                (throw (Exception. "aggregation result is not of the same length")))
-              )))
-        ))))
+      ;; (println seq)
+      (let [id (:id seq)
+            a-filename (:d seq)
+            a-data (read-csv-seq a-filename)
+            b-filename (string/replace-first a-filename "/a/" "/b/")]
+        (if (.exists (io/file b-filename))
+          (do
+            (let [b-data (doall (read-csv-seq b-filename))]
+              (io/delete-file b-filename true)
+              {:id id :d (for [a-row a-data b-row b-data] (concat a-row b-row))})
+            )
+          {:id id :d (mapv add-nil a-data)}))
+        )))
+
+(defn worker-func-gen2
+  [a b exception a-index b-index]
+  (let [a-count (count a-index)
+        b-count (count b-index)
+        a-nil (repeat a-count nil)
+        add-nil (fn [row] (concat a-nil row))]
+    (defn worker-func
+      "refered in preview"
+      [seq]
+      ;; (println seq)
+      (let [id (:id seq)
+            b-filename (:d seq)
+            b-data (read-csv-seq b-filename)]
+        {:id id :d (mapv add-nil b-data)}))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
@@ -95,7 +85,7 @@
   (def catalog 
     (conj catalog
      {:onyx/name :in
-      :onyx/plugin :aggregate.aggre-input/input
+      :onyx/plugin :clojask.join.outer-input/input
       :onyx/type :input
       :onyx/medium :seq
       :seq/checkpoint? true
@@ -106,7 +96,7 @@
     ;; for loop for sample workers
     (doseq [x (range 1 (+ num-work 1))]
       (let [worker-name (keyword (str "sample-worker" x))
-            worker-function (keyword "aggregate.aggre-onyx-comps" "worker-func")]
+            worker-function (keyword "clojask.join.outer-onyx-comps" "worker-func")]
             (def catalog 
               (conj catalog
                {:onyx/name worker-name
@@ -120,7 +110,7 @@
     (def catalog
       (conj catalog
       {:onyx/name :output
-        :onyx/plugin :aggregate.aggre-output/output
+        :onyx/plugin :clojask.join.outer-output/output
         :onyx/type :output
         :onyx/medium :core.async  ;; this is maked up
         :onyx/max-peers 1
@@ -148,10 +138,10 @@
       :buffered-reader/path source
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
-      :lifecycle/calls :aggregate.aggre-input/reader-calls}
+      :lifecycle/calls :clojask.join.outer-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      :lifecycle/calls :aggregate.aggre-output/writer-calls}]))
+      :lifecycle/calls :clojask.join.outer-output/writer-calls}]))
 
 (def num-workers (atom 1))
 
@@ -211,7 +201,7 @@
   ;; for loop for sample workers
   (doseq [x (range 1 (+ num-work 1))]
     (let [worker-name (keyword (str "sample-worker" x))
-          predicate-function (keyword "aggregate.aggre-onyx-comps" (str "rem" (- x 1) "?"))]
+          predicate-function (keyword "clojask.join.outer-onyx-comps" (str "rem" (- x 1) "?"))]
           (def flow-conditions
             (conj flow-conditions
              {:flow/from :in
@@ -256,19 +246,22 @@
   (onyx.api/shutdown-peer-group peer-group)
   (onyx.api/shutdown-env env))
 
-(defn start-onyx-aggre
+(defn start-onyx-outer
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception aggre-func index formatter]
+  [num-work batch-size a b dist exception a-index b-index]
+  ;; step 1
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
+    (worker-func-gen a b exception a-index b-index) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./_clojask/grouped" dist)
+    (lifecycle-gen "./_clojask/join/a" dist)
     (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
+    ;; (input/inject-dataframe dataframe)
 
-    (catch Exception e (throw (Exception. (str "[preparing stage] " (.getMessage e))))))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -282,8 +275,33 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (Exception. (str "[submit-to-onyx stage] " (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+
+  ;; step 2
+  (try
+    (worker-func-gen2 a b exception a-index b-index) ;;need some work
+    (lifecycle-gen "./_clojask/join/b" dist)
+    ;; (input/inject-dataframe dataframe)
+
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[preparing stage (outer join 2)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+  (try
+    (let [submission (onyx.api/submit-job peer-config
+                                          {:workflow workflow
+                                           :catalog catalog
+                                           :lifecycles lifecycles
+                                           :flow-conditions flow-conditions
+                                           :task-scheduler :onyx.task-scheduler/balanced})
+          job-id (:job-id submission)]
+      ;; (println submission)
+      (assert job-id "Job was not successfully submitted")
+      (feedback-exception! peer-config job-id))
+    (catch Exception e (do
+                         (shutdown)
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join 2)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+
   (try
     (shutdown)
-    (catch Exception e (throw (Exception. (str "[terminate-node stage] " (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
