@@ -14,7 +14,8 @@
             [clojure.string :as str]
             [clojask.preview :as preview]
             [clojure.pprint :as pprint]
-            [clojask.DataStat :refer [compute-stat]])
+            [clojask.DataStat :refer [compute-stat]]
+            [clojask-io.input :refer [read-file]])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]
            [clojask.DataStat DataStat]
@@ -37,6 +38,7 @@
   (getColIndex [] "get column indices, excluding deleted columns")
   (getAggreColNames [] "get column names if there is aggregate")
   (getColNames [] "get column names")
+  (getStat [] "get the statistics of the dataframe")
   (printCol [output-path selected-index] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
@@ -154,6 +156,10 @@
     [this]
     (let [index-key (.getIndexKey (:col-info this))]
       (take (count index-key) (iterate inc 0))))
+  
+  (getStat
+   [this]
+   (:stat this))
 
   (getAggreColNames  ;; called by getColNames and preview
     [this]
@@ -403,31 +409,40 @@
   (try
     (if (fn? path)
       ;; if the path is the input function
-      (let [headers (string/split (doall (first (path))) #",")
+      (let [headers (first (path))
+            ;; headers (string/split (doall (first (path))) #",")
             colNames (u/check-duplicate-col (if have-col headers (generate-col (count headers))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [])
             stat (compute-stat path)
-            func (if have-col #(rest (path)) path)]
+            func (if have-col (fn [] (rest (path))) path)]
         (.init col-info colNames)
         (DataFrame. func 300 col-info row-info stat have-col))
       ;; if the path is csv
-      (let [reader (io/reader path)
-            file (csv/read-csv reader)
-            colNames (u/check-duplicate-col (if have-col (doall (first file)) (generate-col (count (first file)))))
+      (let [read-func (fn [] (:data (read-file path :stat true)))
+            ;; file (read-file path :stat true)
+            ;; reader (io/reader path)
+            ;; file (csv/read-csv reader)
+            ;; data (:data file)
+            colNames (u/check-duplicate-col (if have-col (doall (first (read-func))) (generate-col (count (first (read-func))))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [])
-            stat (compute-stat path)]
+            ;; stat (compute-stat path)
+            stat (compute-stat path read-func)
+            func (if have-col (fn [] (rest (read-func))) read-func)
+            ]
       ;; (type-detection file)
-        (.close reader)
+        ;; (.close reader)
         (.init col-info colNames)
       ;; 
       ;; type detection
       ;; 
-        (DataFrame. path 300 col-info row-info stat have-col)))
+        ;; (DataFrame. func 300 col-info row-info stat have-col)
+        (DataFrame. func 300 col-info row-info stat have-col)
+        ))
     (catch Exception e
       (do
-        (throw e)
+        (throw (TypeException. "Error in initializing the dataframe." e))
         ;; (throw (OperationException. "no such file or directory"))
         nil))))
 
@@ -716,7 +731,7 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order true select nil exclude nil melt vector header nil}}]
+  [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order false select nil exclude nil melt vector header nil}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
   ;; (.checkInputPathClash this output-dir)

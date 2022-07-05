@@ -68,14 +68,14 @@
       (defn worker-func
         [seg]
         (let [id (:id seg)
-              data (string/split (:d seg) #"," -1)] ;; -1 is very important here!
+              data (:d seg)] ;; -1 is very important here!
           (if (filter-check filters types data)
             {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
             {:id id})))
       (defn worker-func
         [seg]
         (let [id (:id seg)
-              data (string/split (:d seg) #"," -1)]
+              data (:d seg)]
           (if (filter-check filters types data)
             {:id id :d (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
             {:id id})))))

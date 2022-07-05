@@ -48,7 +48,7 @@
         no-groupby (= (.getGroupbyKeys (:row-info dataframe)) [])
         ;;
         preview-work-func (fn [seg]
-                            (let [data (string/split (:d seg) #"," -1)]
+                            (let [data (:d seg)]
                               (if (filter-check filters types data)
                                 {:d (mapv (fn [_] (eval-res data types operations _)) indices)}
                                 {}))) ;; the function body of operation (take over the work in worker nodes)

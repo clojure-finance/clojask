@@ -3,7 +3,8 @@
             [onyx.plugin.protocols :as p]
             [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
-            [clojure.string :as string])
+            [clojure.string :as string]
+            [heap.core :as heap])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (defn- inject-into-eventmap
@@ -14,6 +15,31 @@
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
+
+(defn- write-msg
+  [wtr msg melt]
+  (if (not= (:d msg) nil)
+    (doseq [msg (melt (:d msg))]
+      (.write wtr (str (string/join "," msg) "\n"))
+                ;; !! define argument (debug)
+      )))
+
+(defn- order-write
+  [wtr msg heap exp-id melt]
+  (let [id (:id msg)]
+    ;; (println (str msg " " (deref exp-id)))
+    (if (= id (deref exp-id))
+      (do
+        (write-msg wtr msg melt)
+        (swap! exp-id inc)
+        (while (= (:id (heap/peek heap)) (deref exp-id))
+          (write-msg wtr (heap/poll heap) melt)
+          (swap! exp-id inc)))
+      (do
+        (heap/add heap msg)
+        ;; (println (heap/get-size heap))
+        )
+      )))
 
 ;; Map of lifecycle calls that are required to use this plugin.
 ;; Users will generally always have to include these in their lifecycle calls
@@ -28,7 +54,7 @@
   [tmp]
   (reset! melt tmp))
 
-(defrecord ClojaskOutput [melt]
+(defrecord ClojaskOutput [melt heap exp-id]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -38,7 +64,8 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-    this)
+        (println (heap/get-size heap))
+        this)
 
   p/Checkpointed
   ;; Nothing is required here. This is normally useful for checkpointing in
@@ -74,16 +101,13 @@
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (let [write-batch (if order (sort-by :id write-batch) write-batch)]
-     (doseq [msg write-batch]
-      ;; (if-let [msg (first batch)]
-      (do
-          ;; (swap! example-datasink conj msg)
-        (if (not= (:d msg) nil)
-          (doseq [msg (melt (:d msg))]
-            (.write wtr (str (string/join "," msg) "\n"))
-                ;; !! define argument (debug)
-            )))))
+    (if order
+      (doseq [msg write-batch]
+        (order-write wtr msg heap exp-id melt))
+      (let []
+        (doseq [msg write-batch]
+          ;; (println msg)
+          (write-msg wtr msg melt))))
     true))
 
 ;; Builder function for your output plugin.
@@ -92,4 +116,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput (deref melt)))
+  (->ClojaskOutput (deref melt) (heap/heap (fn [a b] (<= (:id a) (:id b)))) (atom 0)))

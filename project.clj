@@ -9,7 +9,9 @@
                  ^{:voom {:repo "git@github.com:onyx-platform/onyx.git" :branch "master"}}
                  [org.onyxplatform/onyx "0.14.6"]
                 ;;  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
-                 [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]]
+                 [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]
+                 [com.github.clojure-finance/clojask-io "1.0.1"]
+                 [com.github.clojure-finance/clojure-heap "1.0.0"]]
   :repl-options {:init-ns clojask.debug
                  :timeout 180000}
   :plugins [[lein-update-dependency "0.1.2"]]
