@@ -71,7 +71,8 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-        (println (heap/get-size heap))
+        ;; (println (heap/get-size heap))
+        (if (not= (heap/get-size heap) 0) (throw (Exception. (str "The order enforcement failed. " ) (heap/get-size heap) " rows have been shuffled or missing.")))
         this)
 
   p/Checkpointed

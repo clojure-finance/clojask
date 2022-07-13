@@ -80,7 +80,7 @@
           (do
             ;; (doseq [data (:d msg)]
             ;;   (.write wtr (str (string/join "," data) "\n")))
-            (println (:d msg))
+            ;; (println (:d msg))
             (output-func wtr (:d msg))
                 ;; !! define argument (debug)
             ))))

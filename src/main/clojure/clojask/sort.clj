@@ -78,7 +78,7 @@
 (defn use-external-sort
   [input output comp]
   ;; clean the output file
-  (println (CsvExternalSort/estimateAvailableMemory))
+  ;; (println (CsvExternalSort/estimateAvailableMemory))
   (with-open [wtr (io/writer output)]
     (.write wtr ""))
   (io/make-parents "./_clojask/sort/a.txt")
