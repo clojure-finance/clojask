@@ -200,7 +200,7 @@
     [this output-path selected-index]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
-        (output-func wrtr col-set))))
+        (output-func wrtr [col-set]))))
   ;; deprecated
   (delCol
     [this col-to-del]

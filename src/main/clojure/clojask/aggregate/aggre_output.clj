@@ -21,7 +21,12 @@
   {:lifecycle/before-task-start inject-into-eventmap
    :lifecycle/after-task-stop close-writer})
 
-(defrecord ClojaskOutput []
+(def df (atom nil))
+(defn inject-dataframe
+  [dataframe]
+  (reset! df dataframe))
+
+(defrecord ClojaskOutput [output-func]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -73,8 +78,10 @@
           ;; (swap! example-datasink conj msg)
         (if (not= (:d msg) nil)
           (do
-            (doseq [data (:d msg)]
-              (.write wtr (str (string/join "," data) "\n")))
+            ;; (doseq [data (:d msg)]
+            ;;   (.write wtr (str (string/join "," data) "\n")))
+            (println (:d msg))
+            (output-func wtr (:d msg))
                 ;; !! define argument (debug)
             ))))
     true))
@@ -85,4 +92,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput))
+  (->ClojaskOutput (.getOutput (deref df))))

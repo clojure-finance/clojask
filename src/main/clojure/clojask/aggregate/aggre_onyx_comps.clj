@@ -268,7 +268,7 @@
     (lifecycle-gen "./_clojask/grouped" dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-
+    (output/inject-dataframe dataframe)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))

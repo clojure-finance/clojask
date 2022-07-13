@@ -47,7 +47,8 @@
 (defrecord ClojaskOutput
            [memo
             aggre-func
-            select]
+            select
+            output-func]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -57,10 +58,13 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-        (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))]
+        (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))
+              wtr (:clojask/wtr event)]
           ;; (.write (:clojask/wtr event) (str data "\n"))
           (if (apply = (map count data))
-            (mapv #(.write (:clojask/wtr event) (str (string/join "," (u/gets % select)) "\n")) (apply map vector data))
+            (mapv 
+            ;;  #(.write (:clojask/wtr event) (str (string/join "," (u/gets % select)) "\n"))
+                 (fn [msg] (output-func wtr [(u/gets msg select)])) (apply map vector data))
             (throw (ExecutionException. "aggregation result is not of the same length"))))
         this)
 
@@ -123,4 +127,5 @@
    (->ClojaskOutput (volatile! (doall (take (count (deref aggre-func))
                                      (repeat start))))
                     (deref aggre-func)
-                    (deref select))))
+                    (deref select)
+                    (.getOutput (deref df)))))
