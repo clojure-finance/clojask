@@ -3,18 +3,19 @@
   (:require [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojask.dataframe :as cj]))
+            [clojask.dataframe :as cj]
+            [clojask-io.input :refer [read-file]]))
 
 (defn _cbind
   "joins a list of lazy sequences vertically"
   [seq]
-  (apply map (fn [a b & cs] (str/join "," (concat [a b] cs))) seq))
+  (apply map (fn [a b & cs] (apply concat (concat [a b] cs))) seq))
 
 (defn cbind-csv
   "Joins some csv files into a new dataframe by columns"
   [a b & cs]
   (let [files (concat [a b] cs)
-        func (fn [] (_cbind (map #(line-seq (io/reader %)) files)))]
+        func (fn [] (_cbind (map (fn [file] (:data (read-file file :format "csv"))) files)))]
     (cj/dataframe func)))
 
 (defn rbind-csv
@@ -22,6 +23,22 @@
    Will by default use the header names of the first file"
   [a b & cs]
   (let [files (concat [a b] cs)
-        seq (map #(line-seq (io/reader %)) files)
+        seq (map #(:data (read-file % :format "csv")) files)
+        func (fn [] (conj (apply concat (map rest seq)) (first (first seq))))]
+    (cj/dataframe func)))
+
+(defn cbind-csv
+  "Joins some csv files into a new dataframe by columns"
+  [a b & cs]
+  (let [files (concat [a b] cs)
+        func (fn [] (_cbind (map (fn [file] (:data (read-file file))) files)))]
+    (cj/dataframe func)))
+
+(defn rbind-csv
+  "Joins some csv files into a new dataframe by rows\n
+   Will by default use the header names of the first file"
+  [a b & cs]
+  (let [files (concat [a b] cs)
+        seq (map #(:data (read-file %)) files)
         func (fn [] (conj (apply concat (map rest seq)) (first (first seq))))]
     (cj/dataframe func)))

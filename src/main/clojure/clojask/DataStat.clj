@@ -6,6 +6,7 @@
 
 (definterface DataIntf
   (init [source file])
+  (initWithIO [io-func])
   (getSize []))
 
 
@@ -29,13 +30,20 @@
          (set! num-rows nil))
        (do
          (set! file-size (.length (io/file source)))))))
+  
+  (initWithIO
+   [this io-func]
+   (set! file-size (:size (io-func)))
+   (set! num-rows nil))
 
    (getSize
     [this]
     file-size))
 
 (defn compute-stat
-  [source & [file]]
+  [source & [io-func]]
   (let [stat (DataStat. nil nil)]
-    (.init stat source file)
+    (if io-func
+      (.initWithIO stat io-func)
+      (.init stat source nil))
     stat))

@@ -27,6 +27,7 @@
 (definterface DFIntf
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader] "final evaluatation")
   (getPath [] "get input path of dataframe")
+  (getOutput [] "get the output function of the dataframe")
   (checkOutputPath [output-path] "check if output path is of string type")
   (checkInputPathClash [path] "check if path clashs with dataframe input path")
   (operate [operation colName] "operate an operation to column and replace in place")
@@ -64,6 +65,7 @@
             ^ColInfo col-info
             ^RowInfo row-info
             ^DataStat stat
+            output-func
             ^Boolean have-col]
   DFIntf
 
@@ -93,6 +95,10 @@
           (cond paths-equal
             (throw (OperationException. "Output path should be different from input path of dataframe argument.")))
           ))
+  
+  (getOutput
+   [this]
+   output-func)
 
   (operate ;; has assert
     [this operation colName]
@@ -194,7 +200,7 @@
     [this output-path selected-index]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
-        (.write wrtr (str (str/join "," col-set) "\n")))))
+        (output-func wtr col-set))))
   ;; deprecated
   (delCol
     [this col-to-del]
@@ -417,9 +423,10 @@
             stat (compute-stat path)
             func (if have-col (fn [] (rest (path))) path)]
         (.init col-info colNames)
-        (DataFrame. func 300 col-info row-info stat have-col))
+        (DataFrame. func 300 col-info row-info stat (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))) have-col))
       ;; if the path is csv
-      (let [read-func (fn [] (:data (read-file path :stat true)))
+      (let [io-func (fn [] (read-file path :stat true :output true))
+            read-func (fn [] (:data (io-func)))
             ;; file (read-file path :stat true)
             ;; reader (io/reader path)
             ;; file (csv/read-csv reader)
@@ -428,9 +435,8 @@
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [])
             ;; stat (compute-stat path)
-            stat (compute-stat path read-func)
-            func (if have-col (fn [] (rest (read-func))) read-func)
-            ]
+            stat (compute-stat path io-func)
+            func (if have-col (fn [] (rest (read-func))) read-func)]
       ;; (type-detection file)
         ;; (.close reader)
         (.init col-info colNames)
@@ -438,7 +444,7 @@
       ;; type detection
       ;; 
         ;; (DataFrame. func 300 col-info row-info stat have-col)
-        (DataFrame. func 300 col-info row-info stat have-col)
+        (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) have-col)
         ))
     (catch Exception e
       (do

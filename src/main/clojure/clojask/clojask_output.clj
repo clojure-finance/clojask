@@ -4,8 +4,15 @@
             [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
             [clojure.string :as string]
-            [heap.core :as heap])
+            [clojure-heap.core :as heap])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+
+(def df (atom nil))
+
+(defn inject-dataframe
+  [dataframe]
+  (reset! df dataframe)
+  )
 
 (defn- inject-into-eventmap
   [event lifecycle]
@@ -17,23 +24,23 @@
   (.close (:clojask/wtr event)))
 
 (defn- write-msg
-  [wtr msg melt]
+  [wtr msg melt output-func]
   (if (not= (:d msg) nil)
-    (doseq [msg (melt (:d msg))]
-      (.write wtr (str (string/join "," msg) "\n"))
+    (doseq []
+      (output-func wtr (melt (:d msg)))
                 ;; !! define argument (debug)
       )))
 
 (defn- order-write
-  [wtr msg heap exp-id melt]
+  [wtr msg heap exp-id melt output-func]
   (let [id (:id msg)]
     ;; (println (str msg " " (deref exp-id)))
     (if (= id (deref exp-id))
       (do
-        (write-msg wtr msg melt)
+        (write-msg wtr msg melt output-func)
         (swap! exp-id inc)
         (while (= (:id (heap/peek heap)) (deref exp-id))
-          (write-msg wtr (heap/poll heap) melt)
+          (write-msg wtr (heap/poll heap) melt output-func)
           (swap! exp-id inc)))
       (do
         (heap/add heap msg)
@@ -54,7 +61,7 @@
   [tmp]
   (reset! melt tmp))
 
-(defrecord ClojaskOutput [melt heap exp-id]
+(defrecord ClojaskOutput [melt heap exp-id output]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -103,11 +110,11 @@
     ;; In this case we are conjoining elements onto a collection.
     (if order
       (doseq [msg write-batch]
-        (order-write wtr msg heap exp-id melt))
+        (order-write wtr msg heap exp-id melt output))
       (let []
         (doseq [msg write-batch]
           ;; (println msg)
-          (write-msg wtr msg melt))))
+          (write-msg wtr msg melt output))))
     true))
 
 ;; Builder function for your output plugin.
@@ -116,4 +123,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput (deref melt) (heap/heap (fn [a b] (<= (:id a) (:id b)))) (atom 0)))
+  (->ClojaskOutput (deref melt) (heap/heap (fn [a b] (<= (:id a) (:id b)))) (atom 0) (.getOutput (deref df))))

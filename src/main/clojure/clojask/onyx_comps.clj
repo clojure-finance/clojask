@@ -473,6 +473,7 @@
     (lifecycle-gen (.path dataframe) dist order)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
+    (output/inject-dataframe dataframe)
     (output/inject-melt melt)
     (catch Exception e (do
                          (shutdown)
