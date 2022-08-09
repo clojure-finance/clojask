@@ -283,6 +283,12 @@
    (subs (str (type x)) 6)
     "nil"))
 
+(defn get-type-string-vec
+  [vec]
+  (let [types (mapv get-type-string vec)
+        types (sort (vec (set types)))]
+    (str/join " & " types)))
+
 (defn check-duplicate-col
   "Check for duplicated column names and return a column names list w/o duplicates"
   [colNames]

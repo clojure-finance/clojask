@@ -28,6 +28,7 @@
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader] "final evaluatation")
   (getPath [] "get input path of dataframe")
   (getOutput [] "get the output function of the dataframe")
+  (setOutput [output] "set the output function")
   (checkOutputPath [output-path] "check if output path is of string type")
   (checkInputPathClash [path] "check if path clashs with dataframe input path")
   (operate [operation colName] "operate an operation to column and replace in place")
@@ -98,7 +99,11 @@
   
   (getOutput
    [this]
-   output-func)
+   (deref output-func))
+  
+  (setOutput
+   [this output]
+   (reset! output-func output))
 
   (operate ;; has assert
     [this operation colName]
@@ -200,7 +205,7 @@
     [this output-path selected-index]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
       (with-open [wrtr (io/writer output-path)]
-        (output-func wrtr [col-set]))))
+        ((.getOutput this) wrtr [col-set]))))
   ;; deprecated
   (delCol
     [this col-to-del]
@@ -424,7 +429,7 @@
               stat (compute-stat path io-func)
               func (if if-header (fn [] (rest (read-func))) read-func)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header))
+          (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))))) if-header))
         (let [headers (first (path))
             ;; headers (string/split (doall (first (path))) #",")
               colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
@@ -433,7 +438,7 @@
               stat (compute-stat path)
               func (if if-header (fn [] (rest (path))) path)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))) if-header)))
+          (DataFrame. func 300 col-info row-info stat (atom (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header)))
       ;; if the path is csv
       (let [io-func (fn [] (read-file path :stat true :output true))
             read-func (fn [] (:data (io-func)))
@@ -454,7 +459,7 @@
       ;; type detection
       ;; 
         ;; (DataFrame. func 300 col-info row-info stat if-header)
-        (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header)
+        (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))))) if-header)
         ))
     (catch Exception e
       (do
@@ -747,7 +752,7 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order select exclude melt header] :or {exception false order false select nil exclude nil melt vector header nil}}]
+  [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header nil}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
   ;; (.checkInputPathClash this output-dir)
@@ -758,6 +763,7 @@
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
     (assert (not= select []) "Must select at least 1 column")
     (assert (or (= melt vector) (and (= (type this) clojask.dataframe.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
+    (if output (.setOutput this output))
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute
