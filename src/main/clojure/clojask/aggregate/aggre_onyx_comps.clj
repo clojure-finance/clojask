@@ -46,6 +46,9 @@
         formatters formatter
         ;; key-index (.getKeyIndex (.col-info (deref dataframe)))
         ;; formatters (set/rename-keys formatters key-index)
+        reorder (fn [a b]
+                      ;; (println [a b])
+                  (u/gets (concat a b) index))
         ]
     (defn worker-func
       "refered in preview"
@@ -54,10 +57,7 @@
       (let [data (read-csv-seq (:file seq))
             pre (:d seq)
             data-map (-> (iterate inc 0)
-                         (zipmap (apply map vector data)))
-            reorder (fn [a b]
-                      ;; (println [a b])
-                      (u/gets (concat a b) index))]
+                         (zipmap (apply map vector data)))]
         ;; (mapv (fn [_]
         ;;        (let [func (first _)
         ;;              index (nth _ 1)]
@@ -68,7 +68,7 @@
           (if (= aggre-funcs [])
             ;; {:d (vec (concat pre res))}
             (if (= res [])
-              {:d [(u/gets pre index)]}
+              {:d [(u/gets-format pre index formatters)]}
               {:d (mapv reorder (repeat pre) (apply map vector res))})
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)

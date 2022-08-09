@@ -61,6 +61,7 @@
   (reset! dataframe df)
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
+        formats (.getFormatter (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
         indices index]
     ;; (println indices)
@@ -70,16 +71,41 @@
         (let [id (:id seg)
               data (:d seg)] ;; -1 is very important here!
           (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
+            {:id id :d (mapv (fn [_] (eval-res data types formats operations _)) indices)}
             {:id id})))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
           (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
+            {:id id :d (mapv (fn [_] (eval-res-ne data types formats operations _)) indices)}
             {:id id})))))
   )
+
+(defn worker-func-gen-format
+  [df exception index]
+  (reset! dataframe df)
+  (let [operations (.getDesc (:col-info (deref dataframe)))
+        types (.getType (:col-info (deref dataframe)))
+        formats (.getFormatter (:col-info (deref dataframe)))
+        filters (.getFilters (:row-info df))
+        indices index]
+    ;; (println indices)
+    (if exception
+      (defn worker-func
+        [seg]
+        (let [id (:id seg)
+              data (:d seg)] ;; -1 is very important here!
+          (if (filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res data types formats operations _))) indices)}
+            {:id id})))
+      (defn worker-func
+        [seg]
+        (let [id (:id seg)
+              data (:d seg)]
+          (if (filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res-ne data types formats operations _))) indices)}
+            {:id id}))))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
@@ -297,7 +323,7 @@
 
 
 (defn lifecycle-gen
-  [source dist order]
+  [source dist order select]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename (if (fn? source) nil source)
@@ -309,6 +335,7 @@
      {:lifecycle/task :output
       :buffered-wtr/filename dist
       :order order
+      :indices select
       :lifecycle/calls :clojask.clojask-output/writer-calls}]))
 
 (defn lifecycle-aggre-gen
@@ -468,9 +495,9 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception index) ;;need some work
+    (worker-func-gen-format dataframe exception index) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen (.path dataframe) dist order)
+    (lifecycle-gen (.path dataframe) dist order index)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (output/inject-dataframe dataframe)

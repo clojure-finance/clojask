@@ -4,7 +4,8 @@
             [clojure.java.io :as io]
             [taoensso.timbre :refer [debug info] :as timbre]
             [clojure.string :as string]
-            [clojure-heap.core :as heap])
+            [clojure-heap.core :as heap]
+            [clojure.set :as set])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def df (atom nil))
@@ -17,8 +18,12 @@
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
-        order (:order lifecycle)]
-   {:clojask/wtr wtr :clojask/order order}))
+        order (:order lifecycle)
+        indices (:indices lifecycle)
+        formatter (.getFormatter (:col-info (deref df)))]
+   {:clojask/wtr wtr :clojask/order order 
+    ;; :clojask/formatter (set/rename-keys formatter (zipmap indices (iterate inc 0)))
+    }))
 
 (defn- close-writer [event lifecycle]
   (.close (:clojask/wtr event)))
@@ -105,7 +110,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr :clojask/order]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr clojask/order]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.

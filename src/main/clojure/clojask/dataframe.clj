@@ -23,6 +23,15 @@
   (:refer-clojure :exclude [filter group-by sort]))
 "The clojask lazy dataframe"
 
+(def debug (atom false))
+(defn enable-debug
+  []
+  (println "Debug mode is on.")
+  (reset! debug true))
+(defn disable-debug
+  []
+  (println "Debug mode is off.")
+  (reset! debug false))
 
 (definterface DFIntf
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader] "final evaluatation")
@@ -81,7 +90,7 @@
 
   (checkInputPathClash
     [this path]
-    (defn get-path-str 
+    (defn get-path-str
       [path]
       (if (str/starts-with? path "./")
         (str "file:///" (str/replace-first path "./" ""))
@@ -93,17 +102,16 @@
           path-obj (java.nio.file.Paths/get (new java.net.URI path-str))
           input-path-obj (java.nio.file.Paths/get (new java.net.URI input-path-str))
           paths-equal (java.nio.file.Paths/.equals path-obj input-path-obj)]
-          (cond paths-equal
-            (throw (OperationException. "Output path should be different from input path of dataframe argument.")))
-          ))
-  
+      (cond paths-equal
+            (throw (OperationException. "Output path should be different from input path of dataframe argument.")))))
+
   (getOutput
-   [this]
-   (deref output-func))
-  
+    [this]
+    (deref output-func))
+
   (setOutput
-   [this output]
-   (reset! output-func output))
+    [this output]
+    (reset! output-func output))
 
   (operate ;; has assert
     [this operation colName]
@@ -167,10 +175,10 @@
     [this]
     (let [index-key (.getIndexKey (:col-info this))]
       (take (count index-key) (iterate inc 0))))
-  
+
   (getStat
-   [this]
-   (:stat this))
+    [this]
+    (:stat this))
 
   (getAggreColNames  ;; called by getColNames and preview
     [this]
@@ -178,27 +186,27 @@
           groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (.getGroupbyKeys (:row-info this))
           groupby-keys-value (vec (map #(if (nth % 0)
-                                    (let [func-str (str (nth % 0))
-                                          tmp-idx (+ (string/index-of func-str "$") 1)
-                                          bgn-idx (+ (string/index-of func-str "$" tmp-idx) 1)
-                                          end-idx (string/index-of func-str "__" bgn-idx) 
-                                          col-func-str (subs func-str bgn-idx end-idx)]
-                                          (str col-func-str "(" (index-key (nth % 1)) ")"))
-                                    (index-key (nth % 1))) groupby-keys))
+                                          (let [func-str (str (nth % 0))
+                                                tmp-idx (+ (string/index-of func-str "$") 1)
+                                                bgn-idx (+ (string/index-of func-str "$" tmp-idx) 1)
+                                                end-idx (string/index-of func-str "__" bgn-idx)
+                                                col-func-str (subs func-str bgn-idx end-idx)]
+                                            (str col-func-str "(" (index-key (nth % 1)) ")"))
+                                          (index-key (nth % 1))) groupby-keys))
         ;; Deprecated
         ;groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))
-        aggre-new-keys (.getAggreNewKeys (:row-info this))]
-        (concat groupby-keys-value aggre-new-keys)))
+          aggre-new-keys (.getAggreNewKeys (:row-info this))]
+      (concat groupby-keys-value aggre-new-keys)))
 
   (getColNames
     [this]
     (if (and (= 0 (count (.getGroupbyKeys (:row-info this)))) (= 0 (count (.getAggreNewKeys (:row-info this)))))
         ;; not aggregate
-        (let [index-key (.getIndexKey (:col-info this))
-              index (.getColIndex this)]
-              (mapv (fn [i] (get index-key i)) index))
+      (let [index-key (.getIndexKey (:col-info this))
+            index (.getColIndex this)]
+        (mapv (fn [i] (get index-key i)) index))
         ;; if aggregate
-        (.getAggreColNames this)))
+      (.getAggreColNames this)))
 
   (printCol
     ;; print column names, called by compute, computeAggre and computeGroupByAggre
@@ -257,7 +265,7 @@
   (setParser
     [this parser colName]
     (cond (not (u/is-in colName this))
-      (throw (TypeException. "Input includes non-existent column name(s).")))
+          (throw (TypeException. "Input includes non-existent column name(s).")))
     (if (nil? (.setType col-info parser colName))
       this
       (throw (OperationException. "Error in running setParser."))))
@@ -266,7 +274,8 @@
     [this format col]
     (cond (not (u/is-in col this))
           (throw (TypeException. "Input includes non-existent column name(s).")))
-    (.setFormatter col-info format col))
+    (.setFormatter col-info format col)
+    this)
 
   (preview
     [this sample-size return-size format]
@@ -277,9 +286,9 @@
   (computeTypeCheck
     [this num-worker output-dir]
     (cond (not (= java.lang.String (type output-dir)))
-      (throw (TypeException. "Output directory should be a string.")))
+          (throw (TypeException. "Output directory should be a string.")))
     (cond (not (integer? num-worker))
-      (throw (TypeException. "Number of workers should be an integer.")))
+          (throw (TypeException. "Number of workers should be an integer.")))
     (if (> num-worker 8)
       (throw (OperationException. "Max number of worker nodes is 8."))))
 
@@ -289,7 +298,7 @@
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
-      (assert (or (= (count select) (count index)) (= select [nil]))(OperationException. "Must select existing columns. You may check it using"))
+      (assert (or (= (count select) (count index)) (= select [nil])) (OperationException. "Must select existing columns. You may check it using"))
       (if (<= num-worker 8)
         (do
           (if (= ifheader nil) (.printCol this output-dir index))
@@ -298,28 +307,28 @@
               "success"
               "failed")))
         (throw (OperationException. "Max number of worker nodes is 8.")))))
-  
+
   (computeAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
     (.computeTypeCheck this num-worker output-dir)
     (let [aggre-keys (.getAggreFunc row-info)
           select (if (coll? select) select [select])
           select (if (= select [nil])
-                  (vec (take (count aggre-keys) (iterate inc 0)))
-                  (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+                   (vec (take (count aggre-keys) (iterate inc 0)))
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
           aggre-func (u/gets aggre-keys (vec (apply sorted-set select)))
           select (mapv (fn [num] (count (remove #(>= % num) select))) select)
           index (vec (apply sorted-set (mapv #(nth % 1) aggre-func)))
           shift-func (fn [pair]
-                      [(first pair) (let [num (nth pair 1)]
-                                      (.indexOf index num))])
+                       [(first pair) (let [num (nth pair 1)]
+                                       (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
           tmp (if (= ifheader nil) (.printCol this output-dir select))
           res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
-     (if (= res "success")
-       "success"
-       "failed")))
-  
+      (if (= res "success")
+        "success"
+        "failed")))
+
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
     (.computeTypeCheck this num-worker output-dir)
@@ -347,11 +356,11 @@
                   aggre-func (mapv shift-func (u/gets aggre-keys data-index))
                   formatter (.getFormatter (.col-info this))
                   formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
-             (if
+              (if
             ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-             (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter)
-              "success"
-              (throw (OperationException. "Error when aggregating."))))
+               (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter)
+                "success"
+                (throw (OperationException. "Error when aggregating."))))
             (throw (OperationException. "Error when grouping by."))))
         (catch Exception e e))
       (throw (OperationException. "Max number of worker nodes is 8."))))
@@ -389,22 +398,23 @@
                 (recur res true -)))))))
     (sort/use-external-sort path output-dir clojask-compare))
 
-    (previewDF
-      [this]
-      (let [data (.preview this 100 100 false)
-            tmp (first data)
-            types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))]
-            (conj (apply list data) types)))
+  (previewDF
+    [this]
+    (let [data (.preview this 100 100 false)
+          tmp (first data)
+          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))]
+      (conj (apply list data) types)))
 
-    (errorPredetect
-      [this msg]
-      (try 
+  (errorPredetect
+    [this msg]
+    (if (= (deref debug) false)
+      (try
         (.previewDF this)
         (catch Exception e
           (do
-            (throw (OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e)))))))))
+            (throw (OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e))))))))))
 
-    Object)
+  Object)
 
 (defn preview
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
@@ -523,7 +533,13 @@
   [this col parser]
   (let [result (.setParser this parser col)]
     (.errorPredetect this "invalid arguments passed to set-parser function")
-  result))
+    result))
+
+(defn set-formatter
+  [this col formatter]
+  (let [result (.addFormatter this formatter col)]
+    (.errorPredetect this "invalid arguments passed to set-formatter function")
+    result))
 
 ;; (defn col-names
 ;;   [this]

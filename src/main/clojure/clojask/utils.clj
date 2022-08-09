@@ -42,7 +42,7 @@
        index))
 
 (defn eval-res
-  [row types operations index]
+  [row types formats operations index]
   ;; (spit "resources/debug.txt" (str row "\n") :append true)
   ;; (spit "resources/debug.txt" (str types) :append true)
   ;; (spit "resources/debug.txt" operations :append true)
@@ -59,7 +59,7 @@
           (recur [(apply opr res)] rest))))))
 
 (defn eval-res-ne
-  [row types operations index]
+  [row types formats operations index]
   ;; (spit "resources/debug.txt" (str row "\n") :append true)
   ;; (spit "resources/debug.txt" (str types) :append true)
   ;; (spit "resources/debug.txt" operations :append true)
