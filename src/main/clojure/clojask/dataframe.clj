@@ -411,19 +411,29 @@
   (vec (map #(str "Col_" %) (range 1 (+ col-count 1)))))
 
 (defn dataframe
-  [path & {:keys [have-col] :or {have-col true}}]
+  [path & {:keys [if-header] :or {if-header true}}]
   (try
     (if (fn? path)
       ;; if the path is the input function
-      (let [headers (first (path))
+      (if (:clojask-io (path))
+        (let [io-func path
+              read-func (fn [] (:data (io-func)))
+              colNames (u/check-duplicate-col (if if-header (doall (first (read-func))) (generate-col (count (first (read-func))))))
+              col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
+              row-info (RowInfo. [] [] [] [])
+              stat (compute-stat path io-func)
+              func (if if-header (fn [] (rest (read-func))) read-func)]
+          (.init col-info colNames)
+          (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header))
+        (let [headers (first (path))
             ;; headers (string/split (doall (first (path))) #",")
-            colNames (u/check-duplicate-col (if have-col headers (generate-col (count headers))))
-            col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
-            row-info (RowInfo. [] [] [] [])
-            stat (compute-stat path)
-            func (if have-col (fn [] (rest (path))) path)]
-        (.init col-info colNames)
-        (DataFrame. func 300 col-info row-info stat (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))) have-col))
+              colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
+              col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
+              row-info (RowInfo. [] [] [] [])
+              stat (compute-stat path)
+              func (if if-header (fn [] (rest (path))) path)]
+          (.init col-info colNames)
+          (DataFrame. func 300 col-info row-info stat (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))) if-header)))
       ;; if the path is csv
       (let [io-func (fn [] (read-file path :stat true :output true))
             read-func (fn [] (:data (io-func)))
@@ -431,20 +441,20 @@
             ;; reader (io/reader path)
             ;; file (csv/read-csv reader)
             ;; data (:data file)
-            colNames (u/check-duplicate-col (if have-col (doall (first (read-func))) (generate-col (count (first (read-func))))))
+            colNames (u/check-duplicate-col (if if-header (doall (first (read-func))) (generate-col (count (first (read-func))))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [])
             ;; stat (compute-stat path)
             stat (compute-stat path io-func)
-            func (if have-col (fn [] (rest (read-func))) read-func)]
+            func (if if-header (fn [] (rest (read-func))) read-func)]
       ;; (type-detection file)
         ;; (.close reader)
         (.init col-info colNames)
       ;; 
       ;; type detection
       ;; 
-        ;; (DataFrame. func 300 col-info row-info stat have-col)
-        (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) have-col)
+        ;; (DataFrame. func 300 col-info row-info stat if-header)
+        (DataFrame. func 300 col-info row-info stat (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header)
         ))
     (catch Exception e
       (do
