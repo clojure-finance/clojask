@@ -333,36 +333,32 @@
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
     (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
-      (try
-        (let [groupby-keys (.getGroupbyKeys row-info)
-              aggre-keys (.getAggreFunc row-info)
-              select (if (coll? select) select [select])
-              select (if (= select [nil])
-                       (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
-                       (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+      (let [groupby-keys (.getGroupbyKeys row-info)
+            aggre-keys (.getAggreFunc row-info)
+            select (if (coll? select) select [select])
+            select (if (= select [nil])
+                     (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
+                     (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
               ;; pre-index (remove #(>= % (count groupby-keys)) select)
-              data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
-              groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
-              res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
-          (if (= aggre-keys [])
-            (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
-                          "the groupby keys.")))
-          (if (= ifheader nil) (.printCol this output-dir select))
-          (if (= res "success")
+            data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
+            groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
+            res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
+        (if (= aggre-keys [])
+          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                        "the groupby keys.")))
+        (if (= ifheader nil) (.printCol this output-dir select))
+        (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-            (let [shift-func (fn [pair]
-                               [(first pair) (let [index (nth pair 1)]
-                                               (.indexOf groupby-index index))])
-                  aggre-func (mapv shift-func (u/gets aggre-keys data-index))
-                  formatter (.getFormatter (.col-info this))
-                  formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
-              (if
-            ;;  (internal-aggregate (.getAggreFunc (:row-info this)) output-dir (.getKeyIndex col-info) (.getGroupbyKeys (:row-info this)) (.getAggreOldKeys (:row-info this)) (.getAggreNewKeys (:row-info this)))
-               (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter)
-                "success"
-                (throw (OperationException. "Error when aggregating."))))
-            (throw (OperationException. "Error when grouping by."))))
-        (catch Exception e e))
+          (let [shift-func (fn [pair]
+                             [(first pair) (let [index (nth pair 1)]
+                                             (.indexOf groupby-index index))])
+                aggre-func (mapv shift-func (u/gets aggre-keys data-index))
+                formatter (.getFormatter (.col-info this))
+                formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+            (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter))
+              "success"
+              (throw (OperationException. "Error when aggregating."))))
+          (throw (OperationException. "Error when grouping by."))))
       (throw (OperationException. "Max number of worker nodes is 8."))))
 
   (sort
@@ -629,7 +625,7 @@
           b-index (if b-roll (vec (apply sorted-set (conj b-index b-roll))) b-index)
           b-roll (if b-roll (count (remove #(>= % b-roll) b-index)) nil)
           ;; b-write
-          ;; a-format
+          a-format (set/rename-keys (.getFormatter (.col-info a)) (zipmap a-index (iterate inc 0)))
           b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
           ;; test (println a-index b-index b-format write-index b-roll)
@@ -644,7 +640,7 @@
         (do
           (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys a-index exception)
           (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception)
-          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index)
+          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index)
           )))))
 
 (defn inner-join

@@ -49,6 +49,11 @@
         reorder (fn [a b]
                       ;; (println [a b])
                   (u/gets (concat a b) index))
+        groupby-keys (.getGroupbyKeys (:row-info df))
+        ;; tmp (println groupby-keys)
+        groupby-index (mapv #(nth % 1) groupby-keys)
+        org-format (set/rename-keys (.getFormatter (:col-info df)) (zipmap groupby-index (iterate inc 0)))
+        pre-index (take (count groupby-index) (iterate inc 0))
         ]
     (defn worker-func
       "refered in preview"
@@ -56,6 +61,7 @@
       ;; (println formatters)
       (let [data (read-csv-seq (:file seq))
             pre (:d seq)
+            pre (u/gets-format pre pre-index org-format)
             data-map (-> (iterate inc 0)
                          (zipmap (apply map vector data)))]
         ;; (mapv (fn [_]
@@ -68,18 +74,20 @@
           (if (= aggre-funcs [])
             ;; {:d (vec (concat pre res))}
             (if (= res [])
-              {:d [(u/gets-format pre index formatters)]}
+              {:d [pre]}
               {:d (mapv reorder (repeat pre) (apply map vector res))})
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
                   res-funcs (rest aggre-funcs)
+                  ;; tmp (println index)
+                  ;; tmp (println (str data-map))
                   new (func (get data-map index))
                   new (if (coll? new)
                         new
                         (vector new))
                   new (mapv (fn [_] (if-let [formatter (get formatters index)]
                                      (formatter _)
-                                     _)) new)]
+                                     (str _))) new)]
               (if (or (= res []) (= (count new) (count (last res))))
                 (recur res-funcs (conj res new))
                 (throw (Exception. "aggregation result is not of the same length")))
