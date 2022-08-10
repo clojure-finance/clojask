@@ -70,12 +70,12 @@
 
 (deftest col-api-test
     (testing "Column manipulation APIs"
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
-    (reorder-col y ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"])
-    (is (= (col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
-    (rename-col y ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"])
-    (is (= (col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"]))
-    ))
+      (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+      (reorder-col y ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"])
+      (is (= (get-col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
+      (rename-col y "Department" "new-Department")
+    ;; (map (fn [a b] (rename-col y a b)) (get-col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"])
+      (is (= (get-col-names y) ["Employee" "new-Department" "EmployeeName" "Salary" "UpdateDate"]))))
 
 (deftest col-select-output-test
     (testing "Select column(s) argument"
@@ -98,27 +98,27 @@
 
 (deftest join-api-output-test
     (testing "Join dataframes APIs"
-    (def x (dataframe "test/clojask/Employees-example.csv"))
-    (def y (dataframe "test/clojask/Employees-info-example.csv"))
-    (compute (left-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-4.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-4.csv) <(sort test/clojask/correct_outputs/1-4.csv)")]
-        (is (= "" (:out result))) 
+      (def x (dataframe "test/clojask/Employees-example.csv"))
+      (def y (dataframe "test/clojask/Employees-info-example.csv"))
+      (compute (left-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-4.csv" :exception false)
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-4.csv) <(sort test/clojask/correct_outputs/1-4.csv)")]
+        (is (= "" (:out result)))
         (is (= "" (:err result))))
-    (compute (right-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-5.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-5.csv) <(sort test/clojask/correct_outputs/1-5.csv)")]
-        (is (= "" (:out result))) 
+      (compute (right-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-5.csv" :exception false)
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-5.csv) <(sort test/clojask/correct_outputs/1-5.csv)")]
+        (is (= "" (:out result)))
         (is (= "" (:err result))))
-    (compute (inner-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-6.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-6.csv) <(sort test/clojask/correct_outputs/1-6.csv)")]
-        (is (= "" (:out result))) 
+      (def z (inner-join x y ["Employee"] ["Employee"]))
+      (compute z 8 "test/clojask/test_outputs/1-6.csv" :exception false :select ["2_Employee" "2_EmployeeName" "2_DayOff" "2_UpdateDate" "1_Employee" "1_EmployeeName" "1_Department" "1_Salary" "1_UpdateDate"])
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-6.csv) <(sort test/clojask/correct_outputs/1-6.csv)")]
+        (is (= "" (:out result)))
         (is (= "" (:err result))))
-    (compute (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate") 8 "test/clojask/test_outputs/1-7.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-7.csv) <(sort test/clojask/correct_outputs/1-7.csv)")]
-        (is (= "" (:out result))) 
+      (compute (rolling-join-forward x y ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate") 8 "test/clojask/test_outputs/1-7.csv" :exception false)
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-7.csv) <(sort test/clojask/correct_outputs/1-7.csv)")]
+        (is (= "" (:out result)))
         (is (= "" (:err result))))
-    (compute (rolling-join-backward x y ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate") 8 "test/clojask/test_outputs/1-8.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-8.csv) <(sort test/clojask/correct_outputs/1-8.csv)")]
-        (is (= "" (:out result))) 
-        (is (= "" (:err result))))
-    ))
+      (compute (rolling-join-backward x y ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate") 8 "test/clojask/test_outputs/1-8.csv" :exception false)
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-8.csv) <(sort test/clojask/correct_outputs/1-8.csv)")]
+        (is (= "" (:out result)))
+        (is (= "" (:err result))))))
 

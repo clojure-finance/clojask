@@ -233,12 +233,14 @@
     this)
 
   (renameCol
-    [this old-col new-col]
+   [this old-col new-col]
+   (cond (not (u/is-in old-col this))
+         (throw (TypeException. "Input includes non-existent column name(s).")))
     ;; (cond (not (= (count (.getKeys (.col-info this))) (count new-col)))
     ;;       (throw (TypeException. "Number of new column names not equal to number of existing columns.")))
-    (.renameColInfo (.col-info this) old-col new-col)
+   (.renameColInfo (.col-info this) old-col new-col)
     ;; "success"
-    this)
+   this)
 
   (head
     [this n]
