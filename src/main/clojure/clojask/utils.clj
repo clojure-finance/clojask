@@ -267,18 +267,18 @@
 (defn init-file
   [out-dir header]
   (io/delete-file out-dir true)
-  (doseq [file (rest (file-seq (io/file "./_clojask/grouped/")))]
+  (doseq [file (rest (file-seq (io/file "./.clojask/grouped/")))]
     (try
       (io/delete-file file)
       (catch Exception e nil)))
-  (doseq [file (rest (file-seq (io/file "./_clojask/join/")))]
+  (doseq [file (rest (file-seq (io/file "./.clojask/join/")))]
     (try
       (io/delete-file file)
       (catch Exception e nil)))
-  (io/make-parents "./_clojask/grouped/a.txt")
-  (io/make-parents "./_clojask/join/a/a.txt")
-  (io/make-parents "./_clojask/join/b/a.txt")
-  (io/make-parents "./_clojask/sort/a.txt")
+  (io/make-parents "./.clojask/grouped/a.txt")
+  (io/make-parents "./.clojask/join/a/a.txt")
+  (io/make-parents "./.clojask/join/b/a.txt")
+  (io/make-parents "./.clojask/sort/a.txt")
   (if (not= header nil)
     (with-open [wrtr (io/writer out-dir)]
       (.write wrtr (str (str/join "," header) "\n")))))

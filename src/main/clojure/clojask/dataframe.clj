@@ -344,7 +344,7 @@
               ;; pre-index (remove #(>= % (count groupby-keys)) select)
             data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
             groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
-            res (start-onyx-groupby num-worker batch-size this "_clojask/grouped/" groupby-keys groupby-index exception)]
+            res (start-onyx-groupby num-worker batch-size this ".clojask/grouped/" groupby-keys groupby-index exception)]
         (if (= aggre-keys [])
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys.")))
@@ -637,11 +637,11 @@
       (if (= ifheader nil) (.printCol this output-dir select))
       (if (not= type 3)
         (do
-          (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception) ;; todo
+          (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception) ;; todo
           (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))
         (do
-          (start-onyx-groupby num-worker 10 a "./_clojask/join/a/" a-keys a-index exception)
-          (start-onyx-groupby num-worker 10 b "./_clojask/join/b/" b-keys b-index exception)
+          (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
+          (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)
           (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index)
           )))))
 

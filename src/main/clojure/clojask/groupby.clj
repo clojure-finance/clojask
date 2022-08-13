@@ -100,7 +100,7 @@
 (defn internal-aggregate
   "aggregate one group use the function"
   [func out-dir key-index groupby-keys keys & [new-keys]]
-  (let [directory (clojure.java.io/file "./_clojask/grouped/")
+  (let [directory (clojure.java.io/file "./.clojask/grouped/")
         files (file-seq directory)]
     (doseq [file (rest files)]
       ;; w/o multi-threading

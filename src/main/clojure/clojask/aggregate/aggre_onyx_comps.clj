@@ -239,7 +239,7 @@
      :zookeeper/server? true
      :zookeeper.server/port 2188
      :onyx/tenancy-id id
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -248,7 +248,7 @@
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
      :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
@@ -273,13 +273,13 @@
     (config-env)
     (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./_clojask/grouped" dist)
+    (lifecycle-gen "./.clojask/grouped" dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (output/inject-dataframe dataframe)
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -293,8 +293,8 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")

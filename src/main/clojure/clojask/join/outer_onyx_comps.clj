@@ -228,7 +228,7 @@
      :zookeeper/server? true
      :zookeeper.server/port 2188
      :onyx/tenancy-id id
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -237,7 +237,7 @@
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
      :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
@@ -263,13 +263,13 @@
     (config-env)
     (worker-func-gen a b exception a-index b-index a-format b-format write-index) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./_clojask/join/a" dist)
+    (lifecycle-gen "./.clojask/join/a" dist)
     (flow-cond-gen num-work)
     ;; (input/inject-dataframe dataframe)
     (output/inject-write-func (.getOutput a))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -283,17 +283,17 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
 
   ;; step 2
   (try
     (worker-func-gen2 a b exception a-index b-index a-format b-format write-index) ;;need some work
-    (lifecycle-gen "./_clojask/join/b" dist)
+    (lifecycle-gen "./.clojask/join/b" dist)
     ;; (input/inject-dataframe dataframe)
 
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (outer join 2)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (outer join 2)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -307,9 +307,9 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join 2)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join 2)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
 
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (outer join)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
