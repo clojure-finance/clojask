@@ -189,7 +189,9 @@
   (atom (fn [string]
           (try
             (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-            (catch Exception e (throw e))))))
+            ;; (catch Exception e (throw e))
+            (catch Exception e nil)
+            ))))
 
 (def fromDate
   (atom (fn [date]
@@ -205,7 +207,9 @@
               (fn [string]
                 (try
                   (.parse (java.text.SimpleDateFormat. format-string) string)
-                  (catch Exception e (throw e)))))
+                  (catch Exception e (throw e))
+                  (catch Exception e nil)
+                  )))
 
       (reset! fromDate
               (fn [date]
@@ -217,7 +221,9 @@
               (fn [string]
                 (try
                   (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-                  (catch Exception e (throw e)))))
+                  ;; (catch Exception e (throw e))
+                  (catch Exception e nil)
+                  )))
 
       (reset! fromDate
               (fn [date]
@@ -284,8 +290,8 @@
     "nil"))
 
 (defn get-type-string-vec
-  [vec]
-  (let [types (mapv get-type-string vec)
+  [col]
+  (let [types (mapv get-type-string col)
         types (sort (vec (set types)))]
     (str/join " & " types)))
 

@@ -803,10 +803,12 @@
 
 (defn print-df
   [dataframe & [sample-size return-size]]
-  (if (= (type dataframe) DataFrame)
+  (assert (or (= (type dataframe) clojask.dataframe.DataFrame) (= (type dataframe) clojask.dataframe.JoinedDataFrame)) "Please input a clojask dataframe.")
+  (if (= (type dataframe) clojask.dataframe.DataFrame)
     (let [data (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false)
           tmp (first data)
-          types (zipmap (keys tmp) (map u/get-type-string (vals tmp)))
+          key (keys tmp)
+          types (zipmap key (map u/get-type-string-vec (map #(for [row data] (get row %)) key)))
           omit (zipmap (keys tmp) (repeat "..."))
           data (vec (conj (apply list data) types))
           data (if (= (count data) (inc (or return-size 11)))
