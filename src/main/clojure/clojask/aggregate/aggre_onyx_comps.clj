@@ -46,6 +46,14 @@
         formatters formatter
         ;; key-index (.getKeyIndex (.col-info (deref dataframe)))
         ;; formatters (set/rename-keys formatters key-index)
+        reorder (fn [a b]
+                      ;; (println [a b])
+                  (u/gets (concat a b) index))
+        groupby-keys (.getGroupbyKeys (:row-info df))
+        ;; tmp (println groupby-keys)
+        groupby-index (mapv #(nth % 1) groupby-keys)
+        org-format (set/rename-keys (.getFormatter (:col-info df)) (zipmap groupby-index (iterate inc 0)))
+        pre-index (take (count groupby-index) (iterate inc 0))
         ]
     (defn worker-func
       "refered in preview"
@@ -53,11 +61,9 @@
       ;; (println formatters)
       (let [data (read-csv-seq (:file seq))
             pre (:d seq)
+            pre (u/gets-format pre pre-index org-format)
             data-map (-> (iterate inc 0)
-                         (zipmap (apply map vector data)))
-            reorder (fn [a b]
-                      ;; (println [a b])
-                      (u/gets (concat a b) index))]
+                         (zipmap (apply map vector data)))]
         ;; (mapv (fn [_]
         ;;        (let [func (first _)
         ;;              index (nth _ 1)]
@@ -68,18 +74,20 @@
           (if (= aggre-funcs [])
             ;; {:d (vec (concat pre res))}
             (if (= res [])
-              {:d [(u/gets pre index)]}
+              {:d [pre]}
               {:d (mapv reorder (repeat pre) (apply map vector res))})
             (let [func (first (first aggre-funcs))
                   index (nth (first aggre-funcs) 1)
                   res-funcs (rest aggre-funcs)
+                  ;; tmp (println index)
+                  ;; tmp (println (str data-map))
                   new (func (get data-map index))
                   new (if (coll? new)
                         new
                         (vector new))
                   new (mapv (fn [_] (if-let [formatter (get formatters index)]
                                      (formatter _)
-                                     _)) new)]
+                                     (str _))) new)]
               (if (or (= res []) (= (count new) (count (last res))))
                 (recur res-funcs (conj res new))
                 (throw (Exception. "aggregation result is not of the same length")))
@@ -231,7 +239,7 @@
      :zookeeper/server? true
      :zookeeper.server/port 2188
      :onyx/tenancy-id id
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -240,7 +248,7 @@
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
      :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
@@ -265,13 +273,13 @@
     (config-env)
     (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./_clojask/grouped" dist)
+    (lifecycle-gen "./.clojask/grouped" dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-
+    (output/inject-dataframe dataframe)
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -285,8 +293,8 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")

@@ -60,7 +60,8 @@
   (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index formatter) ;; generate output filename
         groupby-wrtr (io/writer output-filename :append true)]
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
-    (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
+    ;; (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
+    (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
 
     ;; write as csv format e.g. Tim,62,0.1,12
     ;(.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))
@@ -99,7 +100,7 @@
 (defn internal-aggregate
   "aggregate one group use the function"
   [func out-dir key-index groupby-keys keys & [new-keys]]
-  (let [directory (clojure.java.io/file "./_clojask/grouped/")
+  (let [directory (clojure.java.io/file "./.clojask/grouped/")
         files (file-seq directory)]
     (doseq [file (rest files)]
       ;; w/o multi-threading

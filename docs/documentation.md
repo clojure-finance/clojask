@@ -1,27 +1,5 @@
 ### API DOCUMENTATION
 
-##### Features
-
-- Unlimited size
-
-  Theoretically speaking, it supports dataset larger than memory to infinity!
-
-- All native types
-
-  All the datatypes used to store data is native Clojure (or Java) types!
-
-- From file to file
-
-  Integrate IO inside the dataframe. No need to write your own read-in and output functions!
-
-- Distributed (coming soon)
-
-  Most operations could be distributed to different computers in a clusters. See the principle in [Onyx](http://www.onyxplatform.org/)
-
-- Lazy operations
-
-  Some operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
-
 ##### Basic Information
 
 - Most operations to the dataframe is performed lazily and all at once with `compute` except `sort ` and `join`. 
@@ -33,23 +11,31 @@
 
 #### dataframe 
 
-Defines the dataframe and returns `Clojask.DataFrame` 
+Defines the dataframe and returns `clojask.dataframe.DataFrame` 
 
 
-| Argument          | Type   | Function                    | Remarks |
-| ----------------- | ------ | --------------------------- | ------- |
-| `input-directory` | String | Directory of DataFrame file |         |
+| Argument                                        | Type                       | Function                                              | Remarks                                                      |
+| ----------------------------------------------- | -------------------------- | ----------------------------------------------------- | ------------------------------------------------------------ |
+| `input-directory`<br />or<br />`input-function` | String<br /><br />Function | Path of dataset file<br /><br />Source of the dataset | If `input-directory`, the output format is automatically set to correspond to the input format (can be modified by `:output` option during `compute`) and (coming soon) progress indication is available during `compute`.<br />If `input-function` comes from `(fn [] (clojask-io.input.read-file ... :size true :output true))`, the above functions are also supported.<br />If `input-function` is user-defined, the above functions are not available, but you can still change the output format by `:output` option of `compute` later<br />**How to define input-function?**<br />The `input-function` should be a function that returns **lazy** sequence of vectors that represents each row. "Lazy" here is necessary if the dataset is larger than memory. |
+| [`if-header`]                                   | Boolean                    | If the dataset has column names as the first row      | If `false`, the default column names will be $Col\_i$, where $1\leq i\leq number \space of \space columns$. |
 
 ```clojure
-(def x (dataframe "resources/dataframe.csv"))
 ;; defines df as a dataframe from dataframe.csv file
+(def df (dataframe "resources/Employee.csv"))
+
+;; define df to be a dataframe with customized seperator
+(require '[clojask-io.input :as input])
+(def df (dataframe (fn [] (input/read-file "resources/Employees.csv" :sep "," :output true :stat true))))
+
+;; define df with a lazy sequence
+(def df (dataframe (fn [] (map vector (take 1000 (iterate inc 1)) (take 1000 (repeat 1)))) :if-header false))
 ```
 
 ---
 
 #### print-df
 
-Provides a preview of the resulting data (column headings, datatype, and data) by performing a sample based compute on the current dataframe manipulation operations to be performed by `compute`
+Provides a preview of the resulting data (column headings, datatype, and data) by performing a sample based compute on the current dataframe manipulation operations to be performed by `compute`. **Print the result to the nice-formatted table.**
 
 | Argument        | Type              | Function                                                     | Remarks                  |
 | --------------- | ----------------- | ------------------------------------------------------------ | ------------------------ |
@@ -60,6 +46,24 @@ Provides a preview of the resulting data (column headings, datatype, and data) b
 ```clojure 
 (print-df x 1000 10)
 ;; prints 10 rows of data based on 1000 sample data entries with the current operations 
+```
+
+---
+
+#### preview
+
+Provides a preview of the resulting data (column headings, datatype, and data) by performing a sample based compute on the current dataframe manipulation operations to be performed by `compute`. **Return the result as a vector of maps.**
+
+| Argument       | Type              | Function                                                     | Remarks                                                      |
+| -------------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `dataframe`    | Clojask.DataFrame | The operated object                                          |                                                              |
+| `sample size`  | Integer           | Specify the sample size taken from the beginning of the dataframe | Default of 1000 elements                                     |
+| `return size`  | Integer           | Specify the returning size of the dataframe elements         | Default of 10 elements                                       |
+| [`formatting`] | Boolean           | Whether to format the results to string using the *formatters* defined by `set-type` and `set-formatter` | By default, false, i.e. values are kept as their last data type before formatting |
+
+```clojure 
+(preview x 1000 10)
+;; [{"Employee" "1" "EmployeeName" "Alice" "Department" "11" "Salary" "300"} {...} ...]
 ```
 
 ---
@@ -86,12 +90,13 @@ Get the column names of the dataframe
 
 #### rename-col
 
-Reorder the columns / rename the column names in the dataframe
+Rename the column names in the dataframe
 
-| Argument    | Type               | Function                    | Remarks                                                      |
-| ----------- | ------------------ | --------------------------- | ------------------------------------------------------------ |
-| `dataframe` | Clojask.DataFrame  | The operated object         |                                                              |
-| `columns`   | Clojure.collection | The new set of column names | Should be existing set of column names in dataframe if it is `reorder-col` |
+| Argument     | Type              | Function            | Remarks                                               |
+| ------------ | ----------------- | ------------------- | ----------------------------------------------------- |
+| `dataframe`  | Clojask.DataFrame | The operated object |                                                       |
+| `old column` | String            | The old column name | Should be an existing column name in dataframe        |
+| `new column` | String            | The new column name | Should be a unique column name from the existing ones |
 
 ```clojure
 ;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
@@ -144,7 +149,7 @@ Set the data type of a column. As a result, the value will be parsed as the assi
 
 #### set-parser
 
-A more flexible way to set type.
+A more flexible way to set type by specifying the customized parser.
 
 | Argument    | Type              | Function                                                     | Remarks                                                      |
 | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -160,6 +165,25 @@ A more flexible way to set type.
 ```
 
 ---
+
+#### set-formatter
+
+A more flexible way to set type by specifying the customized formatter.
+
+| Argument    | Type              | Function                                                     | Remarks                                                      |
+| ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `dataframe` | Clojask.DataFrame | The operated object                                          |                                                              |
+| `column`    | String            | Target columns                                               | Should be existing columns within the dataframe              |
+| `formatter` | function          | The formatter function that will format a data type (can be checked from the `print-df` function) to string for outputting | The function should take only one argument which is a string, and the parsed type should be serializable. |
+
+**Example**
+
+```clojure
+;; parse all the values in "Salary" with this function
+(set-parser x "Salary" #(Double/parseDouble %))
+```
+
+#### 
 
 #### operate (In-place modification)
 
@@ -275,18 +299,23 @@ Aggregate the dataframe(s) by applying some functions. The aggregation function 
 **Example**
 
 ```clojure
-;; get the min of the selected column(s)
-(aggregate x clojask/max ["Salary"] ["Salary-min"])
-(aggregate x clojask/min ["Employee" "EmployeeName"] ["Employee-min" "EmployeeName-min"])
+(require '[clojask.api.gb-aggregate :as gb-agg])
+(require '[clojask.api.aggregate :as agg])
+;; aggregate without group, apply aggregation to the whole dataframe
+(aggregate x agg/max "Salary")
+(group-by x "Department")
+;; get the max/min of the selected column(s) of each group
+(aggregate x gb-agg/max ["Salary"] ["Salary-max"])
+(aggregate x gb-agg/min ["Employee" "EmployeeName"] ["Employee-min" "EmployeeName-min"])
 ```
 
-Custom functions can be made for aggregation. Please refer to [Aggregation Function](/posts-output/aggregate-function) for additional details  
+Custom functions can be made for aggregation. Please refer to [Aggregation Function API](/posts-output/aggregate-function) for additional details  
 
 The keys used in specifying the aggregate operation are identical to the [group-by](#group-by) function 
 
 ---
 
-#### sort
+#### sort (<red>Deprecated</red>)
 
 **Immediately** sort the dataframe
 
@@ -404,16 +433,18 @@ This means you cannot further apply complicated operations to a joined dataframe
 
 Compute the result. The pre-defined lazy operations will be executed in pipeline, ie the result of the previous operation becomes the argument of the next operation.
 
-| Argument         | Type                                        | Function                                                     | Remarks                                                      |
-| ---------------- | ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe`      | Clojask.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
-| `num of workers` | int (max 8)                                 | The number of worker instances (except the input and output nodes) | Uses [onyx](http://www.onyxplatform.org/) as the distributed platform |
-| `output path`    | String                                      | The path of the output csv file                              | Could exist or not.                                          |
-| [`exception`]    | boolean                                     | Whether an exception during calculation will cause termination | Is useful for debugging or detecting empty fields            |
-| [`select`]       | String / Collection of strings              | Chooses columns to select for the operation                  | Can only specify either of select and exclude                |
-| [`exclude`]      | String / Collection of strings              | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
-| [`header`]       | Collection of strings                       | The header names in the output file that appears in the first row | Will replace the default column names. Should be equal to the number of columns. |
-| [`melt`]         | Function (one argument)                     | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (This API is used in the `extensions.reshpae.melt`) |
+| Argument            | Type                                        | Function                                                     | Remarks                                                      |
+| ------------------- | ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `dataframe`         | Clojask.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
+| `num of workers`    | int (max 8)                                 | The number of worker instances (except the input and output nodes) | Uses [onyx](http://www.onyxplatform.org/) as the distributed platform |
+| `output path`       | String                                      | The path of the output csv file                              | If the path already exists, will overwrite the file.         |
+| [`exception`]       | Boolean                                     | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
+| [`order`]           | Boolean                                     | If enforce the order of rows in the output to be the same as input | By default `false`. If set to `true`, will sacrifice the performance. |
+| [`output-function`] | Function                                    | Specify how to output a row vector to the output file        | Takes two arguments.<br />`writer` java.io.BufferedWriter<br />`rows` clojure.lang.PersistentVector (rows) of clojure.lang.PersistentVector (each row) |
+| [`select`]          | String / Collection of strings              | Chooses columns to select for the operation                  | Can only specify either of select and exclude                |
+| [`exclude`]         | String / Collection of strings              | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
+| [`header`]          | Collection of strings                       | The column names in the output file that appears in the first row | Will replace the default column names. Should be equal to the number of columns. |
+| [`melt`]            | Function (one argument)                     | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (This API is used in the `extensions.reshpae.melt`) |
 
 **Return**
 
@@ -422,21 +453,23 @@ A `Clojask.DataFrame`, which is the resultant dataframe.
 **Example**
 
 ```clojure
-(compute x 8 "../resources/test.csv" :exception true)
+(compute x 8 "output.csv" :exception true)
 ;; computes all the pre-registered operations
 
-(compute x 8 "../resources/test.csv" :select "col a")
+(compute x 8 "output.csv" :select "col a")
 ;; only select column a
 
-(compute x 8 "../resources/test.csv" :select ["col b" "col a"])
+(compute x 8 "output.csv" :select ["col b" "col a"])
 ;; select two columns, column b and column a in order
 
-(compute x 8 "../resources/test.csv" :exclude ["col b" "col a"])
+(compute x 8 "output.csv" :exclude ["col b" "col a"])
 ;; select all columns except column b and column a, other columns are in order
 
-(compute x 8 "../resources/test.csv" :melt (fn [row] (map concat (repeat (take 2 x)) (take-last 2 x))))
+(compute x 3 "output.csv" :output (fn [wtr rows] (doseq [row rows] (.write wtr (str (str/join ", " row) "\n")))))
+;; seperate each value in the row with ", "; seperate each row by "\n"
+
+(compute x 8 "output.csv" :melt (fn [row] (map concat (repeat (take 2 x)) (take-last 2 x))))
 ;; each result row becomes two rows
 ;; [a b c d] => [[a b c]
 ;;							 [a b d]]
 ```
-

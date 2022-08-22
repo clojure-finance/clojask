@@ -42,7 +42,7 @@
        index))
 
 (defn eval-res
-  [row types operations index]
+  [row types formats operations index]
   ;; (spit "resources/debug.txt" (str row "\n") :append true)
   ;; (spit "resources/debug.txt" (str types) :append true)
   ;; (spit "resources/debug.txt" operations :append true)
@@ -59,7 +59,7 @@
           (recur [(apply opr res)] rest))))))
 
 (defn eval-res-ne
-  [row types operations index]
+  [row types formats operations index]
   ;; (spit "resources/debug.txt" (str row "\n") :append true)
   ;; (spit "resources/debug.txt" (str types) :append true)
   ;; (spit "resources/debug.txt" operations :append true)
@@ -189,7 +189,9 @@
   (atom (fn [string]
           (try
             (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-            (catch Exception e (throw e))))))
+            ;; (catch Exception e (throw e))
+            (catch Exception e nil)
+            ))))
 
 (def fromDate
   (atom (fn [date]
@@ -205,7 +207,9 @@
               (fn [string]
                 (try
                   (.parse (java.text.SimpleDateFormat. format-string) string)
-                  (catch Exception e (throw e)))))
+                  (catch Exception e (throw e))
+                  (catch Exception e nil)
+                  )))
 
       (reset! fromDate
               (fn [date]
@@ -217,7 +221,9 @@
               (fn [string]
                 (try
                   (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-                  (catch Exception e (throw e)))))
+                  ;; (catch Exception e (throw e))
+                  (catch Exception e nil)
+                  )))
 
       (reset! fromDate
               (fn [date]
@@ -261,18 +267,18 @@
 (defn init-file
   [out-dir header]
   (io/delete-file out-dir true)
-  (doseq [file (rest (file-seq (io/file "./_clojask/grouped/")))]
+  (doseq [file (rest (file-seq (io/file "./.clojask/grouped/")))]
     (try
       (io/delete-file file)
       (catch Exception e nil)))
-  (doseq [file (rest (file-seq (io/file "./_clojask/join/")))]
+  (doseq [file (rest (file-seq (io/file "./.clojask/join/")))]
     (try
       (io/delete-file file)
       (catch Exception e nil)))
-  (io/make-parents "./_clojask/grouped/a.txt")
-  (io/make-parents "./_clojask/join/a/a.txt")
-  (io/make-parents "./_clojask/join/b/a.txt")
-  (io/make-parents "./_clojask/sort/a.txt")
+  (io/make-parents "./.clojask/grouped/a.txt")
+  (io/make-parents "./.clojask/join/a/a.txt")
+  (io/make-parents "./.clojask/join/b/a.txt")
+  (io/make-parents "./.clojask/sort/a.txt")
   (if (not= header nil)
     (with-open [wrtr (io/writer out-dir)]
       (.write wrtr (str (str/join "," header) "\n")))))
@@ -282,6 +288,12 @@
   (if (not= x nil)
    (subs (str (type x)) 6)
     "nil"))
+
+(defn get-type-string-vec
+  [col]
+  (let [types (mapv get-type-string col)
+        types (sort (vec (set types)))]
+    (str/join " & " types)))
 
 (defn check-duplicate-col
   "Check for duplicated column names and return a column names list w/o duplicates"

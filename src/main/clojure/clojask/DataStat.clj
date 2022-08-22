@@ -5,7 +5,8 @@
         '[com.clojask.exception OperationException])
 
 (definterface DataIntf
-  (init [source])
+  (init [source file])
+  (initWithIO [io-func])
   (getSize []))
 
 
@@ -18,20 +19,31 @@
   DataIntf
 
   (init
-    [this source]
-    (if (fn? source)
-      (do
-        (set! file-size nil)
-        (set! num-rows nil))
-      (do
-        (set! file-size (.length (io/file source))))))
+   [this source file]
+   (if file
+     (do
+       (set! file-size (:size (file)))
+       (set! num-rows nil))
+     (if (fn? source)
+       (do
+         (set! file-size nil)
+         (set! num-rows nil))
+       (do
+         (set! file-size (.length (io/file source)))))))
+  
+  (initWithIO
+   [this io-func]
+   (set! file-size (:size (io-func)))
+   (set! num-rows nil))
 
-  (getSize
+   (getSize
     [this]
     file-size))
 
 (defn compute-stat
-  [source]
+  [source & [io-func]]
   (let [stat (DataStat. nil nil)]
-    (.init stat source)
+    (if io-func
+      (.initWithIO stat io-func)
+      (.init stat source nil))
     stat))

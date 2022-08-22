@@ -3,7 +3,7 @@
   (:require [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojure.string :as str]
-            [clojask.dataframe :as cj]))
+            [clojask.dataframe :as ck]))
 
 (defn melt
   "Reshape the clojask dataframe from wide to long."
@@ -11,7 +11,7 @@
   (let [id-count (count id)
         mea-count (count measure)
         func (fn [x] (map concat (repeat (take id-count x)) (map vector measure (take-last mea-count x))))]
-    (cj/compute df 1 output-dir :select (concat id measure) :melt func :header (concat id [measure-name value-name])))
+    (ck/compute df 1 output-dir :select (concat id measure) :melt func :header (concat id [measure-name value-name])))
   )
 
 (defn- dcast-second
@@ -30,9 +30,9 @@
   "Reshape the clojask dataframe from long to wide."
   [x output-dir id measure-name value-name vals & {:keys [vals-name] :or {vals-name vals}}]
   (assert (= [] (.getGroupbyKeys x)) "dcast is not applicable to this dataframe")
-  (cj/operate x (fn [a b] [a b]) [measure-name value-name] "dcast1014")
-  (cj/group-by x id)
+  (ck/operate x (fn [a b] [a b]) [measure-name value-name] "dcast1014")
+  (ck/group-by x id)
   (let [func #(dcast-1 % vals)]
-    (cj/aggregate x func "dcast1014"))
-  (cj/compute x 8 output-dir :header (concat id vals-name))
+    (ck/aggregate x func "dcast1014"))
+  (ck/compute x 8 output-dir :header (concat id vals-name))
   )

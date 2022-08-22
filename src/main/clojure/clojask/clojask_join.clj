@@ -29,12 +29,16 @@
 
 (defn- inject-into-eventmap
   [event lifecycle]
-  (let 
-   [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
+  (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
     ;; a-map (.getKeyIndex (.col-info (deref a)))
-    a-format (.getFormatter (.col-info (deref a)))
+        a-format (.getFormatter (.col-info (deref a)))
     ;; b-map (.getKeyIndex (.col-info (deref b)))
-    b-format (.getFormatter (.col-info (deref b)))]
+        ;; a-format (set/rename-keys a-format (zipmap (deref a-index) (iterate inc 0)))
+        ;; b-format (.getFormatter (.col-info (deref b)))
+        ;; b-format (set/rename-keys b-format (zipmap (deref b-index) (iterate inc 0)))
+        b-format (deref b-format)
+        ]
+
     {:clojask/wtr wtr
     ;;  :clojask/a-keys (:clojask/a-keys lifecycle)
      :clojask/a-keys (deref a-keys)
@@ -58,7 +62,7 @@
   {:lifecycle/before-task-start inject-into-eventmap
   :lifecycle/after-task-stop close-writer})
 
-(defrecord ClojaskJoin [a-index b-index join-index]
+(defrecord ClojaskJoin [a-index b-index join-index write-func]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -100,7 +104,7 @@
     ;; before write-batch is called repeatedly.
     true)
 
-  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/a-format]} replica messenger]
+  (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/a-format clojask/b-format clojask/join]} replica messenger]
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
@@ -113,7 +117,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (join/output-join wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index join-index)))
+              (join/output-join wtr (:d msg) a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index join-index write-func)))
 
           (recur (rest batch)))))
     true))
@@ -124,4 +128,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn join [pipeline-data]
-  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index)))
+  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index) (.getOutput (deref a)))) ;; todo

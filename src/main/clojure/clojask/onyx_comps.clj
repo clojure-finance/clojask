@@ -61,6 +61,7 @@
   (reset! dataframe df)
   (let [operations (.getDesc (:col-info (deref dataframe)))
         types (.getType (:col-info (deref dataframe)))
+        formats (.getFormatter (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
         indices index]
     ;; (println indices)
@@ -68,18 +69,43 @@
       (defn worker-func
         [seg]
         (let [id (:id seg)
-              data (string/split (:d seg) #"," -1)] ;; -1 is very important here!
+              data (:d seg)] ;; -1 is very important here!
           (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res data types operations _)) indices)}
+            {:id id :d (mapv (fn [_] (eval-res data types formats operations _)) indices)}
             {:id id})))
       (defn worker-func
         [seg]
         (let [id (:id seg)
-              data (string/split (:d seg) #"," -1)]
+              data (:d seg)]
           (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res-ne data types operations _)) indices)}
+            {:id id :d (mapv (fn [_] (eval-res-ne data types formats operations _)) indices)}
             {:id id})))))
   )
+
+(defn worker-func-gen-format
+  [df exception index]
+  (reset! dataframe df)
+  (let [operations (.getDesc (:col-info (deref dataframe)))
+        types (.getType (:col-info (deref dataframe)))
+        formats (.getFormatter (:col-info (deref dataframe)))
+        filters (.getFilters (:row-info df))
+        indices index]
+    ;; (println indices)
+    (if exception
+      (defn worker-func
+        [seg]
+        (let [id (:id seg)
+              data (:d seg)] ;; -1 is very important here!
+          (if (filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res data types formats operations _))) indices)}
+            {:id id})))
+      (defn worker-func
+        [seg]
+        (let [id (:id seg)
+              data (:d seg)]
+          (if (filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res-ne data types formats operations _))) indices)}
+            {:id id}))))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
@@ -297,7 +323,7 @@
 
 
 (defn lifecycle-gen
-  [source dist order]
+  [source dist order select]
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename (if (fn? source) nil source)
@@ -309,6 +335,7 @@
      {:lifecycle/task :output
       :buffered-wtr/filename dist
       :order order
+      :indices select
       :lifecycle/calls :clojask.clojask-output/writer-calls}]))
 
 (defn lifecycle-aggre-gen
@@ -436,7 +463,7 @@
      :zookeeper/server? true
      :zookeeper.server/port 2188
      :onyx/tenancy-id id
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def peer-config
     {:zookeeper/address "127.0.0.1:2188"
@@ -445,7 +472,7 @@
      :onyx.messaging/impl :aeron
      :onyx.messaging/peer-port 40200
      :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file "_clojask/clojask.log"})
+     :onyx.log/file ".clojask/clojask.log"})
 
   (def env (onyx.api/start-env env-config))
 
@@ -468,15 +495,16 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception index) ;;need some work
+    (worker-func-gen-format dataframe exception index) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen (.path dataframe) dist order)
+    (lifecycle-gen (.path dataframe) dist order index)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
+    (output/inject-dataframe dataframe)
     (output/inject-melt melt)
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -490,10 +518,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-aggre-only
@@ -510,7 +538,7 @@
     (aggre/inject-dataframe dataframe aggre-func select)
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -524,10 +552,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (aggregate)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-groupby
@@ -545,7 +573,7 @@
     (groupby/inject-dataframe dataframe groupby-keys groupby-index)
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -559,10 +587,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 (defn start-onyx-join ;; to-do
@@ -582,7 +610,7 @@
      (defn-join join-type limit))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[preparing stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
                                           {:workflow workflow
@@ -596,10 +624,10 @@
       (feedback-exception! peer-config job-id))
     (catch Exception e (do
                          (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+                         (throw (ExecutionException. (format "[submit-to-onyx stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (join)] Refer to _clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
   "success")
 
 

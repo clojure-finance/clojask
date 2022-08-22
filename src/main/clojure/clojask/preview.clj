@@ -48,11 +48,11 @@
         no-groupby (= (.getGroupbyKeys (:row-info dataframe)) [])
         ;;
         preview-work-func (fn [seg]
-                            (let [data (string/split (:d seg) #"," -1)]
+                            (let [data (:d seg)]
                               (if (filter-check filters types data)
-                                {:d (mapv (fn [_] (eval-res data types operations _)) indices)}
+                                {:d (mapv (fn [_] (eval-res data types formatters operations _)) indices)}
                                 {}))) ;; the function body of operation (take over the work in worker nodes)
-        preview-output-func (if (and formatting no-aggre)
+        preview-output-func (if (and formatting no-aggre no-groupby)
                               (fn [row]
                                 (mapv (fn [_] (if-let [formatter (get formatters _)]
                                                 (formatter (nth (:d row) _))
@@ -72,7 +72,7 @@
                           (if (>= (count res) return-size)
                             (persistent! res)
                             (recur rest res)))))]
-    (if no-aggre
+    (if (and no-groupby no-aggre)
       (mapv (fn [row-v] (zipmap header row-v)) compute-res)
       ;; need to do aggregate
       (if no-groupby
@@ -117,7 +117,9 @@
                                      (loop [aggre-funcs aggre-funcs
                                             res []]
                                        (if (= aggre-funcs [])
-                                         (mapv concat (repeat pre) (apply map vector res))
+                                         (if (= res [])
+                                           [pre]
+                                           (mapv concat (repeat pre) (apply map vector res)))
                                          (let [func (first (first aggre-funcs))
                                                index (nth (first aggre-funcs) 1)
                                                res-funcs (rest aggre-funcs)

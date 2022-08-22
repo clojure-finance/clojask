@@ -6,6 +6,12 @@
             [clojure.string :as string])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
+(def write-func (atom nil))
+
+(defn inject-write-func
+  [func]
+  (reset! write-func func))
+
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)]
@@ -21,7 +27,7 @@
   {:lifecycle/before-task-start inject-into-eventmap
    :lifecycle/after-task-stop close-writer})
 
-(defrecord ClojaskOutput []
+(defrecord ClojaskOutput [write-func]
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
@@ -73,8 +79,9 @@
           ;; (swap! example-datasink conj msg)
         (if (not= (:d msg) nil)
           (do
-            (doseq [data (:d msg)]
-              (.write wtr (str (string/join "," data) "\n")))
+            (write-func wtr (:d msg))
+            ;; (doseq [data (:d msg)]
+            ;;   (.write wtr (str (string/join "," data) "\n")))
                 ;; !! define argument (debug)
             ))))
     true))
@@ -85,4 +92,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput))
+  (->ClojaskOutput (deref write-func)))

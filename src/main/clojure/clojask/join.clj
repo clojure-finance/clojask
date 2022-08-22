@@ -6,8 +6,6 @@
             [clojure.string :as str]
             [clojask.utils :as u]))
 
-
-
 (defn gen-join-filenames
   [dist a-row a-keys]
   ;; (def output-filename dist)
@@ -18,56 +16,56 @@
     (str dist a-val)))
 
 (defn output-join-inner
-  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index]
-  (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
     ;; (println writer)
-    ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
+    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
     ;; (.write writer (str [a-row a-keys a-map b-keys a-format b-format a-index b-index] "\n"))
     (if (.exists (io/file filename))
       ;; (.write writer (str (map type a-row) "\n"))
-      ;; (spit "_clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
-      (let [a-row (for [index a-index]
-                    (if-let [format (get a-format index)]
-                      (format (nth a-row index))
-                      (nth a-row index)))
+      ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
+      (let [a-row (u/gets-format a-row a-index a-format)
             filename (io/reader filename)]
         (doseq [b-row (read-csv-seq filename)]
           ;; (.write writer (str (map type b-row) "\n"))
-        ;; (spit "_clojask/join/test.txt" (str a-row b-row "\n") :append true)
-          (let [b-row (for [index b-index]
-                        (if-let [format (get b-format index)]
-                          (format (nth b-row index))
-                          (nth b-row index)))]
+        ;; (spit ".clojask/join/test.txt" (str a-row b-row "\n") :append true)
+          (let [b-row (u/gets-format b-row b-index b-format)]
             ;; (println [(vec a-row) (vec b-row) a-index b-index join-index])
-            (.write writer (str (str/join "," (vec (u/gets (concat a-row b-row) join-index))) "\n"))))
+            (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))
         (.close filename)))))
 
 (defn output-join-loo
   "used for left join right join or outter join"
-  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index]
-  (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  ;; (println a-format)
+  ;; (println b-format)
+  ;; (println a-index)
+  ;; (println b-index)
+  (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
     ;; (println writer)
-    ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
+    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
     (if (.exists (io/file filename))
-      ;; (spit "_clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
+      ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
       (let [filename (io/reader filename)]
         (doseq [b-row (read-csv-seq filename)]
-        ;; (spit "_clojask/join/test.txt" (str a-row b-row "\n") :append true)
-          (let [a-row (for [index a-index]
-                        (if-let [format (get a-format index)]
-                          (format (nth a-row index))
-                          (nth a-row index)))
-                b-row (for [index b-index]
-                        (if-let [format (get b-format index)]
-                          (format (nth b-row index))
-                          (nth b-row index)))]
-            (.write writer (str (str/join "," (vec (u/gets (concat a-row b-row) join-index))) "\n"))))
+        ;; (spit ".clojask/join/test.txt" (str a-row b-row "\n") :append true)
+          (let [a-row (u/gets-format a-row a-index a-format)
+                ;; tmp (println a-row)
+                ;; a-row (for [index a-index]
+                ;;         (if-let [format (get a-format index)]
+                ;;           (format (nth a-row index))
+                ;;           (nth a-row index)))
+                b-row (u/gets-format b-row b-index b-format)
+                ;; tmp (println b-row)
+                ;; b-row (for [index b-index]
+                ;;         (if-let [format (get b-format index)]
+                ;;           (format (nth b-row index))
+                ;;           (nth b-row index)))
+                ]
+            (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))
         (.close filename))
-      (let [a-row (for [index a-index]
-                    (if-let [format (get a-format index)]
-                      (format (nth a-row index))
-                      (nth a-row index)))]
-        (.write writer (str (str/join "," (vec (u/gets (concat a-row (repeat count "")) join-index))) "\n"))))))
+      (let [a-row (u/gets-format a-row a-index a-format)]
+       (write-func writer (vector (u/gets (concat a-row (repeat count "")) join-index)))))))
 
 (defn defn-join
   [type limit]
@@ -85,31 +83,32 @@
                                                  (do (vreset! memo val)
                                                      (vreset! res row)))))
                                            @res)]
-          (fn [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index]
-            (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
+          (fn [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+            (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
               (if (.exists (io/file filename))
                 (let [filename (io/reader filename)]
                   (if-let [b-row (roll-join-get-line-forward (nth a-row a-roll) filename b-roll)] ;; bench is a string
-                    (let [a-row (for [index a-index]
-                                  (if-let [format (get a-format index)]
-                                    (format (nth a-row index))
-                                    (nth a-row index)))
-                          b-row (for [index b-index]
-                                  (if-let [format (get b-format index)]
-                                    (format (nth b-row index))
-                                    (nth b-row index)))]
-                      (.write writer (str (str/join "," (vec (u/gets (concat a-row b-row) join-index))) "\n")))
+                    (let [
+                          ;; a-row (for [index a-index]
+                          ;;         (if-let [format (get a-format index)]
+                          ;;           (format (nth a-row index))
+                          ;;           (nth a-row index)))
+                          a-row (u/gets-format a-row a-index a-format)
+                          ;; b-row (for [index b-index]
+                          ;;         (if-let [format (get b-format index)]
+                          ;;           (format (nth b-row index))
+                          ;;           (nth b-row index)))
+                          b-row (u/gets-format b-row b-index b-format)
+                          ]
+                      (write-func writer [(u/gets (concat a-row b-row) join-index)]))
                     (let [a-row (for [index a-index]
                                   (if-let [format (get a-format index)]
                                     (format (nth a-row index))
                                     (nth a-row index)))]
-                      (.write writer (str (str/join "," (vec (u/gets (concat a-row (repeat count "")) join-index))) "\n"))))
+                      (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))
                   (.close filename))
-                (let [a-row (for [index a-index]
-                              (if-let [format (get a-format index)]
-                                (format (nth a-row index))
-                                (nth a-row index)))]
-                  (.write writer (str (str/join "," (vec (u/gets (concat a-row (repeat count "")) join-index))) "\n")))))))
+                (let [a-row (u/gets-format a-row a-index a-format)]
+                  (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)]))))))
       ;; 5 output-join-backward
       5 (let [roll-join-get-line-backward (fn [bench filename index]
                                             (def memo (volatile! nil))
@@ -122,32 +121,20 @@
                                                       (vreset! res row)))))
                                             @res)]
           (fn
-            [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index]
-            (let [filename (gen-join-filenames "_clojask/join/b/" a-row a-keys)]
+            [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+            (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
     ;; (println writer)
-    ;; (spit "_clojask/join/test.txt" (str writer "\n") :append true)
+    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
               (if (.exists (io/file filename))
-      ;; (spit "_clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
+      ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
                 (let [filename (io/reader filename)]
                   (if-let [b-row (roll-join-get-line-backward (nth a-row a-roll) filename b-roll)] ;; bench is a string
-                    (let [a-row (for [index a-index]
-                                  (if-let [format (get a-format index)]
-                                    (format (nth a-row index))
-                                    (nth a-row index)))
-                          b-row (for [index b-index]
-                                  (if-let [format (get b-format index)]
-                                    (format (nth b-row index))
-                                    (nth b-row index)))]
-                      (.write writer (str (str/join "," (vec (u/gets (concat a-row b-row) join-index))) "\n")))
-                    (let [a-row (for [index a-index]
-                                  (if-let [format (get a-format index)]
-                                    (format (nth a-row index))
-                                    (nth a-row index)))]
-                      (.write writer (str (str/join "," (vec (u/gets (concat a-row (repeat count "")) join-index))) "\n"))))
+                    (let [a-row (u/gets-format a-row a-index a-format)
+                          b-row (u/gets-format b-row b-index b-format)]
+                      (write-func writer [(u/gets (concat a-row b-row) join-index)]))
+                    (let [a-row (u/gets-format a-row a-index a-format)]
+                      (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))
                   (.close filename))
-                (let [a-row (for [index a-index]
-                              (if-let [format (get a-format index)]
-                                (format (nth a-row index))
-                                (nth a-row index)))]
-                  (.write writer (str (str/join "," (vec (u/gets (concat a-row (repeat count "")) join-index))) "\n")))))))
+                (let [a-row (u/gets-format a-row a-index a-format)]
+                  (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)]))))))
       nil)))

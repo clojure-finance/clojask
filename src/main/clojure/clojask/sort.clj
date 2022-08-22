@@ -78,10 +78,10 @@
 (defn use-external-sort
   [input output comp]
   ;; clean the output file
-  (println (CsvExternalSort/estimateAvailableMemory))
+  ;; (println (CsvExternalSort/estimateAvailableMemory))
   (with-open [wtr (io/writer output)]
     (.write wtr ""))
-  (io/make-parents "./_clojask/sort/a.txt")
+  (io/make-parents "./.clojask/sort/a.txt")
   (let
    [input (File. input)
     output (File. output)
@@ -91,7 +91,7 @@
                   (.build builder))
     ;; header (vec (first (csv/read-csv (io/reader input))))
     header (java.util.ArrayList.)
-    file-list (CsvExternalSort/sortInBatch input (File. "./_clojask/sort") sort-option header)]
+    file-list (CsvExternalSort/sortInBatch input (File. "./.clojask/sort") sort-option header)]
     ;; (println sort-option)
     ;; (println header)
     (str "Sorted in total " (CsvExternalSort/mergeSortedFiles file-list output sort-option true header) " rows.")))
