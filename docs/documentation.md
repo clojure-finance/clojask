@@ -100,9 +100,7 @@ Rename the column names in the dataframe
 
 ```clojure
 ;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
-(rename-col x ["Employee" "EmployeeName" "new-Department" "Salary"])
-;; columns: ["Employee" "EmployeeName" "new-Department" "Salary"]
-(reorder-col x ["Employee" "new-Department" "EmployeeName" "Salary"])
+(rename-col x "Department" "new-Department")
 ```
 
 ---
