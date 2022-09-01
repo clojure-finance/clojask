@@ -18,6 +18,7 @@
   :main ^:skip-aot clojask.debug/-main
   :source-paths      ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
+  :javac-options ["-target" "1.8" "-source" "1.8" "-Xlint:-options"]
   :test-paths        ["test/clojask"]
   ;:java-test-paths   ["test/java"]
   ;;:injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
