@@ -5,14 +5,17 @@
             [taoensso.timbre :refer [debug info] :as timbre]
             [clojure.string :as string]
             [clojure-heap.core :as heap]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [clojask.join.outer-output :as output])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def df (atom nil))
+(def output-func (atom nil))
 
 (defn inject-dataframe
-  [dataframe]
+  [dataframe out]
   (reset! df dataframe)
+  (reset! output-func out)
   )
 
 (defn- inject-into-eventmap
@@ -129,4 +132,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput (deref melt) (heap/heap (fn [a b] (<= (:id a) (:id b)))) (atom 0) (.getOutput (deref df))))
+  (->ClojaskOutput (deref melt) (heap/heap (fn [a b] (<= (:id a) (:id b)))) (atom 0) (deref output-func)))

@@ -15,7 +15,8 @@
             [clojask.preview :as preview]
             [clojure.pprint :as pprint]
             [clojask.DataStat :refer [compute-stat]]
-            [clojask-io.input :refer [read-file]])
+            [clojask-io.input :refer [read-file]]
+            [clojask.join.outer-output :as output])
   (:import [clojask.ColInfo ColInfo]
            [clojask.RowInfo RowInfo]
            [clojask.DataStat DataStat]
@@ -34,7 +35,7 @@
   (reset! debug false))
 
 (definterface DFIntf
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader] "final evaluatation")
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out] "final evaluatation")
   (getPath [] "get input path of dataframe")
   (getOutput [] "get the output function of the dataframe")
   (setOutput [output] "set the output function")
@@ -50,7 +51,7 @@
   (getAggreColNames [] "get column names if there is aggregate")
   (getColNames [] "get column names")
   (getStat [] "get the statistics of the dataframe")
-  (printCol [output-path selected-index] "print column names to output file")
+  (printCol [output-path selected-index out] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [old-col new-col] "rename columns in the dataframe")
@@ -59,8 +60,8 @@
   (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
   (computeTypeCheck [num-worker output-dir])
-  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select ifheader])
-  (computeAggre [^int num-worker ^String output-dir ^boolean exception select ifheader])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select ifheader out])
+  (computeAggre [^int num-worker ^String output-dir ^boolean exception select ifheader out])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (preview [sample-size output-size format] "quickly return a vector of maps about the resultant dataframe")
@@ -210,10 +211,11 @@
 
   (printCol
     ;; print column names, called by compute, computeAggre and computeGroupByAggre
-    [this output-path selected-index]
+    [this output-path selected-index out]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
-      (with-open [wrtr (io/writer output-path)]
-        ((.getOutput this) wrtr [col-set]))))
+      (let [wrtr (if output-path (io/writer output-path) nil)]
+        ((or out (.getOutput this)) wrtr [col-set])
+        (if output-path (.close wrtr)))))
   ;; deprecated
   (delCol
     [this col-to-del]
@@ -295,7 +297,7 @@
       (throw (OperationException. "Max number of worker nodes is 8."))))
 
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out]
     ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
@@ -303,15 +305,15 @@
       (assert (or (= (count select) (count index)) (= select [nil])) (OperationException. "Must select existing columns. You may check it using"))
       (if (<= num-worker 8)
         (do
-          (if (= ifheader nil) (.printCol this output-dir index))
-          (let [res (start-onyx num-worker batch-size this output-dir exception order index melt)]
+          (if (= ifheader nil) (.printCol this output-dir index out))
+          (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
             (if (= res "success")
               "success"
               "failed")))
         (throw (OperationException. "Max number of worker nodes is 8.")))))
 
   (computeAggre
-    [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
+    [this ^int num-worker ^String output-dir ^boolean exception select ifheader out]
     (.computeTypeCheck this num-worker output-dir)
     (let [aggre-keys (.getAggreFunc row-info)
           select (if (coll? select) select [select])
@@ -325,14 +327,14 @@
                        [(first pair) (let [num (nth pair 1)]
                                        (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
-          tmp (if (= ifheader nil) (.printCol this output-dir select))
-          res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select)]
+          tmp (if (= ifheader nil) (.printCol this output-dir select out))
+          res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)]
       (if (= res "success")
         "success"
         "failed")))
 
   (computeGroupAggre
-    [this ^int num-worker ^String output-dir ^boolean exception select ifheader]
+    [this ^int num-worker ^String output-dir ^boolean exception select ifheader out]
     (.computeTypeCheck this num-worker output-dir)
     (if (<= num-worker 8)
       (let [groupby-keys (.getGroupbyKeys row-info)
@@ -348,7 +350,7 @@
         (if (= aggre-keys [])
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys.")))
-        (if (= ifheader nil) (.printCol this output-dir select))
+        (if (= ifheader nil) (.printCol this output-dir select out))
         (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
           (let [shift-func (fn [pair]
@@ -357,7 +359,7 @@
                 aggre-func (mapv shift-func (u/gets aggre-keys data-index))
                 formatter (.getFormatter (.col-info this))
                 formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
-            (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter))
+            (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter out))
               "success"
               (throw (OperationException. "Error when aggregating."))))
           (throw (OperationException. "Error when grouping by."))))
@@ -573,9 +575,15 @@
 (definterface JDFIntf
   (checkInputPathClash [path] "check if paths clashes with dataframes a/b input path")
   (getColNames [] "get the names of all the columns")
-  (printCol [output-path selected-col] "print column names to output file")
+  (printCol [output-path selected-col out] "print column names to output file")
+  (setOutput [output])
+  (getOutput [])
   (preview [] "preview the column names")
-  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader]))
+  (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader out]))
+
+;; (defn joineddf-ctor
+;;   [a b a-keys b-keys a-roll b-roll type limit prefix output-func]
+;;   (JoinedDataFrame. a b a-keys b-keys a-roll b-roll type limit prefix output-func))
 
 (defrecord JoinedDataFrame
            [^DataFrame a
@@ -586,10 +594,11 @@
             b-roll
             type
             limit
-            prefix]
+            prefix
+            output-func]
   JDFIntf
-  
-  (checkInputPathClash 
+
+  (checkInputPathClash
     [this path]
     (.checkInputPathClash a path)
     (.checkInputPathClash b path))
@@ -604,19 +613,28 @@
           b-col-header (mapv #(str b-col-prefix "_" %) b-col-set)]
       (concat a-col-header b-col-header)))
 
+  (setOutput
+    [this output]
+    (reset! output-func output))
+
+  (getOutput
+    [this]
+    (deref output-func))
+
   (printCol
     ;; print column names, called by compute
-    [this output-path selected-index]
+    [this output-path selected-index out]
     (let [col-set (if (= selected-index [nil]) (.getColNames this) (mapv (vec (.getColNames this)) selected-index))]
-      (with-open [wrtr (io/writer output-path)]
-        (.write wrtr (str (str/join "," col-set) "\n")))))
+      (let [wrtr (if output-path (io/writer output-path) nil)]
+        ((or out (.getOutput this)) wrtr [col-set])
+        (if output-path (.close wrtr)))))
 
   (preview
     [this]
-   (.getColNames this))
+    (.getColNames this))
 
   (compute
-    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader]
+    [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader out]
     (let [select (if (coll? select) select [select])
           select (if (= select [nil])
                    (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
@@ -634,16 +652,15 @@
           ]
       ;; (u/init-file output-dir)
       ;; print column names
-      (if (= ifheader nil) (.printCol this output-dir select))
+      (if (= ifheader nil) (.printCol this output-dir select out))
       (if (not= type 3)
         (do
           (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception) ;; todo
-          (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index))
+          (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
         (do
           (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
           (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)
-          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index)
-          )))))
+          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index))))))
 
 (defn inner-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -662,8 +679,8 @@
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
       (if (>= size-a size-b)
-        (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix)
-        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)])))))
+        (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix (atom (.getOutput a)))
+        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
 
 (defn left-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -681,7 +698,7 @@
       (throw (TypeException. "The length of col-prefix should be equal to 2.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
-    (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix)))
+    (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix (atom (.getOutput a)))))
 
 (defn right-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -697,7 +714,7 @@
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
-    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)])))
+    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))
 
 (defn outer-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -716,8 +733,8 @@
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
       (if (<= size-a size-b)
-        (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix)
-        (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)])))))
+        (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix (atom (.getOutput a)))
+        (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
 
 (defn rolling-join-forward
   [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
@@ -739,7 +756,7 @@
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
           (throw (TypeException. "Rolling keys include non-existent column name(s).")))
-        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix)))))
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix (atom (.getOutput a)))))))
 
 
 ;; all of the code is the same as above except for the last line
@@ -763,7 +780,7 @@
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
               (throw (TypeException. "Rolling keys include non-existent column name(s).")))
-        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix)))))
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix (atom (.getOutput a)))))))
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header nil}}]
@@ -774,27 +791,33 @@
   (u/init-file output-dir header)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
-        select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))]
+        select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))
+        ret (atom (transient []))
+        output-func (if output-dir 
+                      (or output (.getOutput this)) 
+                      (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
+        output-dir (or output-dir ".clojask/tmp.csv")]
     (assert (not= select []) "Must select at least 1 column")
     (assert (or (= melt vector) (and (= (type this) clojask.dataframe.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
-    (if output (.setOutput this output))
+    ;; (if output (.setOutput this output))
     (if (= (type this) clojask.dataframe.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute
-          (.compute this num-worker output-dir exception order select melt header)
-          (dataframe output-dir :have-col true)) ;; return output dataframe
+          (.compute this num-worker output-dir exception order select melt header output-func)
+          ) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (do ;; groupby-aggre
-            (.computeGroupAggre this num-worker output-dir exception select header)
-            (dataframe output-dir :have-col true))
+            (.computeGroupAggre this num-worker output-dir exception select header output-func))
           (do ;; aggre
-            (.computeAggre this num-worker output-dir exception select header)
-            (dataframe output-dir :have-col true))))
+            (.computeAggre this num-worker output-dir exception select header output-func))))
       (if (= (type this) clojask.dataframe.JoinedDataFrame)
         (do ;; join
-          (.compute this num-worker output-dir exception order select header)
-          (dataframe output-dir :have-col true))
-        (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))))
+          (.compute this num-worker output-dir exception order select header output-func)
+          )
+        (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))
+    (if (not= output-dir ".clojask/tmp.csv")
+      (dataframe output-dir :have-col true)
+      (persistent! (deref ret)))))
 
 (defn get-col-names
   "Get the names for the columns in sequence"

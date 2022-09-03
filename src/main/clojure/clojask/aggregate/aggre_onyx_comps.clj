@@ -267,7 +267,7 @@
 
 (defn start-onyx-aggre
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception aggre-func index formatter]
+  [num-work batch-size dataframe dist exception aggre-func index formatter out]
   (try
     (workflow-gen num-work)
     (config-env)
@@ -276,7 +276,7 @@
     (lifecycle-gen "./.clojask/grouped" dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (output/inject-dataframe dataframe)
+    (output/inject-dataframe dataframe out)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))

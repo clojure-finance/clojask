@@ -266,7 +266,8 @@
 
 (defn init-file
   [out-dir header]
-  (io/delete-file out-dir true)
+  (if (not= out-dir nil)
+   (io/delete-file out-dir true))
   (doseq [file (rest (file-seq (io/file "./.clojask/grouped/")))]
     (try
       (io/delete-file file)
@@ -279,9 +280,10 @@
   (io/make-parents "./.clojask/join/a/a.txt")
   (io/make-parents "./.clojask/join/b/a.txt")
   (io/make-parents "./.clojask/sort/a.txt")
-  (if (not= header nil)
-    (with-open [wrtr (io/writer out-dir)]
-      (.write wrtr (str (str/join "," header) "\n")))))
+  ;; (if (not= header nil)
+  ;;   (with-open [wrtr (io/writer out-dir)]
+  ;;     (.write wrtr (str (str/join "," header) "\n"))))
+  )
 
 (defn get-type-string
   [x]

@@ -15,9 +15,10 @@
 (def b-index (atom nil))
 (def b-format (atom nil))
 (def join-index (atom nil))
+(def output-func (atom nil))
 
 (defn inject-dataframe
-  [d-a d-b a-key b-key -a-index -b-index -join-index -b-format]
+  [d-a d-b a-key b-key -a-index -b-index -join-index -b-format out]
   (reset! a d-a)
   (reset! b d-b)
   (reset! a-keys a-key)
@@ -25,7 +26,8 @@
   (reset! a-index -a-index)
   (reset! b-index -b-index)
   (reset! b-format -b-format)
-  (reset! join-index -join-index))
+  (reset! join-index -join-index)
+  (reset! output-func out))
 
 (defn- inject-into-eventmap
   [event lifecycle]
@@ -128,4 +130,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn join [pipeline-data]
-  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index) (.getOutput (deref a)))) ;; todo
+  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index) (deref output-func))) ;; todo

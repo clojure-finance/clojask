@@ -12,12 +12,14 @@
 (def df (atom nil))
 (def aggre-func (atom nil))
 (def select (atom nil))
+(def output-func (atom nil))
 
 (defn inject-dataframe
-  [dataframe a b]
+  [dataframe a b out]
   (reset! df dataframe)
   (reset! aggre-func a)
   (reset! select b)
+  (reset! output-func out)
   )
 
 (defn c-count
@@ -128,4 +130,5 @@
                                      (repeat start))))
                     (deref aggre-func)
                     (deref select)
-                    (.getOutput (deref df)))))
+                    ;; (.getOutput (deref df))
+                    (deref output-func))))

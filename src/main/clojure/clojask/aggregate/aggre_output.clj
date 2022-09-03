@@ -22,9 +22,12 @@
    :lifecycle/after-task-stop close-writer})
 
 (def df (atom nil))
+(def output-func (atom nil))
+
 (defn inject-dataframe
-  [dataframe]
-  (reset! df dataframe))
+  [dataframe out]
+  (reset! df dataframe)
+  (reset! output-func out))
 
 (defrecord ClojaskOutput [output-func]
   p/Plugin
@@ -92,4 +95,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn output [pipeline-data]
-  (->ClojaskOutput (.getOutput (deref df))))
+  (->ClojaskOutput (deref output-func)))

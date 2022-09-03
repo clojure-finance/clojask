@@ -491,7 +491,7 @@
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception order index melt]
+  [num-work batch-size dataframe dist exception order index melt out]
   (try
     (workflow-gen num-work)
     (config-env)
@@ -500,7 +500,7 @@
     (lifecycle-gen (.path dataframe) dist order index)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (output/inject-dataframe dataframe)
+    (output/inject-dataframe dataframe out)
     (output/inject-melt melt)
     (catch Exception e (do
                          (shutdown)
@@ -526,7 +526,7 @@
 
 (defn start-onyx-aggre-only
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception aggre-func index select]
+  [num-work batch-size dataframe dist exception aggre-func index select out]
   (try
     (workflow-gen num-work)
     (config-env)
@@ -535,7 +535,7 @@
     (lifecycle-aggre-gen (.path dataframe) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (aggre/inject-dataframe dataframe aggre-func select)
+    (aggre/inject-dataframe dataframe aggre-func select out)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
@@ -595,7 +595,7 @@
 
 (defn start-onyx-join ;; to-do
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index]
+  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
@@ -605,7 +605,7 @@
     (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format)
+    (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
     (let [limit (or limit (fn [a b] true))]
      (defn-join join-type limit))
     (catch Exception e (do

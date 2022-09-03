@@ -9,12 +9,15 @@
 (def dataframe (atom nil))
 (def groupby-keys (atom nil))
 (def write-index (atom nil))
+(def output-func (atom nil))
 
 (defn inject-dataframe
   [df groupby-key index]
   (reset! dataframe df)
   (reset! groupby-keys groupby-key)
-  (reset! write-index index))
+  (reset! write-index index)
+  ;; (reset! output-func out)
+  )
 
 (defn- inject-into-eventmap
   [event lifecycle]
