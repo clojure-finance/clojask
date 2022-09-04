@@ -38,13 +38,13 @@ Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask) !
 Insert this line into your `project.clj` if using Leiningen.
 
 ```
-[com.github.clojure-finance/clojask "1.2.4-prerelease"]
+[com.github.clojure-finance/clojask "1.2.4"]
 ```
 
 Insert this line into your `deps.edn` if using CLI.
 
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "1.2.4-prerelease"}
+com.github.clojure-finance/clojask {:mvn/version "1.2.4"}
 ```
 
 **Requirements:**
