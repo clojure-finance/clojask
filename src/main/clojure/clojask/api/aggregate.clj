@@ -4,17 +4,21 @@
 
 (def start)
 
+;; (defn aggre-func
+;;   "prev value could be start"
+;;   [prev new])
+
 (defn max
   [a b]
-  (if (and (> (compare a b) 0) (not= a start))
-    a
-    b))
+  (if (or (= a start) (> (compare b a) 0))
+    b
+    a))
 
 (defn min
   [a b]
-  (if (and (< (compare a b) 0) (not= a start))
-    a
-    b))
+  (if (or (= a start) (< (compare b a) 0))
+    b
+    a))
 
 (defn count
   [a b]

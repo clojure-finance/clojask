@@ -235,14 +235,14 @@
     this)
 
   (renameCol
-   [this old-col new-col]
-   (cond (not (u/is-in old-col this))
-         (throw (TypeException. "Input includes non-existent column name(s).")))
+    [this old-col new-col]
+    (cond (not (u/is-in old-col this))
+          (throw (TypeException. "Input includes non-existent column name(s).")))
     ;; (cond (not (= (count (.getKeys (.col-info this))) (count new-col)))
     ;;       (throw (TypeException. "Number of new column names not equal to number of existing columns.")))
-   (.renameColInfo (.col-info this) old-col new-col)
+    (.renameColInfo (.col-info this) old-col new-col)
     ;; "success"
-   this)
+    this)
 
   (head
     [this n]
@@ -303,7 +303,8 @@
           select (if (coll? select) select [select])
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
       (assert (or (= (count select) (count index)) (= select [nil])) (OperationException. "Must select existing columns. You may check it using"))
-      (if (<= num-worker 8)
+      ;; (if (<= num-worker 8)
+      (if true
         (do
           (if (= ifheader nil) (.printCol this output-dir index out))
           (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
@@ -336,7 +337,8 @@
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader out]
     (.computeTypeCheck this num-worker output-dir)
-    (if (<= num-worker 8)
+    ;; (if (<= num-worker 8)
+    (if true
       (let [groupby-keys (.getGroupbyKeys row-info)
             aggre-keys (.getAggreFunc row-info)
             select (if (coll? select) select [select])

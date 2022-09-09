@@ -9,6 +9,8 @@
         
 (use '[clojure.java.shell :only [sh]])
 
+(enable-debug)
+
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))

@@ -1,19 +1,17 @@
 (ns clojask.onyx-comps
-  (:require [clojure.set :as set]
-            [clojask.clojask-input :as input]
-            [clojask.clojask-output :as output]
+  (:require [clojask.clojask-aggre :as aggre]
             [clojask.clojask-groupby :as groupby]
-            [clojask.clojask-aggre :as aggre]
+            [clojask.clojask-input :as input]
             [clojask.clojask-join :as join]
+            [clojask.clojask-output :as output]
+            [clojask.join :refer [defn-join]]
+            ;; [clojask.utils :refer [u/eval-res u/eval-res-ne u/filter-check]]
+            [clojask.utils :as u]
             [onyx.api :refer :all]
-            [clojure.string :as string]
-            [onyx.test-helper :refer [with-test-env feedback-exception!]]
-            ;; [tech.v3.dataset :as ds]
-            [clojure.data.csv :as csv]
-            [clojask.utils :refer [eval-res eval-res-ne filter-check]]
-            [clojask.join :refer [defn-join]])
-  (:import [java.io BufferedReader FileReader BufferedWriter FileWriter]
-           [com.clojask.exception ExecutionException]))
+            [onyx.test-helper :refer [feedback-exception!]] ;; [tech.v3.dataset :as ds]
+)
+  (:import [com.clojask.exception ExecutionException]
+           [java.io FileReader]))
 
 
 ;; sample workflow
@@ -70,15 +68,15 @@
         [seg]
         (let [id (:id seg)
               data (:d seg)] ;; -1 is very important here!
-          (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res data types formats operations _)) indices)}
+          (if (u/filter-check filters types data)
+            {:id id :d (mapv (fn [_] (u/eval-res data types formats operations _)) indices)}
             {:id id})))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] (eval-res-ne data types formats operations _)) indices)}
+          (if (u/filter-check filters types data)
+            {:id id :d (mapv (fn [_] (u/eval-res-ne data types formats operations _)) indices)}
             {:id id})))))
   )
 
@@ -96,15 +94,15 @@
         [seg]
         (let [id (:id seg)
               data (:d seg)] ;; -1 is very important here!
-          (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res data types formats operations _))) indices)}
+          (if (u/filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res data types formats operations _))) indices)}
             {:id id})))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          (if (filter-check filters types data)
-            {:id id :d (mapv (fn [_] ((or (get formats _) str) (eval-res-ne data types formats operations _))) indices)}
+          (if (u/filter-check filters types data)
+            {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne data types formats operations _))) indices)}
             {:id id}))))))
 
 (defn catalog-gen
@@ -388,42 +386,42 @@
 
 (def num-workers (atom 1))
 
-(defn rem0?
-  [event old-segment new-segment all-new-segment]
-  ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-  (= (mod (:id new-segment) (deref num-workers)) 0))
+;; (defn rem0?
+;;   [event old-segment new-segment all-new-segment]
+;;   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
+;;   (= (mod (:id new-segment) (deref num-workers)) 0))
 
-(defn rem1?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 1))
+;; (defn rem1?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 1))
 
-(defn rem2?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 2))
+;; (defn rem2?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 2))
 
-(defn rem3?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 3))
+;; (defn rem3?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 3))
 
-(defn rem4?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 4))
+;; (defn rem4?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 4))
 
-(defn rem5?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 5))
+;; (defn rem5?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 5))
 
-(defn rem6?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 6))
+;; (defn rem6?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 6))
 
-(defn rem7?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 7))
+;; (defn rem7?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 7))
 
-(defn rem8?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 8))
+;; (defn rem8?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 8))
 
 
 ;; [{:flow/from :in
@@ -435,24 +433,33 @@
 ;;   :flow/predicate :clojask.onyx-comps/rem1?
 ;;   :flow/doc ""}]
 
+;; (defn predicate-function
+;;   [event old-segment new-segment all-new-segment id]
+;;   (= (mod (:id new-segment) (deref num-workers)) id))
+
 (defn flow-cond-gen
   "Generate the flow conditions for running Onyx"
   [num-work]
   (reset! num-workers num-work)
   (def flow-conditions []) ;; initialisation
-
+  (def predicate-funcs [])
   ;; for loop for sample workers
   (doseq [x (range 1 (+ num-work 1))]
     (let [worker-name (keyword (str "sample-worker" x))
-          predicate-function (keyword "clojask.onyx-comps" (str "rem" (- x 1) "?"))]
-          (def flow-conditions
-            (conj flow-conditions
-             {:flow/from :in
-              :flow/to [worker-name]
-              :flow/predicate predicate-function
-              :worker/doc "This is a flow condition"}
-              ))))
-    
+          predicate-function (keyword "clojask.onyx-comps" (str "rem" (- x 1) "?"))
+          ;; predicate-function (fn [event old-segment new-segment all-new-segment]
+          ;;                      (= (mod (:id new-segment) num-work) (- x 1)))
+          ]
+      ;; (def predicate-funcs (conj predicate-funcs predicate-function))
+      (intern 'clojask.onyx-comps (symbol (str "rem" (- x 1) "?")) (fn [event old-segment new-segment all-new-segment]
+                                                                     (= (mod (:id new-segment) num-work) (- x 1))))
+      (def flow-conditions
+        (conj flow-conditions
+              {:flow/from :in
+               :flow/to [worker-name]
+               :flow/predicate predicate-function
+               :worker/doc "This is a flow condition"}))))
+
   ;; (println flow-conditions) ;; !! debugging
   )
 

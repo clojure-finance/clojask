@@ -344,3 +344,8 @@
         [[nil input]]
         nil))
     (catch Exception e nil)))
+
+(defn get-func-str
+  [func]
+  (let [func-str (str func)]
+    (str/replace (str/replace (subs func-str  0 (str/last-index-of func-str "@")) "$" "/") "_" "-")))

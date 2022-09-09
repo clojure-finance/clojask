@@ -164,42 +164,42 @@
 
 (def num-workers (atom 1))
 
-(defn rem0?
-  [event old-segment new-segment all-new-segment]
-  ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-  (= (mod (:id new-segment) (deref num-workers)) 0))
+;; (defn rem0?
+;;   [event old-segment new-segment all-new-segment]
+;;   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
+;;   (= (mod (:id new-segment) (deref num-workers)) 0))
 
-(defn rem1?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 1))
+;; (defn rem1?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 1))
 
-(defn rem2?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 2))
+;; (defn rem2?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 2))
 
-(defn rem3?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 3))
+;; (defn rem3?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 3))
 
-(defn rem4?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 4))
+;; (defn rem4?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 4))
 
-(defn rem5?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 5))
+;; (defn rem5?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 5))
 
-(defn rem6?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 6))
+;; (defn rem6?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 6))
 
-(defn rem7?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 7))
+;; (defn rem7?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 7))
 
-(defn rem8?
-  [event old-segment new-segment all-new-segment]
-  (= (mod (:id new-segment) (deref num-workers)) 8))
+;; (defn rem8?
+;;   [event old-segment new-segment all-new-segment]
+;;   (= (mod (:id new-segment) (deref num-workers)) 8))
 
 
 ;; [{:flow/from :in
@@ -221,7 +221,9 @@
   (doseq [x (range 1 (+ num-work 1))]
     (let [worker-name (keyword (str "sample-worker" x))
           predicate-function (keyword "clojask.aggregate.aggre-onyx-comps" (str "rem" (- x 1) "?"))]
-          (def flow-conditions
+      (intern 'clojask.aggregate.aggre-onyx-comps (symbol (str "rem" (- x 1) "?")) (fn [event old-segment new-segment all-new-segment]
+                                                                     (= (mod (:id new-segment) num-work) (- x 1))))    
+      (def flow-conditions
             (conj flow-conditions
              {:flow/from :in
               :flow/to [worker-name]
