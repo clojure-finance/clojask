@@ -1,4 +1,4 @@
-(defproject com.github.clojure-finance/clojask "1.2.4"
+(defproject com.github.clojure-finance/clojask "1.2.5"
   :description "Data analysis and manipulation library with parallel computing for larger-than-memory datasets"
   :url "https://github.com/clojure-finance/clojask"
   :license {:name "MIT"
@@ -10,7 +10,7 @@
                  [org.onyxplatform/onyx "0.14.6"]
                 ;;  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]
-                 [com.github.clojure-finance/clojask-io "1.0.3"]
+                 [com.github.clojure-finance/clojask-io "1.0.4"]
                  [com.github.clojure-finance/clojure-heap "1.0.3"]]
   :repl-options {:init-ns clojask.debug
                  :timeout 180000}
