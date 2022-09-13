@@ -5,7 +5,7 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :refer [eval-res eval-res-ne filter-check]]
-            [clojask.groupby :refer [internal-aggregate aggre-min gen-groupby-filenames]]
+            [clojask.groupby :refer [gen-groupby-filenames]]
             ;; [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
             ;; [clojask.sort :as sort]
             ;; [clojask.join :as join]
