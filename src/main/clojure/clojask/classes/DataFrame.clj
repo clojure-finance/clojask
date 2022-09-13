@@ -72,25 +72,18 @@
             ^DataStat stat
             output-func
             ^Boolean have-col]
-  
+
   GenDFIntf
 
   (checkInputPathClash
     [this path]
-    (defn get-path-str
-      [path]
-      (if (str/starts-with? path "./")
-        (str "file:///" (str/replace-first path "./" ""))
-        (if (str/starts-with? path "/")
-          (str "file:///" (str/replace-first path "/" ""))
-          (str "file:///" path))))
-    (let [path-str (get-path-str path)
-          input-path-str (get-path-str (.getPath this))
-          path-obj (java.nio.file.Paths/get (new java.net.URI path-str))
-          input-path-obj (java.nio.file.Paths/get (new java.net.URI input-path-str))
-          paths-equal (java.nio.file.Paths/.equals path-obj input-path-obj)]
-      (cond paths-equal
-            (throw (OperationException. "Output path should be different from input path of dataframe argument.")))))
+    (try
+      (let [path1 (.getPath this)
+            path1 (.getAbsolutePath (io/file path1))
+            path2 (.getAbsolutePath (io/file path))]
+        (if (= path1 path2)
+              (throw (OperationException. "Output path should be different from input path of dataframe argument."))))
+      (catch Exception e nil)))
 
   (getOutput
     [this]
@@ -99,7 +92,7 @@
   (setOutput
     [this output]
     (reset! output-func output))
-  
+
   (getColNames
     [this]
     (if (and (= 0 (count (.getGroupbyKeys (:row-info this)))) (= 0 (count (.getAggreNewKeys (:row-info this)))))
@@ -109,7 +102,7 @@
         (mapv (fn [i] (get index-key i)) index))
         ;; if aggregate
       (.getAggreColNames this)))
-  
+
   (printCol
     ;; print column names, called by compute, computeAggre and computeGroupByAggre
     [this output-path selected-index out]
@@ -117,7 +110,7 @@
       (let [wrtr (if output-path (io/writer output-path) nil)]
         ((or out (.getOutput this)) wrtr [col-set])
         (if output-path (.close wrtr)))))
-  
+
   (preview
     [this sample-size return-size format]
     (cond (not (and (integer? sample-size) (integer? return-size)))

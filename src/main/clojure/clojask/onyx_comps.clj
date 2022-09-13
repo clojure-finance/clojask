@@ -404,7 +404,7 @@
       :clojask/join-type join-type
       :lifecycle/calls :clojask.clojask-join/writer-join-calls}]))
 
-(def num-workers (atom 1))
+;; (def num-workers (atom 1))
 
 ;; (defn rem0?
 ;;   [event old-segment new-segment all-new-segment]
@@ -460,7 +460,7 @@
 (defn flow-cond-gen
   "Generate the flow conditions for running Onyx"
   [num-work]
-  (reset! num-workers num-work)
+  ;; (reset! num-workers num-work)
   (def flow-conditions []) ;; initialisation
   (def predicate-funcs [])
   ;; for loop for sample workers
@@ -659,7 +659,7 @@
 
 
 ;; !! debugging
-(defn -main
+(defn- -main
   [& args]
   ;; (catalog-gen 2 10)
   ;; (workflow-gen 2)

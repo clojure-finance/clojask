@@ -307,7 +307,7 @@
   [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header nil}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
-  ;; (.checkInputPathClash this output-dir)
+  (.checkInputPathClash this output-dir)
   ;; initialise file
   (u/init-file output-dir header)
   ;; check which type of dataframe this is
