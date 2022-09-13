@@ -1,4 +1,4 @@
-(ns clojask.ColInfo
+(ns clojask.classes.ColInfo
   (:require [clojure.set :as set]
             [clojask.utils :refer []]))
 

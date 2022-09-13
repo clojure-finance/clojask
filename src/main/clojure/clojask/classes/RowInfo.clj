@@ -1,4 +1,4 @@
-(ns clojask.RowInfo
+(ns clojask.classes.RowInfo
   ;; (:require [clojask.utils :refer :all])
   )
 
