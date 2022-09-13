@@ -7,7 +7,7 @@
             [taoensso.timbre :refer [fatal info debug] :as timbre])
   (:import (java.io BufferedReader)))
 
-(defrecord AbsSeqReader [event reader filters types have-col rst completed? checkpoint? offset]
+(defrecord AbsSeqReader [event reader filters types have-col rst completed? checkpoint? offset batch-size]
   p/Plugin
 
   (start [this event]
@@ -27,7 +27,7 @@
                      (if have-col
                        (rest (line-seq (BufferedReader. reader)))
                        (line-seq (BufferedReader. reader))))
-          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
+          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) (partition batch-size batch-size [] csv-data)))
           ]
       (if (nil? checkpoint)
         (do
@@ -73,7 +73,8 @@
                       :rst (volatile! nil)
                       :completed? (volatile! false)
                       :checkpoint? (not (false? (:seq/checkpoint? task-map)))
-                      :offset (volatile! nil)}))
+                      :offset (volatile! nil)
+                      :batch-size (:batch-size df)}))
 
 (def reader-calls
   {})

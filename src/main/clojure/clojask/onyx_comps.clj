@@ -68,16 +68,26 @@
         [seg]
         (let [id (:id seg)
               data (:d seg)] ;; -1 is very important here!
-          (if (u/filter-check filters types data)
-            {:id id :d (mapv (fn [_] (u/eval-res data types formats operations _)) indices)}
-            {:id id})))
+          {:id id :d (for [row data]
+                       (if (u/filter-check filters types row)
+                         (mapv (fn [_] (u/eval-res row types formats operations _)) indices)
+                         nil))}
+          ;; (if (u/filter-check filters types data)
+          ;;   {:id id :d (mapv (fn [_] (u/eval-res data types formats operations _)) indices)}
+          ;;   {:id id})
+          ))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          (if (u/filter-check filters types data)
-            {:id id :d (mapv (fn [_] (u/eval-res-ne data types formats operations _)) indices)}
-            {:id id})))))
+          ;; (if (u/filter-check filters types data)
+          ;;   {:id id :d (mapv (fn [_] (u/eval-res-ne data types formats operations _)) indices)}
+          ;;   {:id id})
+          {:id id :d (for [row data]
+                       (if (u/filter-check filters types row)
+                         (mapv (fn [_] (u/eval-res-ne row types formats operations _)) indices)
+                         nil))}
+          ))))
   )
 
 (defn worker-func-gen-format
@@ -94,16 +104,26 @@
         [seg]
         (let [id (:id seg)
               data (:d seg)] ;; -1 is very important here!
-          (if (u/filter-check filters types data)
-            {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res data types formats operations _))) indices)}
-            {:id id})))
+          {:id id :d (for [row data]
+                       (if (u/filter-check filters types row)
+                         (mapv (fn [_] ((or (get formats _) str) (u/eval-res row types formats operations _))) indices)
+                         nil))}
+          ;; (if (u/filter-check filters types data)
+          ;;   {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res data types formats operations _))) indices)}
+          ;;   {:id id})
+          ))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          (if (u/filter-check filters types data)
-            {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne data types formats operations _))) indices)}
-            {:id id}))))))
+          ;; (if (u/filter-check filters types data)
+          ;;   {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne data types formats operations _))) indices)}
+          ;;   {:id id})
+          {:id id :d (for [row data]
+                       (if (u/filter-check filters types row)
+                         (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne row types formats operations _))) indices)
+                         nil))}
+          )))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
