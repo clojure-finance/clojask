@@ -5,6 +5,7 @@
             [clojask.sort :as sort]
             [clojask.api.aggregate :as aggre]
             [clojask.api.gb-aggregate :as gb-aggre]
+            [clojask.terminal :refer :all]
             [clojure.string :as str]
             [clojask.extensions.bind :refer :all]
             [clojask.extensions.reshape :refer :all])

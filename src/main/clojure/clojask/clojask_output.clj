@@ -6,7 +6,8 @@
             [clojure.string :as string]
             [clojure-heap.core :as heap]
             [clojure.set :as set]
-            [clojask.join.outer-output :as output])
+            [clojask.join.outer-output :as output]
+            [clojask.terminal :refer [print-progress]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
 
 (def df (atom nil))
@@ -38,6 +39,8 @@
   ;;     (output-func wtr (melt (:d msg)))
   ;;               ;; !! define argument (debug)
   ;;     ))
+  (if (< (rand) 0.01)
+    (print-progress (/ (:id msg) 3600000) :stage "sequencial processing"))
   (doseq [row (remove nil? (:d msg))]
     (output-func wtr (melt row)))
   )
@@ -76,6 +79,7 @@
   p/Plugin
   (start [this event]
     ;; Initialize the plugin, generally by assoc'ing any initial state.
+    (print-progress 0 :init true :stage "starting")
     this)
 
   (stop [this event]
@@ -83,8 +87,8 @@
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
         ;; (println (heap/get-size heap))
-        (if (not= (heap/get-size heap) 0) (throw (Exception. (str "The order enforcement failed. "  (heap/get-size heap) " rows have been shuffled or missing."))))
-        this)
+    (if (not= (heap/get-size heap) 0) (throw (Exception. (str "The order enforcement failed. "  (heap/get-size heap) " rows have been shuffled or missing."))))
+    this)
 
   p/Checkpointed
   ;; Nothing is required here. This is normally useful for checkpointing in
