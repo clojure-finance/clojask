@@ -86,18 +86,15 @@
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (loop [batch write-batch]
-      (if-let [msg (first batch)]
-        (do
+    (doseq [msg write-batch]
+      (doseq [data (:d msg)]
           ;; (swap! example-datasink conj msg)
-          (if (not= (:d msg) nil)
-            (do
+        (if (not= data nil)
+          (do
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-              (output-groupby dist (:d msg) groupby-keys key-index formatter write-index)))
-
-          (recur (rest batch)))))
+            (output-groupby dist data groupby-keys key-index formatter write-index)))))
     true))
 
 ;; Builder function for your output plugin.

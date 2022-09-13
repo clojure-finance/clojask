@@ -104,13 +104,16 @@
               ;;  keys [:Departement]
     ;; Write the batch to your datasink.
     ;; In this case we are conjoining elements onto a collection.
-    (let [write-batch  write-batch]
+    (let []
       (doseq [msg write-batch]
       ;; (if-let [msg (first batch)]
-        (do
+        ;; (do
+        (doseq [data (:d msg)]
           ;; (swap! example-datasink conj msg)
-          (if (not= (:d msg) nil)
-            (let [data (:d msg)]
+          (if (not= data nil)
+            (let [
+                  ;; data (:d msg)
+                  ]
             ;;   (.write wtr (str (string/join "," (:d msg)) "\n"))
 
             ;;    (swap! memo assoc index (func (get index (deref memo)) (:d msg)))
