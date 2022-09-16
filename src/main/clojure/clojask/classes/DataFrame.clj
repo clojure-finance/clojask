@@ -61,7 +61,9 @@
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")
   (previewDF [] "preview function used for error predetection")
-  (errorPredetect [msg] "prints exception with msg if error is detected in preview"))
+  (errorPredetect [msg] "prints exception with msg if error is detected in preview")
+  (rollback [] "rollback the history of ColInfo and RowInfo")
+  (commit [] "commit the change"))
 
 ;; each dataframe can have a delayed object
 (defrecord DataFrame
@@ -82,7 +84,7 @@
             path1 (.getAbsolutePath (io/file path1))
             path2 (.getAbsolutePath (io/file path))]
         (if (= path1 path2)
-              (throw (OperationException. "Output path should be different from input path of dataframe argument."))))
+          (throw (OperationException. "Output path should be different from input path of dataframe argument."))))
       (catch Exception e nil)))
 
   (getOutput
@@ -190,7 +192,7 @@
                  cols
                  (vector cols))
           indices (map (fn [_] (get (.getKeyIndex (:col-info this)) _)) cols)]
-      (cond (not (u/are-in cols this))
+      (cond (not= [] (u/are-in cols this))
             (throw (TypeException. "Input includes non-existent column name(s).")))
       (if (nil? (.filter row-info indices predicate))
         this
@@ -406,6 +408,18 @@
         (.previewDF this)
         (catch Exception e
           (do
-            (throw (OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e))))))))))
+            (.rollback this)
+            (throw (OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e)))))))))
+    (.commit this))
+  
+  (rollback
+    [this]
+    (.rollback col-info)
+    (.rollback row-info))
+
+  (commit
+    [this]
+    (.commit col-info)
+    (.commit row-info))
 
   Object)
