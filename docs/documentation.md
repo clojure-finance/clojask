@@ -11,7 +11,7 @@
 
 #### dataframe 
 
-Defines the dataframe and returns `clojask.dataframe.DataFrame` 
+Defines the dataframe and returns `clojask.dataframe.classes.DataFrame` 
 
 
 | Argument                                        | Type                       | Function                                              | Remarks                                                      |
@@ -39,7 +39,7 @@ Provides a preview of the resulting data (column headings, datatype, and data) b
 
 | Argument        | Type              | Function                                                     | Remarks                  |
 | --------------- | ----------------- | ------------------------------------------------------------ | ------------------------ |
-| `dataframe`     | Clojask.DataFrame | The operated object                                          |                          |
+| `dataframe`     | clojask.classes.DataFrame.DataFrame | The operated object                                          |                          |
 | `[sample size]` | Integer           | Specify the sample size taken from the beginning of the dataframe | Default of 1000 elements |
 | `[return size]` | Integer           | Specify the returning size of the dataframe elements         | Default of 10 elements   |
 
@@ -56,7 +56,7 @@ Provides a preview of the resulting data (column headings, datatype, and data) b
 
 | Argument       | Type              | Function                                                     | Remarks                                                      |
 | -------------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe`    | Clojask.DataFrame | The operated object                                          |                                                              |
+| `dataframe`    | clojask.classes.DataFrame.DataFrame | The operated object                                          |                                                              |
 | `sample size`  | Integer           | Specify the sample size taken from the beginning of the dataframe | Default of 1000 elements                                     |
 | `return size`  | Integer           | Specify the returning size of the dataframe elements         | Default of 10 elements                                       |
 | [`formatting`] | Boolean           | Whether to format the results to string using the *formatters* defined by `set-type` and `set-formatter` | By default, false, i.e. values are kept as their last data type before formatting |
@@ -74,7 +74,7 @@ Get the column names of the dataframe
 
 | Argument    | Type              | Function            | Remarks |
 | ----------- | ----------------- | ------------------- | ------- |
-| `dataframe` | Clojask.DataFrame | The operated object |         |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |         |
 
 **Return**
 
@@ -94,7 +94,7 @@ Rename the column names in the dataframe
 
 | Argument     | Type              | Function            | Remarks                                               |
 | ------------ | ----------------- | ------------------- | ----------------------------------------------------- |
-| `dataframe`  | Clojask.DataFrame | The operated object |                                                       |
+| `dataframe`  | clojask.classes.DataFrame.DataFrame | The operated object |                                                       |
 | `old column` | String            | The old column name | Should be an existing column name in dataframe        |
 | `new column` | String            | The new column name | Should be a unique column name from the existing ones |
 
@@ -111,7 +111,7 @@ Filter the dataframe by rows.
 
 | Argument    | Type                           | Function                                                    | Remarks                                                      |
 | ----------- | ------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------ |
-| `dataframe` | Clojask.DataFrame              | The operated object                                         |                                                              |
+| `dataframe` | clojask.classes.DataFrame.DataFrame              | The operated object                                         |                                                              |
 | `columns`   | String / collection of strings | The columns that the predicate function would apply to      |                                                              |
 | `predicate` | Function                       | The predicate function to determine if a row should be kept | This function should have the same number of arguments with the above columns and in the same order. Only rows that return `true` will be kept. |
 
@@ -132,7 +132,7 @@ Set the data type of a column. As a result, the value will be parsed as the assi
 
 | Argument    | Type              | Function            | Remarks                                                      |
 | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
-| `dataframe` | Clojask.DataFrame | The operated object |                                                              |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |                                                              |
 | `column`    | String            | Target columns      | Should be existing columns within the dataframe.             |
 | `type`      | String            | Type of the column  | The natively supported types are: int, double, string, date. Note that by default all the column types are string. If you need a special parsing function, see `add-parser`. |
 
@@ -151,7 +151,7 @@ A more flexible way to set type by specifying the customized parser.
 
 | Argument    | Type              | Function                                                     | Remarks                                                      |
 | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe` | Clojask.DataFrame | The operated object                                          |                                                              |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object                                          |                                                              |
 | `column`    | String            | Target columns                                               | Should be existing columns within the dataframe              |
 | `parser `   | function          | The parser function that will parse a string to other types (or even string) | The function should take only one argument which is a string, and the parsed type should be serializable. |
 
@@ -170,7 +170,7 @@ A more flexible way to set type by specifying the customized formatter.
 
 | Argument    | Type              | Function                                                     | Remarks                                                      |
 | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe` | Clojask.DataFrame | The operated object                                          |                                                              |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object                                          |                                                              |
 | `column`    | String            | Target columns                                               | Should be existing columns within the dataframe              |
 | `formatter` | function          | The formatter function that will format a data type (can be checked from the `print-df` function) to string for outputting | The function should take only one argument which is a string, and the parsed type should be serializable. |
 
@@ -189,7 +189,7 @@ A more flexible way to set type by specifying the customized formatter.
 
 | Argument      | Type              | Function                      | Remarks                                                      |
 | ------------- | ----------------- | ----------------------------- | ------------------------------------------------------------ |
-| `dataframe`   | Clojask.DataFrame | The operated object           |                                                              |
+| `dataframe`   | clojask.classes.DataFrame.DataFrame | The operated object           |                                                              |
 | `operation`   | function          | Function to be applied lazily | The function should take only one argument which is the value of the below column. |
 | `column name` | Keyword           | Target columns                | Should be existing columns within the dataframe.             |
 
@@ -210,7 +210,7 @@ Calculate the result and store in a new column
 
 | Argument         | Type                            | Function                              | Remarks                                                      |
 | ---------------- | ------------------------------- | ------------------------------------- | ------------------------------------------------------------ |
-| `dataframe`      | Clojask.DataFrame               | The operated object                   |                                                              |
+| `dataframe`      | clojask.classes.DataFrame.DataFrame               | The operated object                   |                                                              |
 | `operation`      | function                        | Function that is to be applied lazily | Argument number should align with the number of column names below, ie *if operation functions takes two arguments, the length of column names should also be two, and in the same order that is passed to the function*. |
 | `column name(s)` | String or collection of Strings | Target columns                        | Should be existing columns within the dataframe.             |
 | `new column`     | String                          | Resultant column                      | Should be new column(s) other than those existing in the dataframe. |
@@ -230,7 +230,7 @@ Group the dataframe by some specific columns (always used together with `aggrega
 
 | Argument       | Type                | Function                                | Remarks                                      |
 | -------------- | ------------------- | --------------------------------------- | -------------------------------------------- |
-| `dataframe`    | Clojask.DataFrame   | The operated object                     |                                              |
+| `dataframe`    | clojask.classes.DataFrame.DataFrame   | The operated object                     |                                              |
 | `groupby-keys` | String / Collection | Group by columns (functions of columns) | Find the specification below               . |
 
 **Example**
@@ -289,7 +289,7 @@ Aggregate the dataframe(s) by applying some functions. The aggregation function 
 
 | Argument               | Type                           | Function                              | Remarks                                                      |
 | ---------------------- | ------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
-| `dataframe`            | Clojask.DataFrame              | The operated object                   |                                                              |
+| `dataframe`            | clojask.classes.DataFrame.DataFrame              | The operated object                   |                                                              |
 | `aggregation function` | function                       | Function to be applied to each column | Should take a collection as argument. And return one or a collection of predefined type*. |
 | `column name(s)`       | String or collection of String | Aggregate columns                     | Should be existing columns within the dataframe              |
 | [`new column`]         | String or collection of string | Resultant column                      | Should be new columns not in the dataframe                   |
@@ -319,7 +319,7 @@ The keys used in specifying the aggregate operation are identical to the [group-
 
 | Argument           | Type                    | Function                 | Remarks                                                      |
 | ------------------ | ----------------------- | ------------------------ | ------------------------------------------------------------ |
-| `dataframe`        | Clojask.DataFrame       | The operated object      |                                                              |
+| `dataframe`        | clojask.classes.DataFrame.DataFrame       | The operated object      |                                                              |
 | `trending list`    | Collection (seq vector) | Indicates the sort order | Example: ["Salary" "+" "Employee" "-"] means that sort the Salary in ascending order, if equal sort then by Employee in descending order |
 | `output-directory` | String                  | The output path          |                                                              |
 
@@ -345,8 +345,8 @@ Inner / left / right join two dataframes on specific columns
 
 | Argument          | Type                  | Function                                 | Remarks                                                      |
 | ----------------- | --------------------- | ---------------------------------------- | ------------------------------------------------------------ |
-| `dataframe a`     | Clojask.DataFrame     | The operated object                      |                                                              |
-| `dataframe b`     | Clojask.DataFrame     | The operated object                      |                                                              |
+| `dataframe a`     | clojask.classes.DataFrame.DataFrame     | The operated object                      |                                                              |
+| `dataframe b`     | clojask.classes.DataFrame.DataFrame     | The operated object                      |                                                              |
 | `a join keys`     | String / Collection   | The keys of a to be aligned              | Find the specification [here](#groupby-keys)                 |
 | `b join keys`     | String / Collection   | The keys of b to be aligned              | Find the specification [here](#groupby-keys)                 |
 | [`column prefix`] | Collection of strings | Add to the front of the two column names | For example, ["a" "b"], and the resultant dataframe will have headers "a_xxx" and "b_xxx" respectively |
@@ -374,7 +374,7 @@ Inner / left / right join two dataframes on specific columns
 
 A `Clojask.JoinedDataFrame`
 
-Unlike `Clojask.DataFrame`, it only supports three operations:
+Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
   - `print-df`
   - `get-col-names`
@@ -392,8 +392,8 @@ Rolling join two dataframes on columns. Forward will find the largest of the sma
 
 | Argument          | Type                     | Function                                                     | Remarks                                                      |
 | ----------------- | ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe a`     | Clojask.DataFrame        | The operated object                                          |                                                              |
-| `dataframe b`     | Clojask.DataFrame        | The operated object                                          |                                                              |
+| `dataframe a`     | clojask.classes.DataFrame.DataFrame        | The operated object                                          |                                                              |
+| `dataframe b`     | clojask.classes.DataFrame.DataFrame        | The operated object                                          |                                                              |
 | `a join keys`     | String / Collection      | The column names of a to be aligned                          | Find the specification [here](#groupby-keys)                 |
 | `b join keys`     | String / Collection      | The column names of b to be aligned                          | Find the specification [here](#groupby-keys)                 |
 | `a roll key`      | String                   | The column name of a to be aligned                           | Will be compared with `b roll key` using function `compare`  |
@@ -416,7 +416,7 @@ Rolling join two dataframes on columns. Forward will find the largest of the sma
 
 A `Clojask.JoinedDataFrame`
 
-Unlike `Clojask.DataFrame`, it only supports three operations:
+Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
   - `print-df`
   - `get-col-names`
@@ -433,7 +433,7 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 
 | Argument            | Type                                        | Function                                                     | Remarks                                                      |
 | ------------------- | ------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe`         | Clojask.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
+| `dataframe`         | clojask.classes.DataFrame.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
 | `num of workers`    | int (max 8)                                 | The number of worker instances (except the input and output nodes) | Uses [onyx](http://www.onyxplatform.org/) as the distributed platform |
 | `output path`       | String                                      | The path of the output csv file                              | If the path already exists, will overwrite the file.         |
 | [`exception`]       | Boolean                                     | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
@@ -446,7 +446,7 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 
 **Return**
 
-A `Clojask.DataFrame`, which is the resultant dataframe.
+A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe.
 
 **Example**
 
