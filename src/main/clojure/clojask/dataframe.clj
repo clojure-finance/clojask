@@ -142,11 +142,6 @@
       (.errorPredetect this "invalid arguments passed to aggregate function")
       result)))
 
-(defn sort
-  [this list output-dir]
-  (u/init-file output-dir nil)
-  (.sort this list output-dir))
-
 (defn set-type
   [this col type]
   (let [result (.setType this type col)]
@@ -164,18 +159,6 @@
   (let [result (.addFormatter this formatter col)]
     (.errorPredetect this "invalid arguments passed to set-formatter function")
     result))
-
-;; (defn col-names
-;;   [this]
-;;   (let [result (.getColNames this)]
-;;     (.errorPredetect this "invalid arguments passed to col-names function")
-;;   result))
-
-(defn reorder-col
-  [this new-col-order]
-  (let [result (.reorderCol this new-col-order)]
-    (.errorPredetect this "invalid arguments passed to reorder-col function")
-  result))
 
 (defn rename-col
   [this old-col new-col]
@@ -382,3 +365,14 @@
   (let [result (.delCol this col-to-del)]
     (.errorPredetect this "invalid arguments passed to delete-col function")
     result))
+
+(defn reorder-col
+  [this new-col-order]
+  (let [result (.reorderCol this new-col-order)]
+    (.errorPredetect this "invalid arguments passed to reorder-col function")
+    result))
+
+(defn sort
+  [this list output-dir]
+  (u/init-file output-dir nil)
+  (.sort this list output-dir))
