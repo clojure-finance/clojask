@@ -31,7 +31,7 @@
             limit
             prefix
             output-func]
-  
+
   GenDFIntf
 
   (checkInputPathClash
@@ -67,8 +67,17 @@
 
   (preview
     [this sample-size output-size format]
-    (.getColNames this))
-  
+    (let [data-a (.preview a sample-size output-size format)
+          data-b (.preview b sample-size output-size format)
+          old-a (.getColNames a)
+          old-b (.getColNames b)
+          rep-key-a (zipmap old-a (take (count old-a) (.getColNames this)))
+          rep-key-b (zipmap old-b (take-last (count old-b) (.getColNames this)))
+          data-a (map #(set/rename-keys % rep-key-a) data-a)
+          data-b (map #(set/rename-keys % rep-key-b) data-b)
+          data (map (fn [row-a row-b] (merge row-a row-b)) data-a data-b)]
+      data))
+
   JDFIntf
 
   (compute
@@ -90,7 +99,7 @@
           ]
       ;; (u/init-file output-dir)
       ;; print column names
-      (if (= ifheader nil) (.printCol this output-dir select out))
+      (if (= ifheader true) (.printCol this output-dir select out))
       (if (not= type 3)
         (do
           (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception) ;; todo
@@ -98,5 +107,5 @@
         (do
           (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
           (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)
-          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index))))))
+          (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index out))))))
 

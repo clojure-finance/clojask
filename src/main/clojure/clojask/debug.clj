@@ -8,7 +8,7 @@
             [clojure.string :as str]
             [clojask.extensions.bind :refer :all]
             [clojask.extensions.reshape :refer :all])
-  (:refer-clojure :exclude [group-by filter]))
+  (:refer-clojure :exclude [group-by filter dedupe sort]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main

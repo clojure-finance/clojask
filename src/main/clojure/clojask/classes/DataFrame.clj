@@ -129,7 +129,7 @@
       ;; (if (<= num-worker 8)
       (if true
         (do
-          (if (= ifheader nil) (.printCol this output-dir index out))
+          (if (= ifheader true) (.printCol this output-dir index out))
           (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
             (if (= res "success")
               "success"
@@ -322,7 +322,7 @@
                        [(first pair) (let [num (nth pair 1)]
                                        (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
-          tmp (if (= ifheader nil) (.printCol this output-dir select out))
+          tmp (if (= ifheader true) (.printCol this output-dir select out))
           res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)]
       (if (= res "success")
         "success"
@@ -346,7 +346,7 @@
         (if (= aggre-keys [])
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys.")))
-        (if (= ifheader nil) (.printCol this output-dir select out))
+        (if (= ifheader true) (.printCol this output-dir select out))
         (if (= res "success")
           ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
           (let [shift-func (fn [pair]

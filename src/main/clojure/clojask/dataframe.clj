@@ -1,34 +1,27 @@
 (ns clojask.dataframe
-  (:require [clojure.set :as set]
-            ;; [clojure.string :as string]
-            ;; [clojask.classes.ColInfo :refer [->ColInfo]]
-            ;; [clojask.classes.RowInfo :refer [->RowInfo]]
-            ;; [clojask.classes.DataStat :refer [->DataStat]]
+  (:require clojask-io.core
+            [clojask-io.input :refer [read-file]]
+            [clojask-io.output :as output] ;; [clojask.join.outer-output :as output]
+            [clojask.classes.DataStat :refer [compute-stat]]
+            [clojask.classes.ColInfo :refer [->ColInfo]]
+            [clojask.classes.RowInfo :refer [->RowInfo]]
             [clojask.classes.DataFrame :refer [->DataFrame]]
             [clojask.classes.JoinedDataFrame :refer [->JoinedDataFrame]]
-            ;; [clojure.data.csv :as csv]
-            ;; [clojure.java.io :as io]
-            [clojask.utils :as u]
-            ;; [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
-            ;; [clojask.sort :as sort]
-            ;; [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
-            ;; [clojask.join.outer-onyx-comps :refer [start-onyx-outer]]
-            [clojure.string :as str]
-            ;; [clojask.preview :as preview]
+            [clojask.utils :as u] ;; [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
             [clojure.pprint :as pprint]
-            [clojask.classes.DataStat :refer [compute-stat]]
-            [clojask-io.input :refer [read-file]]
-            ;; [clojask.join.outer-output :as output]
+            [clojure.set :as set] ;; [clojure.string :as string]
+            [clojure.string :as str] ;; [clojask.preview :as preview]
             )
-  
-  (:import [clojask.classes.JoinedDataFrame JoinedDataFrame]
-           [clojask.classes.DataFrame DataFrame]
-           [clojask.classes.ColInfo ColInfo]
+
+  (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
-          ;;  [clojask.classes.DataStat DataStat]
-           [com.clojask.exception TypeException OperationException])
-  
+           [clojask.classes.DataFrame DataFrame]
+           [clojask.classes.JoinedDataFrame JoinedDataFrame]
+           [com.clojask.exception TypeException])
+
   (:refer-clojure :exclude [filter group-by sort]))
+
+;; debug APIs
 
 (defn enable-debug
   []
@@ -40,9 +33,43 @@
   (println "Debug mode is off.")
   (reset! clojask.classes.DataFrame/debug false))
 
+;; public APIs of the dataframe
+
 (defn preview
   [dataframe sample-size return-size & {:keys [format] :or {format false}}]
   (.preview dataframe sample-size return-size format))
+
+(defn get-col-names
+  "Get the names for the columns in sequence"
+  [this]
+  (.getColNames this))
+
+(defn print-df
+  [dataframe & [sample-size return-size]]
+  (assert (or (= (type dataframe) clojask.classes.DataFrame.DataFrame) (= (type dataframe) clojask.classes.JoinedDataFrame.JoinedDataFrame)) "Please input a clojask dataframe.")
+  (if (= (type dataframe) clojask.classes.DataFrame.DataFrame)
+    (let [data (.preview dataframe (or sample-size 1000) (+ 1 (or return-size 10)) false)
+          tmp (first data)
+          key (keys tmp)
+          types (zipmap key (map u/get-type-string-vec (map #(for [row data] (get row %)) key)))
+          omit (zipmap key (repeat "..."))
+          data (vec (conj (apply list data) types))
+          data (if (= (count data) (+ 1 (or return-size 10)))
+                 (conj (vec (take (or return-size 10) data)) omit)
+                 data)
+          header (.getColNames dataframe)]
+      (pprint/print-table header data))
+    (do
+      (let [data (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false)
+            key (keys (first data))
+            types (zipmap key (map u/get-type-string-vec (map #(for [row data] (get row %)) key)))
+            omit (zipmap key (repeat "..."))
+            header (.getColNames dataframe)
+            types (conj [types] omit)
+            ]
+        (pprint/print-table header types))
+      ;; (println (str (str/join "," )))
+      (println "The content of joined dataframe is not available for preview."))))
 
 (defn- generate-col
   "Generate column names if there are none"
@@ -53,7 +80,7 @@
   [path & {:keys [if-header] :or {if-header true}}]
   (try
     (if (fn? path)
-      ;; if the path is the input function
+      ;; if the input is the clojask-io.input
       (if (:clojask-io (path))
         (let [io-func path
               read-func (fn [] (:data (io-func)))
@@ -63,7 +90,8 @@
               stat (compute-stat path io-func)
               func (if if-header (fn [] (rest (read-func))) read-func)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))))) if-header))
+          (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows](.write wtr (str (str/join "," msg) "\n")))))) if-header))
+        ;; if the is the lazy seq function
         (let [headers (first (path))
             ;; headers (string/split (doall (first (path))) #",")
               colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
@@ -72,8 +100,8 @@
               stat (compute-stat path)
               func (if if-header (fn [] (rest (path))) path)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (atom (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n")))) if-header)))
-      ;; if the path is csv
+          (DataFrame. func 300 col-info row-info stat (atom (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n"))))) if-header)))
+      ;; if the input is the path string
       (let [io-func (fn [] (read-file path :stat true :output true))
             read-func (fn [] (:data (io-func)))
             ;; file (read-file path :stat true)
@@ -86,14 +114,8 @@
             ;; stat (compute-stat path)
             stat (compute-stat path io-func)
             func (if if-header (fn [] (rest (read-func))) read-func)]
-      ;; (type-detection file)
-        ;; (.close reader)
         (.init col-info colNames)
-      ;; 
-      ;; type detection
-      ;; 
-        ;; (DataFrame. func 300 col-info row-info stat if-header)
-        (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr msg] (.write wtr (str (str/join "," msg) "\n"))))) if-header)
+        (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))) if-header)
         ))
     (catch Exception e
       (do
@@ -293,20 +315,22 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix (atom (.getOutput a)))))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header nil}}]
+  [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header true}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
   ;; initialise file
-  (u/init-file output-dir header)
+  (u/init-file output-dir nil)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))
         ret (atom (transient []))
+        output-format (clojask-io.core/infer-format output-dir)
         output-func (if output-dir 
-                      (or output (.getOutput this)) 
+                      ;; every dataframe has an initial output function
+                      (or output (output/get-output-func output-format) (.getOutput this)) 
                       (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
-        output-dir (or output-dir ".clojask/tmp.csv")]
+        output-dir (or output-dir ".clojask/tmp.csv")] ;; fake one 
     (assert (not= select []) "Must select at least 1 column")
     (assert (or (= melt vector) (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
     ;; (if output (.setOutput this output))
@@ -328,30 +352,6 @@
     (if (not= output-dir ".clojask/tmp.csv")
       (dataframe output-dir :have-col true)
       (persistent! (deref ret)))))
-
-(defn get-col-names
-  "Get the names for the columns in sequence"
-  [this]
-  (.getColNames this))
-
-(defn print-df
-  [dataframe & [sample-size return-size]]
-  (assert (or (= (type dataframe) clojask.classes.DataFrame.DataFrame) (= (type dataframe) clojask.classes.JoinedDataFrame.JoinedDataFrame)) "Please input a clojask dataframe.")
-  (if (= (type dataframe) clojask.classes.DataFrame.DataFrame)
-    (let [data (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false)
-          tmp (first data)
-          key (keys tmp)
-          types (zipmap key (map u/get-type-string-vec (map #(for [row data] (get row %)) key)))
-          omit (zipmap (keys tmp) (repeat "..."))
-          data (vec (conj (apply list data) types))
-          data (if (= (count data) (inc (or return-size 11)))
-                 (conj (vec (take (or return-size 10) data)) omit)
-                 data)
-          header (.getColNames dataframe)]
-      (pprint/print-table header data))
-    (do
-      (println (str (str/join "," (.preview dataframe (or sample-size 1000) (inc (or return-size 10)) false))))
-      (println "The content of joined dataframe is not available."))))
 
 ;; ============== Below functions are deprecated ==============
 
