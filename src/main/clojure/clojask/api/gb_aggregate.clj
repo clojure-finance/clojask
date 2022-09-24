@@ -27,11 +27,23 @@
 
 ;; multi-row aggregation functions
 
-(defn top3
+(defn smallest3
+  "return the smallest 3 entries"
   [list]
-  (reduce agg/top3 agg/start list))
+  (reduce agg/smallest3 agg/start list))
 
-(defn bottom3
+(defn smallestk
+  "return the smallest k entries (the performance is better with smaller k)"
+  [list k]
+  (reduce (fn [a b] (agg/smallestk a b k)) agg/start list))
+
+(defn largest3
+  "return the largest 3 entries"
   [list]
-  (reduce agg/bottom3 agg/start list))
+  (reduce agg/largest3 agg/start list))
+
+(defn largestk
+  "return the largest k entries (the performance is better with smaller k)"
+  [list k]
+  (reduce (fn [a b] (agg/largestk a b k)) agg/start list))
 
