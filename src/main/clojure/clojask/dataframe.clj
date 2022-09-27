@@ -205,7 +205,7 @@
       (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
-      (if (>= size-a size-b)
+      (if (>= (compare size-a size-b) 0)
         (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix (atom (.getOutput a)))
         (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
 
@@ -262,7 +262,7 @@
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
-      (if (<= size-a size-b)
+      (if (>= (compare size-a size-b) 0)
         (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix (atom (.getOutput a)))
         (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
 
