@@ -42,7 +42,7 @@
 (defn get-col-names
   "Get the names for the columns in sequence"
   [this]
-  (.getColNames this))
+  (vec (.getColNames this)))
 
 (defn print-df
   [dataframe & [sample-size return-size]]
