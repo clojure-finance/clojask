@@ -14,15 +14,15 @@
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
     (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
-    (is (= clojask.dataframe.DataFrame (type y)))
-    (is (= clojask.dataframe.DataFrame (type (set-type y "Salary" "double"))))
-    (is (= clojask.dataframe.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
-    (is (= clojask.dataframe.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
-    (is (= clojask.dataframe.DataFrame (type (operate y - "Salary"))))
-    (is (= clojask.dataframe.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
-    (is (= clojask.dataframe.DataFrame (type (group-by y ["Department"]))))
-    (is (= clojask.dataframe.DataFrame (type (aggregate y max ["Salary"] ["Salary-max"]))))
-    (is (= clojask.dataframe.DataFrame (type (compute y 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type y)))
+    (is (= clojask.classes.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (filter y "Salary" (fn [salary] (<= salary 800))))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (operate y - "Salary"))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (operate y str ["Employee" "Salary"] "new-col"))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (group-by y ["Department"]))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (aggregate y max ["Salary"] ["Salary-max"]))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute y 8 "test/clojask/test_outputs/tmp.csv"))))
     ))
 
 (deftest df-api-output-test
@@ -31,8 +31,9 @@
     ;; element-operation
     (set-type y "Salary" "double")
     (operate y - "Salary")
-    (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception false)
-    (let [result (sh "zsh" "-c" "diff <(sort ./test/clojask/test_outputs/1-1.csv) <(sort ./test/clojask/correct_outputs/1-1.csv)")]
+    (set-formatter y "Salary" #(str % "!"))
+    (compute y 8 "test/clojask/test_outputs/1-1.csv" :exception false :order true)
+    (let [result (sh "zsh" "-c" "diff <(cat ./test/clojask/test_outputs/1-1.csv) <(cat ./test/clojask/correct_outputs/1-1.csv)")]
         (is (= "" (:out result))) 
         (is (= "" (:err result))))
     ;; filter and row-operation
@@ -92,16 +93,18 @@
     (testing "Join dataframes APIs"
     (def x (dataframe "test/clojask/Employees-example.csv"))
     (def y (dataframe "test/clojask/Employees-example.csv"))
-    (is (= clojask.dataframe.DataFrame (type (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.dataframe.DataFrame (type (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.dataframe.DataFrame (type (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.dataframe.DataFrame (type (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false))))
     ))
 
 (deftest join-api-output-test
     (testing "Join dataframes APIs"
       (def x (dataframe "test/clojask/Employees-example.csv"))
+      (set-type x "UpdateDate" "date:yyyy/MM/dd")
       (def y (dataframe "test/clojask/Employees-info-example.csv"))
+      (set-type y "UpdateDate" "date:yyyy/MM/dd")
       (compute (left-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-4.csv" :exception false)
       (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-4.csv) <(sort test/clojask/correct_outputs/1-4.csv)")]
         (is (= "" (:out result)))
@@ -121,6 +124,10 @@
         (is (= "" (:err result))))
       (compute (rolling-join-backward x y ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate") 8 "test/clojask/test_outputs/1-8.csv" :exception false)
       (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-8.csv) <(sort test/clojask/correct_outputs/1-8.csv)")]
+        (is (= "" (:out result)))
+        (is (= "" (:err result))))
+      (compute (outer-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/1-12.csv" :select ["1_Department" "1_Salary" "1_UpdateDate" "2_Employee" "2_EmployeeName" "2_DayOff" "2_UpdateDate"])
+      (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-12.csv) <(sort test/clojask/correct_outputs/1-12.csv)")]
         (is (= "" (:out result)))
         (is (= "" (:err result))))))
 

@@ -8,7 +8,7 @@ Contains functions that can help to bind several dataset files together on both 
 
 #### API Foundation
 
-When defining a clojask.DataFrame using `dataframe` function, one can input a function instead of the path of the source file. This function should produce a sequence. If this sequence is lazy, the theoretical length of the sequence can be infinite. Otherwise, it must have a finite length that is smaller than the memory size.
+When defining a clojask.classes.DataFrame.DataFrame using `dataframe` function, one can input a function instead of the path of the source file. This function should produce a sequence. If this sequence is lazy, the theoretical length of the sequence can be infinite. Otherwise, it must have a finite length that is smaller than the memory size.
 
 ```
 (def x (dataframe #(["col1,col2" "1,2" "3,4"])))
@@ -107,7 +107,7 @@ Contains functions that can reshape a clojask dataframe from wide to long or fro
 
 #### API Foundation
 
-When defining a clojask.DataFrame using `dataframe` function, you can specify the option `:melt`, which should be a function that will be applied to each resultant row vector in the end. The default is vector, which will not affect the results. However, if `:melt` is set to
+When defining a clojask.classes.DataFrame.DataFrame using `dataframe` function, you can specify the option `:melt`, which should be a function that will be applied to each resultant row vector in the end. The default is vector, which will not affect the results. However, if `:melt` is set to
 
 ```clojure
 (fn [x]
@@ -122,7 +122,7 @@ Reshape the dataframe from wide to long.
 
 | Argument       | Type              | Function                                  | Remarks                                                      |
 | -------------- | ----------------- | ----------------------------------------- | ------------------------------------------------------------ |
-| dataframe      | clojask.DataFrame | Specify the dataframe                     |                                                              |
+| dataframe      | clojask.classes.DataFrame.DataFrame | Specify the dataframe                     |                                                              |
 | output-path    | String            | The path of the output                    | Can be absolute or relative path with respect to the `project.clj` file. |
 | id             | vector of strings | The fixed portion of the columns          | These columns must have a perfect correlation.               |
 | measurement    | vector of strings | The measurement columns                   | In the result, the measurement names will become one column and the values will become another. |
@@ -148,7 +148,7 @@ Reshape the dataframe from long to wide. Reversible to `melt`.
 
 | Argument     | Type                                 | Function                                    | Remarks                                                      |
 | ------------ | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
-| dataframe    | clojask.DataFrame                    | Specify the dataframe                       |                                                              |
+| dataframe    | clojask.classes.DataFrame.DataFrame                    | Specify the dataframe                       |                                                              |
 | output-path  | String                               | The path of the output                      | Can be absolute or relative path with respect to the `project.clj` file. |
 | id           | vector of strings                    | The fixed portion of the columns            | These columns must have a perfect correlation.               |
 | measure-name | String                               | The name of the measurement                 | By default "measure"                                         |

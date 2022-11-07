@@ -1,16 +1,15 @@
 (ns clojask.preview
   (:require [clojure.set :as set]
-            [clojask.ColInfo :refer [->ColInfo]]
-            [clojask.RowInfo :refer [->RowInfo]]
+            ;; [clojask.classes.ColInfo :refer [->ColInfo]]
+            ;; [clojask.classes.RowInfo :refer [->RowInfo]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :refer [eval-res eval-res-ne filter-check]]
-            [clojask.groupby :refer [internal-aggregate aggre-min gen-groupby-filenames]]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
-            [clojask.sort :as sort]
-            [clojask.join :as join]
-            [clojure.string :as string]
-            [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
+            [clojask.groupby :refer [gen-groupby-filenames]]
+            ;; [clojask.onyx-comps :refer [start-onyx start-onyx-groupby start-onyx-join]]
+            ;; [clojask.sort :as sort]
+            ;; [clojask.join :as join]
+            ;; [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
             [clojure.string :as str]
             [clojask.preview :as preview]
             [clojask.api.aggregate :as aggre]))
@@ -31,12 +30,13 @@
         ;; header (mapv index-key index)    ;; the header of the result in sequence vector
         index (.getColIndex dataframe)
         header (.getColNames dataframe)
-        csv-data (if (fn? (:path dataframe))
-                   ((:path dataframe))
-                   (let [reader (io/reader (:path dataframe))]
-                     (if (:have-col dataframe)
-                       (rest (line-seq reader))
-                       (line-seq  reader))))
+        ;; csv-data (if (fn? (.getFunc dataframe))
+        ;;            ((.getFunc dataframe))
+        ;;            (let [reader (io/reader (:path dataframe))]
+        ;;              (if (:have-col dataframe)
+        ;;                (rest (line-seq reader))
+        ;;                (line-seq  reader))))
+        csv-data ((.getFunc dataframe))
         data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
         sample (take sample-size data)    ;; lazy source data (take sample size)
         ;; define the variables needed in the following functions

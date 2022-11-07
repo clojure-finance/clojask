@@ -258,7 +258,7 @@
 
 (defn start-onyx-outer
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size a b dist exception a-index b-index a-format b-format write-index]
+  [num-work batch-size a b dist exception a-index b-index a-format b-format write-index output]
   ;; step 1
   (try
     (workflow-gen num-work)
@@ -268,7 +268,7 @@
     (lifecycle-gen "./.clojask/join/a" dist)
     (flow-cond-gen num-work)
     ;; (input/inject-dataframe dataframe)
-    (output/inject-write-func (.getOutput a))
+    (output/inject-write-func output)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))

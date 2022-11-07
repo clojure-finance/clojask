@@ -3,12 +3,12 @@
             [clojask.utils :as u]
             [clojask.groupby :refer :all]
             [clojask.sort :as sort]
-            [clojask.api.aggregate :as aggre]
-            [clojask.api.gb-aggregate :as gb-aggre]
+            [clojask.api.aggregate :as agg]
+            [clojask.api.gb-aggregate :as gb-agg]
             [clojure.string :as str]
             [clojask.extensions.bind :refer :all]
             [clojask.extensions.reshape :refer :all])
-  (:refer-clojure :exclude [group-by filter]))
+  (:refer-clojure :exclude [group-by filter dedupe sort]))
 "For debugging purposes only, will not be used in production."
 
 (defn -main
@@ -19,7 +19,7 @@
   (def x (dataframe "./resources/Employees.csv" :have-col true))
   ;; (set-type x "Employee" "double")
   ;; (group-by x ["Department"])
-  (aggregate x aggre/min ["Employee"])
+  (aggregate x agg/min ["Employee"])
   (print-df x)
   ;; (def y (dataframe "resources/Employees-info.csv" :have-col true))
   ;; (def z (left-join x y ["Employee"] ["Employee"]))
@@ -91,7 +91,7 @@
   ;(operate y (fn [val] (if val (+ val 10.0) 0.0)) "prccq")
   ;(operate y str ["datadate" "tic"] "new-col")
   (group-by y "tic")
-  (aggregate y gb-aggre/max ["prccq"] ["prccq-max"])
+  (aggregate y gb-agg/max ["prccq"] ["prccq-max"])
   (time (compute y 4 "resources/test.csv" :select ["tic" "prccq-max"] :exception false))
   ;(time (compute y 4 "resources/test.csv" :select ["datadate" "TICKER" "prccq"] :exception false))
 

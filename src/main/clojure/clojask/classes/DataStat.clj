@@ -1,4 +1,4 @@
-(ns clojask.DataStat
+(ns clojask.classes.DataStat
   (:require [clojure.java.io :as io]))
 
 (import '[com.clojask.exception TypeException]
