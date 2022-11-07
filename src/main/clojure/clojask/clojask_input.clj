@@ -22,13 +22,13 @@
 
   (recover! [this _ checkpoint]
     (vreset! completed? false)
-    (let [csv-data (if (fn? reader)
-                     (reader)
-                     (if have-col
-                       (rest (line-seq (BufferedReader. reader)))
-                       (line-seq (BufferedReader. reader))))
-          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) (partition batch-size batch-size [] csv-data)))
-          ]
+    (let [csv-data (reader)
+          ;; csv-data (if (fn? reader)
+          ;;            (reader)
+          ;;            (if have-col
+          ;;              (rest (line-seq (BufferedReader. reader)))
+          ;;              (line-seq (BufferedReader. reader))))
+          data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) (partition batch-size batch-size [] csv-data)))]
       (if (nil? checkpoint)
         (do
           (vreset! rst data)
@@ -66,7 +66,7 @@
   ;; (println (:seq/rdr event))
   (map->AbsSeqReader {:event event
                       ;; :sequential (:seq/seq event)
-                      :reader (if (not= nil (:seq/rdr event)) (:seq/rdr event) (:path df))
+                      :reader (.getFunc df)
                       :filters (.getFilters (:row-info df))
                       :types (.getType (:col-info df))
                       :have-col (:have-col df)

@@ -127,4 +127,4 @@
 ;; from your task-map here, in order to improve the performance of your plugin
 ;; Extending the function below is likely good for most use cases.
 (defn join [pipeline-data]
-  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index) (deref output-func))) ;; todo
+  (->ClojaskJoin (deref a-index) (deref b-index) (deref join-index) (deref output-func)))

@@ -102,7 +102,7 @@
       (if (= ifheader true) (.printCol this output-dir select out))
       (if (not= type 3)
         (do
-          (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception) ;; todo
+          (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)
           (start-onyx-join num-worker 10 a b output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
         (do
           (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)

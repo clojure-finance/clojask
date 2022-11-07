@@ -36,6 +36,7 @@
 
 (definterface DFIntf
   (getPath [] "get input path of dataframe")
+  (getFunc [] "get the input lazy function of the dataframe")
   (checkOutputPath [output-path] "check if output path is of string type")
   (operate [operation colName] "operate an operation to column and replace in place")
   (operate [operation colName newCol] "operate an operation to column and add the result as new column")
@@ -67,7 +68,8 @@
 
 ;; each dataframe can have a delayed object
 (defrecord DataFrame
-           [^String path
+           [^String path ;; can be nil
+            func
             ^Integer batch-size
             ^ColInfo col-info
             ^RowInfo row-info
@@ -141,6 +143,10 @@
   (getPath
     [this]
     path)
+
+  (getFunc
+    [this]
+    func)
 
   (checkOutputPath
     [this output-path]
@@ -261,12 +267,12 @@
     ;; "success"
     this)
 
-  (head
-    [this n]
-    (cond (not (integer? n))
-          (throw (TypeException. "Argument passed to head should be an integer.")))
-    (with-open [reader (io/reader path)]
-      (doall (take n (csv/read-csv reader)))))
+  ;; (head
+  ;;   [this n]
+  ;;   (cond (not (integer? n))
+  ;;         (throw (TypeException. "Argument passed to head should be an integer.")))
+  ;;   (with-open [reader (io/reader path)]
+  ;;     (doall (take n (csv/read-csv reader)))))
 
   (setType
     [this type colName]
@@ -411,7 +417,7 @@
             (.rollback this)
             (throw (OperationException. (format  (str msg " (original error: %s)") (str (.getMessage e)))))))))
     (.commit this))
-  
+
   (rollback
     [this]
     (.rollback col-info)

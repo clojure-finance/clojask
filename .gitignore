@@ -1,13 +1,14 @@
 .DS_Store
 onyx.log*
 *.log
-resources/*
+resources/
+outputs/
 test/clojask/test_outputs/*
 .lein-failures
 .lein-repl-history
 .nrepl-port
-target/*
-.clojask/*
+target/
+.clojask/
 .lsp
 .calva
 .clj-kondo

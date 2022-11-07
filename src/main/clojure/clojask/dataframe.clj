@@ -11,8 +11,8 @@
             [clojure.pprint :as pprint]
             [clojure.set :as set] ;; [clojure.string :as string]
             [clojure.string :as str] ;; [clojask.preview :as preview]
+            [taoensso.timbre :as timbre]
             )
-
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataFrame DataFrame]
@@ -23,15 +23,19 @@
 
 ;; debug APIs
 
+(timbre/merge-config! {:min-level :warn})
+
 (defn enable-debug
   []
-  (println "Debug mode is on.")
-  (reset! clojask.classes.DataFrame/debug true))
+  (reset! clojask.classes.DataFrame/debug true)
+  (timbre/merge-config! {:min-level :debug})
+  (println "Debug mode is on."))
 
 (defn disable-debug
   []
-  (println "Debug mode is off.")
-  (reset! clojask.classes.DataFrame/debug false))
+  (reset! clojask.classes.DataFrame/debug false)
+  (timbre/merge-config! {:min-level :warn})
+  (println "Debug mode is off."))
 
 ;; public APIs of the dataframe
 
@@ -90,7 +94,7 @@
               stat (compute-stat path io-func)
               func (if if-header (fn [] (rest (read-func))) read-func)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows](.write wtr (str (str/join "," msg) "\n")))))) if-header))
+          (DataFrame. (:path (path)) func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows](.write wtr (str (str/join "," msg) "\n")))))) if-header))
         ;; if the is the lazy seq function
         (let [headers (first (path))
             ;; headers (string/split (doall (first (path))) #",")
@@ -100,7 +104,7 @@
               stat (compute-stat path)
               func (if if-header (fn [] (rest (path))) path)]
           (.init col-info colNames)
-          (DataFrame. func 300 col-info row-info stat (atom (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n"))))) if-header)))
+          (DataFrame. nil func 300 col-info row-info stat (atom (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n"))))) if-header)))
       ;; if the input is the path string
       (let [io-func (fn [] (read-file path :stat true :output true))
             read-func (fn [] (:data (io-func)))
@@ -115,7 +119,7 @@
             stat (compute-stat path io-func)
             func (if if-header (fn [] (rest (read-func))) read-func)]
         (.init col-info colNames)
-        (DataFrame. func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))) if-header)
+        (DataFrame. path func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))) if-header)
         ))
     (catch Exception e
       (do
@@ -328,7 +332,9 @@
         output-format (clojask-io.core/infer-format output-dir)
         output-func (if output-dir 
                       ;; every dataframe has an initial output function
-                      (or output (output/get-output-func output-format) (.getOutput this)) 
+                      (if (= (clojask-io.core/infer-format output-dir) (clojask-io.core/infer-format (.getPath this)))
+                        (or output (.getOutput this))
+                        (or output (output/get-output-func output-format)))
                       (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
         output-dir (or output-dir ".clojask/tmp.csv")] ;; fake one 
     (assert (not= select []) "Must select at least 1 column")

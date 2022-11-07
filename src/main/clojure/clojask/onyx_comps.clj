@@ -304,12 +304,14 @@
 
 
 (defn inject-in-reader [event lifecycle]
-  (let [path (:buffered-reader/filename lifecycle)
+  (let [
+        ;; path (:buffered-reader/filename lifecycle)
         ;; tmp (println path)
-        rdr (if (= path nil) nil (FileReader. path))
+        ;; rdr (if (= path nil) nil (FileReader. path))
         ;; csv-data (csv/read-csv (BufferedReader. rdr))
         ]
-    {:seq/rdr rdr
+    {
+    ;;  :seq/rdr rdr
     ;;  :seq/seq (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
     ;;                (->> (first csv-data) ;; take the first row of the csv-data
     ;;                     (cons "clojask-id")
@@ -318,7 +320,8 @@
     ;;                (map cons (iterate inc 1) (rest csv-data)))
     ;;  :seq/filters (:clojask/filters lifecycle)
     ;;  :seq/types (:clojask/types lifecycle)
-     }))
+     }
+    ))
 
 (defn close-reader [event lifecycle]
   (if (not= (:seq/rdr event) nil)
@@ -344,7 +347,7 @@
   [source dist order select]
   (def lifecycles
     [{:lifecycle/task :in
-      :buffered-reader/filename (if (fn? source) nil source)
+      :buffered-reader/filename nil
       ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
       ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
@@ -524,7 +527,7 @@
     (config-env)
     (worker-func-gen-format dataframe exception index) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen (.path dataframe) dist order index)
+    (lifecycle-gen (.getFunc dataframe) dist order index)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (output/inject-dataframe dataframe out)
@@ -559,7 +562,7 @@
     (config-env)
     (worker-func-gen dataframe exception index) ;;need some work
     (catalog-aggre-gen num-work batch-size)
-    (lifecycle-aggre-gen (.path dataframe) dist)
+    (lifecycle-aggre-gen (.getFunc dataframe) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (aggre/inject-dataframe dataframe aggre-func select out)
@@ -594,7 +597,7 @@
     (config-env)
     (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0)))) ;;need some work
     (catalog-groupby-gen num-work batch-size)
-    (lifecycle-groupby-gen (.path dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
+    (lifecycle-groupby-gen (.getFunc dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (groupby/inject-dataframe dataframe groupby-keys groupby-index)
@@ -629,7 +632,7 @@
     (config-env)
     (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
     (catalog-join-gen num-work batch-size)
-    (lifecycle-join-gen (.path dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
+    (lifecycle-join-gen (.getFunc dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
     (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
