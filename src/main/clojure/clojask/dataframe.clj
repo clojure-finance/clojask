@@ -332,7 +332,7 @@
         output-format (clojask-io.core/infer-format output-dir)
         output-func (if output-dir 
                       ;; every dataframe has an initial output function
-                      (if (= (clojask-io.core/infer-format output-dir) (clojask-io.core/infer-format (.getPath this)))
+                      (if (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (clojask-io.core/infer-format output-dir) (clojask-io.core/infer-format (.getPath this))))
                         (or output (.getOutput this))
                         (or output (output/get-output-func output-format)))
                       (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
