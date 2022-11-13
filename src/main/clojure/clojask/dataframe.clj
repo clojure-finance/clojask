@@ -1,6 +1,5 @@
 (ns clojask.dataframe
-  (:require clojask-io.core
-            [clojask-io.input :refer [read-file]]
+  (:require [clojask-io.input :refer [read-file]]
             [clojask-io.output :as output] ;; [clojask.join.outer-output :as output]
             [clojask.classes.DataStat :refer [compute-stat]]
             [clojask.classes.ColInfo :refer [->ColInfo]]
