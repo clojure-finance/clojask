@@ -1,11 +1,23 @@
-### API DOCUMENTATION
+## API DOCUMENTATION
 
-##### Basic Information
+### Basic Information
 
-- Most operations to the dataframe is performed lazily and all at once with `compute` except `sort ` and `join`. 
-- The dataframe process the data in rows, ie one row in one vector.
-- The input dataframe can be larger than memory in size.
-- By default, all columns have the same type: string. You are allowed to set its type, with our predefined type keywords.
+- The APIs below are defined in namespace `clojask.dataframe`.
+
+- Most dataframe manipulation operations are performed lazily (except for `sort` and `join`). They will be executed all at once when `compute` is called. 
+
+- By default (except for Excel input), all columns are assigned with the data type `string` when the dataframe is initialized.
+
+- **[ ]** surrounding the argument indicates an optional operation.
+
+- Without further specification, the return of all these functions is the resultant Clojask dataframe with type `clojask.dataframe.classes.DataFrame` . Therefore, you can pipeline these functions with `->` macros.
+
+  ```clojure
+  (-> (dataframe "xxx.csv")
+      (set-type "Colx" "int")
+      (operate inc "Colx")
+      (compute 8 "xxx-modified.csv"))
+  ```
 
 ### API
 
@@ -471,3 +483,4 @@ A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe.
 ;; [a b c d] => [[a b c]
 ;;							 [a b d]]
 ```
+
