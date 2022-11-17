@@ -10,7 +10,8 @@
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
-            [clojask.groupby :refer [read-csv-seq]])
+            [clojask.groupby :refer [read-csv-seq]]
+            [clojask.hdfs :as hdfs])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
@@ -37,6 +38,9 @@
 
 (def dataframe (atom nil))
 
+(defn hdfs-read-file
+  [file]
+  (read-string (str "[" (hdfs/read file) "]")))
 
 (defn worker-func-gen
   [df exception aggre-funcs index formatter]
@@ -55,11 +59,14 @@
         org-format (set/rename-keys (.getFormatter (:col-info df)) (zipmap groupby-index (iterate inc 0)))
         pre-index (take (count groupby-index) (iterate inc 0))
         ]
+    (hdfs/init)
     (defn worker-func
       "refered in preview"
       [seq]
       ;; (println formatters)
-      (let [data (read-csv-seq (:file seq))
+      (let [
+            ;; data (read-csv-seq (:file seq))
+            data (hdfs-read-file (:file seq))
             pre (:d seq)
             pre (u/gets-format pre pre-index org-format)
             data-map (-> (iterate inc 0)

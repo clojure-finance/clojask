@@ -2,7 +2,8 @@
   (:require [clojure.java.io :as io]
             ;[clojure-csv.core :as csv]
             [clojask.utils :as u]
-            [clojure.core.async :as async]))
+            [clojure.core.async :as async]
+            [clojask.hdfs :as hdfs]))
 "contains the utility functions to group by and aggregate"
 
 (defn compute-groupby
@@ -58,21 +59,19 @@
   ;; eg "Salary" -> 3
   ;; (spit "resources/debug.txt" (str msg "\n" key-index) :append true)
   (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index formatter) ;; generate output filename
-        groupby-wrtr (io/writer output-filename :append true)]
-    ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
-    ;; (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
-    (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
-
-    ;; write as csv format e.g. Tim,62,0.1,12
-    ;(.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))
-
+        groupby-wrtr (io/writer output-filename :append true)
+        ]
+    (.write groupby-wrtr (str (u/gets msg write-index)))
     ;; close writer
-    (.close groupby-wrtr))
+    (.close groupby-wrtr)
+    
+    ;; hdfs version
+    ;; (hdfs/write output-filename (str (u/gets msg write-index) "\n")))
 
   ;; !! debugging
   ;(println (clojure.string/join "," (map msg (keys msg))))
   ;(println (apply str (map msg (keys msg))))
-  )
+  ))
 
 (defn read-csv-seq
   "takes file name and reads data"

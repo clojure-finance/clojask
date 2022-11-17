@@ -15,7 +15,8 @@
             [clojure.pprint :as pprint]
             [clojask.classes.DataStat :refer [compute-stat]]
             [clojask-io.input :refer [read-file]]
-            [clojask.join.outer-output :as output])
+            [clojask.join.outer-output :as output]
+            [clojask.hdfs :as hdfs])
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataStat DataStat]
@@ -361,6 +362,8 @@
                 aggre-func (mapv shift-func (u/gets aggre-keys data-index))
                 formatter (.getFormatter (.col-info this))
                 formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+            (hdfs/init)
+            (hdfs/copy-all) ;; copy the grouped files to hdfs
             (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter out))
               "success"
               (throw (OperationException. "Error when aggregating."))))

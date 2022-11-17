@@ -5,14 +5,16 @@
             [clojure.data.csv :as csv]
             [clojask.utils :refer [filter-check]]
             [taoensso.timbre :refer [fatal info debug] :as timbre]
-            [clojure.java.io :as java.io])
+            [clojure.java.io :as java.io]
+            [clojask.hdfs :as hdfs])
   (:import (java.io BufferedReader)))
 
 (defrecord AbsSeqReader [event path rst completed? checkpoint? offset]
   p/Plugin
 
   (start [this event]
-    this)
+        ;;  (hdfs/init)
+         this)
 
   (stop [this event]
     this)
@@ -32,7 +34,7 @@
                 (def tmp (volatile! -1))
                 (map (fn [file] 
                        (vswap! tmp inc)
-                       {:id @tmp :file file :d (read-string (subs (str file) (inc (count (str directory)))))}) 
+                       {:id @tmp :file (str file) :d (read-string (subs (str file) (inc (count (str directory)))))}) 
                      files))
          ]
      (if (nil? checkpoint)

@@ -6,6 +6,9 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                 ;;  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/data.csv "1.0.0"]
+                 ;; hdfs dependencies
+                 [org.apache.hadoop/hadoop-client "3.3.4"]
+                 ;; onyx dependencies
                  ^{:voom {:repo "git@github.com:onyx-platform/onyx.git" :branch "master"}}
                  [org.onyxplatform/onyx "0.14.6"]
                  [com.taoensso/timbre "5.2.1"]
@@ -13,8 +16,6 @@
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]
                  [com.github.clojure-finance/clojask-io "1.0.6"]
                  [com.github.clojure-finance/clojure-heap "1.0.3"]
-                 ;; hdfs dependencies
-                ;;  [org.apache.hadoop/hadoop-client "2.8.1"]
                  ]
   :repl-options {:init-ns clojask.debug
                  :timeout 180000}
