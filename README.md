@@ -3,7 +3,7 @@
 
 ### Features
 
-- **Unlimited size**
+- **Unlimited Size**
 
   It supports datasets larger than memory.
 
@@ -15,11 +15,11 @@
 
   Faster than Dask in most operations, and the larger the dataframe is, the bigger the advantage. Please find the benchmarks [here](https://clojure-finance.github.io/clojask-website/pages-output/about/#benchmarks).
 
-- **All native types**
+- **All Native Types**
 
   All the datatypes used to store data are native Clojure (or Java) types.
 
-- **From file to file**
+- **From File to File**
 
   Integrate IO inside the dataframe. No need to write your own read-in and output functions.
 
@@ -27,9 +27,13 @@
 
   Most operations could be executed into multiple threads or even machines. See the principle in [Onyx](http://www.onyxplatform.org/).
 
-- **Lazy operations**
+- **Lazy Operations**
 
   Most operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
+
+- **Little Constraints on programming**
+
+  Except for some aggregations where you need to write customized functions subject to simple templates, operations in Clojask support arbitrary Clojure functions as input
 
 ### Installation
 
