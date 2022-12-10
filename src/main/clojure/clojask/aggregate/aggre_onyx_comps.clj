@@ -10,7 +10,7 @@
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
-            [clojask.groupby :refer [read-csv-seq]])
+            [clojask.groupby :refer [read-csv-seq insert-mgroup]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
@@ -269,7 +269,7 @@
 
 (defn start-onyx-aggre
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception aggre-func index formatter out]
+  [num-work batch-size dataframe source dist exception aggre-func index formatter out]
   (try
     (workflow-gen num-work)
     (config-env)
@@ -277,8 +277,9 @@
     (catalog-gen num-work batch-size)
     (lifecycle-gen "./.clojask/grouped" dist)
     (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
+    (input/inject-dataframe dataframe source)
     (output/inject-dataframe dataframe out)
+    (insert-mgroup source)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))

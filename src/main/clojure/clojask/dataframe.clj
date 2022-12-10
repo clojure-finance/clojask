@@ -319,7 +319,7 @@
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix (atom (.getOutput a)))))))
 
 (defn compute
-  [this num-worker output-dir & {:keys [exception order output select exclude melt header] :or {exception false order false output nil select nil exclude nil melt vector header true}}]
+  [this num-worker output-dir & {:keys [exception order output select exclude melt header in-memory] :or {exception false order false output nil select nil exclude nil melt vector header true in-memory false}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
@@ -347,7 +347,7 @@
           ) ;; return output dataframe
         (if (not= (.getGroupbyKeys (:row-info this)) [])
           (do ;; groupby-aggre
-            (.computeGroupAggre this num-worker output-dir exception select header output-func))
+            (.computeGroupAggre this num-worker output-dir exception select header output-func in-memory))
           (do ;; aggre
             (.computeAggre this num-worker output-dir exception select header output-func))))
       (if (= (type this) clojask.classes.JoinedDataFrame.JoinedDataFrame)

@@ -597,10 +597,12 @@
     (config-env)
     (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0)))) ;;need some work
     (catalog-groupby-gen num-work batch-size)
-    (lifecycle-groupby-gen (.getFunc dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
+    (if (string? dist) ;; use of dist from here is deprecated
+      (lifecycle-groupby-gen (.getFunc dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
+      (lifecycle-groupby-gen (.getFunc dataframe) nil groupby-keys (.getKeyIndex (.col-info dataframe))))
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe)
-    (groupby/inject-dataframe dataframe groupby-keys groupby-index)
+    (groupby/inject-dataframe dataframe groupby-keys groupby-index dist)
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
@@ -625,7 +627,7 @@
 
 (defn start-onyx-join ;; to-do
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe b dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
+  [num-work batch-size dataframe b source dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
   ;; dataframe means a
   (try
     (workflow-gen num-work)
@@ -637,7 +639,7 @@
     (input/inject-dataframe dataframe)
     (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
     (let [limit (or limit (fn [a b] true))]
-     (defn-join join-type limit))
+     (defn-join join-type limit source))
     (catch Exception e (do
                          (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))

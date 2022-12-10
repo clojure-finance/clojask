@@ -3,6 +3,7 @@
             [clojask.classes.ColInfo :refer [->ColInfo]]
             [clojask.classes.RowInfo :refer [->RowInfo]]
             [clojask.classes.DataStat :refer [->DataStat]]
+            [clojask.classes.MGroup :refer [->MGroup]]
             [clojure.data.csv :as csv]
             [clojure.java.io :as io]
             [clojask.utils :as u]
@@ -19,6 +20,7 @@
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataStat DataStat]
+           [clojask.classes.MGroup MGroup]
            [com.clojask.exception TypeException OperationException])
   (:refer-clojure :exclude [filter group-by sort]))
 
@@ -335,9 +337,10 @@
         "failed")))
 
   (computeGroupAggre
-    [this ^int num-worker ^String output-dir ^boolean exception select ifheader out]
+    [this ^int num-worker ^String output-dir ^boolean exception select ifheader out inmemory]
     (.computeTypeCheck this num-worker output-dir)
     ;; (if (<= num-worker 8)
+  ;;  (def mgroup (MGroup. (transient {})))
     (if true
       (let [groupby-keys (.getGroupbyKeys row-info)
             aggre-keys (.getAggreFunc row-info)
@@ -348,7 +351,8 @@
               ;; pre-index (remove #(>= % (count groupby-keys)) select)
             data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
             groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
-            res (start-onyx-groupby num-worker batch-size this ".clojask/grouped/" groupby-keys groupby-index exception)]
+            mgroup (MGroup. (transient {}))
+            res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/groupby/") groupby-keys groupby-index exception)]
         (if (= aggre-keys [])
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys.")))
@@ -361,7 +365,8 @@
                 aggre-func (mapv shift-func (u/gets aggre-keys data-index))
                 formatter (.getFormatter (.col-info this))
                 formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
-            (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir exception aggre-func select formatter out))
+            (.final mgroup)
+            (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
               "success"
               (throw (OperationException. "Error when aggregating."))))
           (throw (OperationException. "Error when grouping by."))))

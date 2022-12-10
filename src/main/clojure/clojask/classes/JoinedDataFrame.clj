@@ -3,6 +3,7 @@
             [clojask.classes.ColInfo :refer [->ColInfo]]
             [clojask.classes.RowInfo :refer [->RowInfo]]
             [clojask.classes.DataStat :refer [->DataStat]]
+            [clojask.classes.MGroup :refer [->MGroup]]
             [clojask.classes.DataFrame :refer [->DataFrame]]
             [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
             ;; [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
@@ -13,6 +14,7 @@
    [clojask.classes.ColInfo ColInfo]
    [clojask.classes.RowInfo RowInfo]
    [clojask.classes.DataStat DataStat]
+   [clojask.classes.MGroup MGroup]
    [clojask.classes.DataFrame GenDFIntf DataFrame]
    [com.clojask.exception TypeException OperationException]))
 
@@ -96,6 +98,8 @@
           b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
           ;; test (println a-index b-index b-format write-index b-roll)
+          mgroup-a (MGroup. (transient {}))
+          mgroup-b (MGroup. (transient {}))
           ]
       ;; (u/init-file output-dir)
       ;; print column names

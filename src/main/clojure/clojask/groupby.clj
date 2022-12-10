@@ -2,7 +2,8 @@
   (:require [clojure.java.io :as io]
             ;[clojure-csv.core :as csv]
             [clojask.utils :as u]
-            [clojure.core.async :as async]))
+            [clojask.classes.MGroup :refer [->MGroup]])
+  (:import [clojask.classes.MGroup MGroup]))
 "contains the utility functions to group by and aggregate"
 
 (defn compute-groupby
@@ -47,7 +48,7 @@
                        (nth msg _)
                        ))) 
                   index)]
-    (str dist val)))
+    (if (string? dist) (str dist val) (str val))))
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"
@@ -58,30 +59,40 @@
   ;; eg "Salary" -> 3
   ;; (spit "resources/debug.txt" (str msg "\n" key-index) :append true)
   (let [output-filename (gen-groupby-filenames dist msg groupby-keys key-index formatter) ;; generate output filename
-        groupby-wrtr (io/writer output-filename :append true)]
+        ]
+    (if (string? dist)
+      (with-open [groupby-wrtr (io/writer output-filename :append true)]
+        (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
+        (.close groupby-wrtr))
+      (.write dist output-filename (u/gets msg write-index)))
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
     ;; (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
-    (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
+
 
     ;; write as csv format e.g. Tim,62,0.1,12
     ;(.write groupby-wrtr (str (clojure.string/join "," (map msg (keys msg))) "\n"))
 
     ;; close writer
-    (.close groupby-wrtr))
+)
 
   ;; !! debugging
   ;(println (clojure.string/join "," (map msg (keys msg))))
   ;(println (apply str (map msg (keys msg))))
   )
 
+(defn insert-mgroup
+  [_mgroup]
+  (def mgroup _mgroup))
+
 (defn read-csv-seq
   "takes file name and reads data"
   [filename]
-  (let [file (io/reader filename)]
-    (->> file
-         (line-seq)
-         (map read-string)
-         )))
+  (if (string? filename)
+    (.getKey mgroup filename)
+    (let [file (io/reader filename)]
+      (->> file
+           (line-seq)
+           (map read-string)))))
 
 
 ;; (defn write-file
