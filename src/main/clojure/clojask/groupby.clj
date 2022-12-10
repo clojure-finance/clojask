@@ -64,7 +64,7 @@
       (with-open [groupby-wrtr (io/writer output-filename :append true)]
         (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
         (.close groupby-wrtr))
-      (.write dist output-filename (u/gets msg write-index)))
+      (.write dist output-filename msg write-index formatter))
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
     ;; (.write groupby-wrtr (str (u/gets-format msg write-index formatter) "\n"))
 

@@ -6,6 +6,8 @@
             [clojure.string :as str]
             [clojask.utils :as u]))
 
+(def source nil)
+
 (defn gen-join-filenames
   [dist a-row a-keys]
   ;; (def output-filename dist)
@@ -33,6 +35,15 @@
             ;; (println [(vec a-row) (vec b-row) a-index b-index join-index])
             (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))
         (.close filename)))))
+
+(defn output-join-inner-mem
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  (let [filename (gen-join-filenames "" a-row a-keys)]
+    (if (.exists source filename)
+      (let [a-row (u/gets-format a-row a-index a-format)]
+        (doseq [b-row (.getKey source filename)]
+          (let []
+            (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))))))
 
 (defn output-join-loo
   "used for left join right join or outter join"
@@ -67,12 +78,28 @@
       (let [a-row (u/gets-format a-row a-index a-format)]
        (write-func writer (vector (u/gets (concat a-row (repeat count "")) join-index)))))))
 
+(defn output-join-loo-mem
+  "used for left join right join or outter join"
+  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  (let [filename (gen-join-filenames "" a-row a-keys)]
+    (println a-row)
+    (if (.exists source filename)
+      (let [b-rows (.getKey source filename)]
+        (println b-rows)
+        (doseq [b-row b-rows]
+          (let [a-row (u/gets-format a-row a-index a-format)
+                ]
+            (write-func writer (vector (u/gets (concat a-row b-row) join-index))))))
+      (let [a-row (u/gets-format a-row a-index a-format)]
+        (write-func writer (vector (u/gets (concat a-row (repeat count "")) join-index)))))))
+
 (defn defn-join
-  [type limit]
+  [type limit _source]
+  (def source _source)
   (def output-join
     (case type
-      1 output-join-inner
-      2 output-join-loo
+      1 (if (nil? _source) output-join-inner output-join-inner-mem)
+      2 (if (nil? _source) output-join-loo output-join-loo-mem)
       ;; 4 output-join-forward
       4 (let [roll-join-get-line-forward (fn [bench filename index]
                                            (def memo (volatile! nil))
@@ -88,8 +115,7 @@
               (if (.exists (io/file filename))
                 (let [filename (io/reader filename)]
                   (if-let [b-row (roll-join-get-line-forward (nth a-row a-roll) filename b-roll)] ;; bench is a string
-                    (let [
-                          ;; a-row (for [index a-index]
+                    (let [;; a-row (for [index a-index]
                           ;;         (if-let [format (get a-format index)]
                           ;;           (format (nth a-row index))
                           ;;           (nth a-row index)))
@@ -98,8 +124,7 @@
                           ;;         (if-let [format (get b-format index)]
                           ;;           (format (nth b-row index))
                           ;;           (nth b-row index)))
-                          b-row (u/gets-format b-row b-index b-format)
-                          ]
+                          b-row (u/gets-format b-row b-index b-format)]
                       (write-func writer [(u/gets (concat a-row b-row) join-index)]))
                     (let [a-row (for [index a-index]
                                   (if-let [format (get a-format index)]

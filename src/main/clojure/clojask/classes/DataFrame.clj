@@ -59,7 +59,7 @@
   (filter [cols predicate])
   (computeTypeCheck [num-worker output-dir])
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out])
-  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select ifheader out])
+  (computeGroupAggre [^int num-worker ^String output-dir ^boolean exception select ifheader out inmemory])
   (computeAggre [^int num-worker ^String output-dir ^boolean exception select ifheader out])
   (sort [a b] "sort the dataframe based on columns")
   (addFormatter [a b] "format the column as the last step of the computation")

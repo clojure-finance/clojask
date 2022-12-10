@@ -352,7 +352,7 @@
             (.computeAggre this num-worker output-dir exception select header output-func))))
       (if (= (type this) clojask.classes.JoinedDataFrame.JoinedDataFrame)
         (do ;; join
-          (.compute this num-worker output-dir exception order select header output-func)
+          (.compute this num-worker output-dir exception order select header output-func in-memory)
           )
         (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))
     (if (not= output-dir ".clojask/tmp.csv")
