@@ -98,8 +98,8 @@
           b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
           ;; test (println a-index b-index b-format write-index b-roll)
-          mgroup-a (MGroupJoin. (transient {}) (transient {}))
-          mgroup-b (MGroupJoin. (transient {}) (transient {}))
+          mgroup-a (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type)))
+          mgroup-b (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type)))
           ]
       ;; (u/init-file output-dir)
       ;; print column names
@@ -112,7 +112,14 @@
           (.final mgroup-b)
           (start-onyx-join num-worker 10 a b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
         (do
-          (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
-          (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)
+          (if inmemory
+            (do
+              (start-onyx-groupby num-worker 10 a mgroup-a a-keys a-index exception)
+              (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
+              (.final mgroup-a)
+              (.final mgroup-b))
+            (do
+              (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
+              (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)))
           (start-onyx-outer num-worker 10 a b output-dir exception a-index b-index a-format b-format write-index out))))))
 
