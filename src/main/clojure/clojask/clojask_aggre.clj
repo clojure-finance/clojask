@@ -64,9 +64,11 @@
               wtr (:clojask/wtr event)]
           ;; (.write (:clojask/wtr event) (str data "\n"))
           (if (apply = (map count data))
-            (mapv 
+            (do
+              (mapv
             ;;  #(.write (:clojask/wtr event) (str (string/join "," (u/gets % select)) "\n"))
-                 (fn [msg] (output-func wtr [(u/gets msg select)])) (apply map vector data))
+               (fn [msg] (output-func wtr [(u/gets msg select)])) (apply map vector data))
+              (.flush wtr))
             (throw (ExecutionException. "aggregation result is not of the same length"))))
         this)
 

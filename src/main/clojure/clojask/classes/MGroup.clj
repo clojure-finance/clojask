@@ -25,6 +25,7 @@
   
   (getKeys
    [this]
+  ;;  (println (keys groups))
    (keys groups))
   
   (exists
@@ -39,7 +40,7 @@
   
   (getKey
    [this key]
-   (persistent! (get groups key)) ()))
+   (persistent! (get groups key))))
 
 (deftype MGroupJoin
          [^:unsynchronized-mutable groups

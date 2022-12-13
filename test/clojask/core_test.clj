@@ -1,6 +1,6 @@
 (ns core-test
     (:require [clojure.test :refer :all]
-              [clojask.dataframe :refer :all :exclude [sort]]
+              [clojask.dataframe :refer :all]
               [clojask.utils :refer :all]
               [clojask.groupby :refer :all]
               [clojask.api.gb-aggregate :as gb-aggre]

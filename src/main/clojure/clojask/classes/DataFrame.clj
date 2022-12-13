@@ -352,7 +352,7 @@
             data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
             groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
             mgroup (MGroup. (transient {}))
-            res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/groupby/") groupby-keys groupby-index exception)]
+            res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
         (if (= aggre-keys [])
           (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                         "the groupby keys.")))

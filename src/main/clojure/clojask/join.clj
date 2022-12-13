@@ -82,10 +82,10 @@
   "used for left join right join or outter join"
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
   (let [filename (gen-join-filenames "" a-row a-keys)]
-    (println a-row)
+    ;; (println a-row)
     (if (.exists source filename)
       (let [b-rows (.getKey source filename)]
-        (println b-rows)
+        ;; (println b-rows)
         (doseq [b-row b-rows]
           (let [a-row (u/gets-format a-row a-index a-format)
                 ]

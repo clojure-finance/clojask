@@ -69,6 +69,7 @@
         ;;              index (nth _ 1)]
         ;;          (func (get data-map index))))
         ;;      aggre-funcs)
+        ;; (println data)
         (loop [aggre-funcs aggre-funcs
                res []]
           (if (= aggre-funcs [])
@@ -275,13 +276,12 @@
     (config-env)
     (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./.clojask/grouped" dist)
+    (lifecycle-gen (if (nil? source) "./.clojask/grouped" nil) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe source)
     (output/inject-dataframe dataframe out)
     (insert-mgroup source)
     (catch Exception e (do
-                         (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config
