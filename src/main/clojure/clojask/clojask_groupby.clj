@@ -11,13 +11,15 @@
 (def write-index (atom nil))
 (def output-func (atom nil))
 (def dist (atom nil))
+(def format (atom nil))
 
 (defn inject-dataframe
-  [df groupby-key index _dist]
+  [df groupby-key index _dist _format]
   (reset! dataframe df)
   (reset! groupby-keys groupby-key)
   (reset! write-index index)
   (reset! dist _dist)
+  (reset! format _format)
   ;; (reset! output-func out)
   )
 
@@ -97,7 +99,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-            (output-groupby dist data groupby-keys key-index formatter write-index)))))
+            (output-groupby dist data groupby-keys key-index formatter write-index (deref format))))))
     true))
 
 ;; Builder function for your output plugin.

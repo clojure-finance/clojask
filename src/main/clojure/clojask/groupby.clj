@@ -52,7 +52,7 @@
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"
-  [dist msg groupby-keys key-index formatter write-index]
+  [dist msg groupby-keys key-index formatter write-index _format]
   ;; msg this time is a vector
 
   ;; key-index contains the one to one correspondence of key value to index value, it is a map
@@ -62,7 +62,7 @@
         ]
     (if (string? dist)
       (with-open [groupby-wrtr (io/writer output-filename :append true)]
-        (.write groupby-wrtr (str (u/gets msg write-index) "\n"))
+        (.write groupby-wrtr (str (if _format (u/gets-format msg write-index formatter) (u/gets msg write-index)) "\n"))
         (.close groupby-wrtr))
       (.write dist output-filename msg write-index formatter))
     ;; write as maps e.g. {:name "Tim", :salary 62, :tax 0.1, :bonus 12}
@@ -87,12 +87,10 @@
 (defn read-csv-seq
   "takes file name and reads data"
   [filename]
-  (if (string? filename)
-    (.getKey mgroup filename)
     (let [file (io/reader filename)]
       (->> file
            (line-seq)
-           (map read-string)))))
+           (map read-string))))
 
 
 ;; (defn write-file

@@ -39,7 +39,7 @@
 
 
 (defn worker-func-gen
-  [df exception aggre-funcs index formatter]
+  [df exception aggre-funcs index formatter source]
   (reset! dataframe df)
   (let [
         ;; aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
@@ -59,7 +59,7 @@
       "refered in preview"
       [seq]
       ;; (println formatters)
-      (let [data (read-csv-seq (:file seq))
+      (let [data (if (= source nil) (read-csv-seq (:file seq)) (.getKey source (:file seq)))
             pre (:d seq)
             pre (u/gets-format pre pre-index org-format)
             data-map (-> (iterate inc 0)
@@ -274,13 +274,13 @@
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
+    (worker-func-gen dataframe exception aggre-func index formatter source) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen (if (nil? source) "./.clojask/grouped" nil) dist)
     (flow-cond-gen num-work)
     (input/inject-dataframe dataframe source)
     (output/inject-dataframe dataframe out)
-    (insert-mgroup source)
+    ;; (insert-mgroup source)
     (catch Exception e (do
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try

@@ -33,7 +33,7 @@
           res
           (recur (dec count))))))
 
-(enable-debug)
+;; (enable-debug)
 
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
