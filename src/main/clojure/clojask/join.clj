@@ -31,7 +31,7 @@
         (doseq [b-row (read-csv-seq filename)]
           ;; (.write writer (str (map type b-row) "\n"))
         ;; (spit ".clojask/join/test.txt" (str a-row b-row "\n") :append true)
-          (let [b-row (u/gets-format b-row b-index b-format)]
+          (let [b-row (u/gets b-row b-index)]
             ;; (println [(vec a-row) (vec b-row) a-index b-index join-index])
             (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))
         (.close filename)))))
@@ -66,7 +66,7 @@
                 ;;         (if-let [format (get a-format index)]
                 ;;           (format (nth a-row index))
                 ;;           (nth a-row index)))
-                b-row (u/gets-format b-row b-index b-format)
+                b-row (u/gets b-row b-index)
                 ;; tmp (println b-row)
                 ;; b-row (for [index b-index]
                 ;;         (if-let [format (get b-format index)]

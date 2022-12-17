@@ -57,11 +57,11 @@
         (let [id (:id seq)
               a-filename (:d seq)
               a-data (read-csv-seq a-filename)
-              a-data (map #(u/gets-format % a-index-new a-format) a-data)
+              a-data (map #(u/gets % a-index-new) a-data)
               b-filename (string/replace-first a-filename "/a/" "/b/")]
           (if (.exists (io/file b-filename))
             (do
-              (let [b-data (mapv #(u/gets-format % b-index-new b-format) (read-csv-seq b-filename))]
+              (let [b-data (mapv #(u/gets % b-index-new) (read-csv-seq b-filename))]
                 (io/delete-file b-filename true)
                 {:id id :d (mapv #(u/gets % write-index) (for [a-row a-data b-row b-data] (concat a-row b-row)))}) ;; formatter here
               )
@@ -99,7 +99,7 @@
       ;; (println seq)
         (let [id (:id seq)
               b-filename (:d seq)
-              b-data (mapv #(u/gets-format % b-index-new b-format) (read-csv-seq b-filename))]
+              b-data (mapv #(u/gets % b-index-new) (read-csv-seq b-filename))]
           {:id id :d (mapv #(u/gets % write-index) (mapv add-nil b-data))}))
       (defn worker-func
         "refered in preview"
@@ -107,7 +107,7 @@
       ;; (println seq)
         (let [id (:id seq)
               b-filename (:d seq)
-              b-data (mapv #(u/gets-format % b-index-new b-format) (.getKey mgroup-b b-filename))]
+              b-data (mapv #(u/gets % b-index-new) (.getKey mgroup-b b-filename))]
           {:id id :d (mapv #(u/gets % write-index) (mapv add-nil b-data))})))))
 
 (defn catalog-gen

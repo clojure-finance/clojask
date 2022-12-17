@@ -589,7 +589,11 @@
   "success")
 
 (defn start-onyx-groupby
-  "start the onyx cluster with the specification inside dataframe"
+  "start the onyx cluster with the specification inside dataframe\n
+   @format: if format the value before writing to file. For procedures that will need to compare / use the actual
+   value of each element, should be set to false, such as aggregate, rolling join. For others, should be set to 
+   false to avoid repeated formatting
+   "
   [num-work batch-size dataframe dist groupby-keys groupby-index exception & {:keys [format] :or {format false}}]
   ;; (println groupby-index)
   (try

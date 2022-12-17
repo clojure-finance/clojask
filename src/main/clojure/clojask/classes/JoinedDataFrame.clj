@@ -104,13 +104,15 @@
       ;; (u/init-file output-dir)
       ;; print column names
       (if (= ifheader true) (.printCol this output-dir select out))
-      (if (not= type 3)
+      (cond
+        (or (= type 0) (= type 1) (= type 2)) ;; inner left right join
         (do
           (if inmemory
             (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
-            (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception))
+            (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception :format true))
           (.final mgroup-b)
           (start-onyx-join num-worker 10 a b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
+        (= type 3) ;; outer join
         (do
           (if inmemory
             (do
@@ -120,7 +122,14 @@
               ;; (.final mgroup-b)
               )
             (do
-              (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception)
-              (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception)))
-          (start-onyx-outer num-worker 10 a b (if inmemory mgroup-a nil) (if inmemory mgroup-b nil) output-dir exception a-index b-index a-format b-format write-index out))))))
+              (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception :format true)
+              (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception :format true)))
+          (start-onyx-outer num-worker 10 a b (if inmemory mgroup-a nil) (if inmemory mgroup-b nil) output-dir exception a-index b-index a-format b-format write-index out))
+        (or (= type 4) (= type 5))  ;; rolling join
+        (do
+          (if inmemory
+            (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
+            (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception))
+          (.final mgroup-b)
+          (start-onyx-join num-worker 10 a b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))))))
 
