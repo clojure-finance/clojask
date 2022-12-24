@@ -16,6 +16,7 @@
   (-> (dataframe "xxx.csv")
       (set-type "Colx" "int")
       (operate inc "Colx")
+      ...
       (compute 8 "xxx-modified.csv"))
   ```
 
@@ -446,7 +447,7 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 | Argument            | Type                                                         | Function                                                     | Remarks                                                      |
 | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `dataframe`         | clojask.classes.DataFrame.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
-| `num of workers`    | int (max 8)                                                  | The number of worker instances (except the input and output nodes) | Uses [onyx](http://www.onyxplatform.org/) as the distributed platform |
+| `num of workers`    | int (max 8)                                                  | The number of worker instances (except the input and output nodes) | Uses [Onyx](http://www.onyxplatform.org/) as the distributed platform |
 | `output path`       | String / `nil`                                               | The path of the output csv file                              | If the path already exists, will overwrite the file.<br>If `nil`, will store the output in memory as a vector of vectors, which represent each row. See [example](https://github.com/clojure-finance/clojask-examples/blob/main/src/clojask_examples/in_memory.clj). |
 | [`exception`]       | Boolean                                                      | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
 | [`order`]           | Boolean                                                      | If enforce the order of rows in the output to be the same as input | By default `false`. If set to `true`, will sacrifice the performance. |
@@ -455,6 +456,7 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 | [`exclude`]         | String / Collection of strings                               | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
 | [`header`]          | Collection of strings                                        | The column names in the output file that appears in the first row | Will replace the default column names. Should be equal to the number of columns. |
 | [`melt`]            | Function (one argument)                                      | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (This API is used in the `extensions.reshpae.melt`) |
+| [`in-memory`]       | Boolean                                                      | Whether the computation should all be completed in memory    | If set to `true`, this affects the computation procedure of groupby-aggregation and joins. These operations originally will write to and read from intermediate group files in disk. Now it will stores these groups in memory only, **which will speed up the computation process**. **However, when the dataframe is larger than memory, this option should not be set to `false`.** Other operations are not affected because they natively do not require out-of-memory steps. |
 
 **Return**
 
@@ -469,6 +471,12 @@ A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe. / A v
 (compute x 8 "output.csv" :select "col a")
 ;; only select column a
 
+(compute x 8 "output.csv" :order true)
+;; make sure the order of the output is the same of the input
+
+(compute x 8 nil :in-memory true)
+;; compute the dataframe in memory and store the dataframe also in memory
+
 (compute x 8 "output.csv" :select ["col b" "col a"])
 ;; select two columns, column b and column a in order
 
@@ -480,7 +488,6 @@ A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe. / A v
 
 (compute x 8 "output.csv" :melt (fn [row] (map concat (repeat (take 2 x)) (take-last 2 x))))
 ;; each result row becomes two rows
-;; [a b c d] => [[a b c]
-;;							 [a b d]]
+;; [a b c d] => [[a b c] [a b d]]
 ```
 
