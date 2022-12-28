@@ -87,6 +87,7 @@
             (output-func wtr (:d msg))
                 ;; !! define argument (debug)
             ))))
+    (.flush wtr)
     true))
 
 ;; Builder function for your output plugin.

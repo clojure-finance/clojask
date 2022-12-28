@@ -5,10 +5,11 @@
             [clojure.data.csv :as csv]
             [clojask.utils :refer [filter-check]]
             [taoensso.timbre :refer [fatal info debug] :as timbre]
-            [clojure.java.io :as java.io])
+            [clojure.java.io :as java.io]
+            [clojask.utils :as u])
   (:import (java.io BufferedReader)))
 
-(defrecord AbsSeqReader [event path rst completed? checkpoint? offset]
+(defrecord AbsSeqReader [event path rst completed? checkpoint? offset source]
   p/Plugin
 
   (start [this event]
@@ -25,15 +26,23 @@
    [this _ checkpoint]
    (vreset! completed? false)
 
-   (let [directory (java.io/file path)
-         files (rest (file-seq directory))
+   (let [
+        ;;  directory (java.io/file path)
+        ;;  files (rest (file-seq directory))
         ;;  data (map zipmap (repeat [:id :file :d]) (map vector (iterate inc 0) [files (mapv (fn [_] (read-string (str _))) files)]))
-         data (do
-                (def tmp (volatile! -1))
-                (map (fn [file] 
-                       (vswap! tmp inc)
-                       {:id @tmp :file file :d (read-string (subs (str file) (inc (count (str directory)))))}) 
-                     files))
+         data (if (= path nil)
+                (do
+                  (def tmp (volatile! -1))
+                  (map (fn [file]
+                         (vswap! tmp inc)
+                         {:id @tmp :file file :d (read-string file)})
+                       (.getKeys source)))
+                (do
+                  (def tmp (volatile! -1))
+                  (map (fn [file]
+                         (vswap! tmp inc)
+                         {:id @tmp :file file :d (read-string (u/decode-str (.getName file)))})
+                       (rest (file-seq (java.io/file path))))))
          ]
      (if (nil? checkpoint)
        (do
@@ -75,8 +84,9 @@
          ))
 
 (defn inject-dataframe
-  [dataframe]
-  (def df dataframe))
+  [dataframe _source]
+  (def df dataframe)
+  (def source _source))
 
 (defn input [{:keys [onyx.core/task-map] :as event}]
   ;; (println (:seq/rdr event))
@@ -89,7 +99,8 @@
                       :rst (volatile! nil)
                       :completed? (volatile! false)
                       :checkpoint? (not (false? (:seq/checkpoint? task-map)))
-                      :offset (volatile! nil)}))
+                      :offset (volatile! nil)
+                      :source source}))
 
 (def reader-calls
   {})

@@ -10,12 +10,16 @@
 (def groupby-keys (atom nil))
 (def write-index (atom nil))
 (def output-func (atom nil))
+(def dist (atom nil))
+(def format_ (atom nil))
 
 (defn inject-dataframe
-  [df groupby-key index]
+  [df groupby-key index _dist _format]
   (reset! dataframe df)
   (reset! groupby-keys groupby-key)
   (reset! write-index index)
+  (reset! dist _dist)
+  (reset! format_ _format)
   ;; (reset! output-func out)
   )
 
@@ -25,7 +29,8 @@
         formatters (.getFormatter (.col-info (deref dataframe)))
         groupby-keys (deref groupby-keys)]
   ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
-    {:clojask/dist (:buffered-wtr/filename lifecycle) 
+    {:clojask/dist (deref dist)
+    ;;  :clojask/dist (:buffered-wtr/filename lifecycle) 
     ;;  :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
      :clojask/groupby-keys groupby-keys
      :clojask/key-index key-index
@@ -94,7 +99,7 @@
                 ;(.write wtr (str msg "\n"))
                 ;; !! define argument (debug)
             ;;   (def groupby-keys [:Department :EmployeeName])
-            (output-groupby dist data groupby-keys key-index formatter write-index)))))
+            (output-groupby dist data groupby-keys key-index formatter write-index (deref format_))))))
     true))
 
 ;; Builder function for your output plugin.

@@ -1,4 +1,4 @@
-(defproject com.github.clojure-finance/clojask "2.0.0"
+(defproject com.github.clojure-finance/clojask "2.0.1"
   :description "Data analysis and manipulation library with parallel computing for larger-than-memory datasets"
   :url "https://github.com/clojure-finance/clojask"
   :license {:name "MIT"

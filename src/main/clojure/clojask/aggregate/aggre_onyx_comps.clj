@@ -10,7 +10,7 @@
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
-            [clojask.groupby :refer [read-csv-seq]])
+            [clojask.groupby :refer [read-csv-seq insert-mgroup]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
@@ -39,7 +39,7 @@
 
 
 (defn worker-func-gen
-  [df exception aggre-funcs index formatter]
+  [df exception aggre-funcs index formatter source]
   (reset! dataframe df)
   (let [
         ;; aggre-funcs (.getAggreFunc (.row-info (deref dataframe)))
@@ -59,7 +59,7 @@
       "refered in preview"
       [seq]
       ;; (println formatters)
-      (let [data (read-csv-seq (:file seq))
+      (let [data (if (= source nil) (read-csv-seq (:file seq)) (.getKey source (:file seq)))
             pre (:d seq)
             pre (u/gets-format pre pre-index org-format)
             data-map (-> (iterate inc 0)
@@ -69,6 +69,7 @@
         ;;              index (nth _ 1)]
         ;;          (func (get data-map index))))
         ;;      aggre-funcs)
+        ;; (println data)
         (loop [aggre-funcs aggre-funcs
                res []]
           (if (= aggre-funcs [])
@@ -269,18 +270,18 @@
 
 (defn start-onyx-aggre
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception aggre-func index formatter out]
+  [num-work batch-size dataframe source dist exception aggre-func index formatter out]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen dataframe exception aggre-func index formatter) ;;need some work
+    (worker-func-gen dataframe exception aggre-func index formatter source) ;;need some work
     (catalog-gen num-work batch-size)
-    (lifecycle-gen "./.clojask/grouped" dist)
+    (lifecycle-gen (if (nil? source) "./.clojask/grouped" nil) dist)
     (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
+    (input/inject-dataframe dataframe source)
     (output/inject-dataframe dataframe out)
+    ;; (insert-mgroup source)
     (catch Exception e (do
-                         (shutdown)
                          (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
   (try
     (let [submission (onyx.api/submit-job peer-config

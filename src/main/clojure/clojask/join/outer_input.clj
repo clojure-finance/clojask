@@ -8,6 +8,9 @@
             [clojure.java.io :as java.io])
   (:import (java.io BufferedReader)))
 
+(def mgroup-a nil)
+(def mgroup-b nil)
+
 (defrecord AbsSeqReader [event path rst completed? checkpoint? offset]
   p/Plugin
 
@@ -26,15 +29,26 @@
    (vreset! completed? false)
 
    (let [directory (java.io/file path)
-         files (rest (file-seq directory))
+         files (if (= mgroup-a nil)
+                 (rest (file-seq directory))
+                 (.getKeys mgroup-a))
         ;;  data (map zipmap (repeat [:id :file :d]) (map vector (iterate inc 0) [files (mapv (fn [_] (read-string (str _))) files)]))
-         data (do
-                (def tmp (volatile! -1))
-                (map (fn [file] 
-                       (vswap! tmp inc)
-                       {:id @tmp :d (str file)}) 
-                     files))
-         ]
+         data 
+         (if (= mgroup-a nil)
+                (do
+                  (def tmp (volatile! -1))
+                  (map (fn [file]
+                         (vswap! tmp inc)
+                         {:id @tmp :d (str file)})
+                       files))
+                (do
+                  (def tmp (volatile! -1))
+                  (map (fn [file]
+                         (vswap! tmp inc)
+                         (if (not= nil mgroup-b) (.delete mgroup-b file))
+                         {:id @tmp :d (str file)})
+                       files)))
+     ]
      (if (nil? checkpoint)
        (do
          (vreset! rst data)
@@ -75,8 +89,9 @@
          ))
 
 (defn inject-dataframe
-  [dataframe]
-  (def df dataframe))
+  [_mgroup-a _mgroup-b]
+  (def mgroup-a _mgroup-a)
+  (def mgroup-b _mgroup-b))
 
 (defn input [{:keys [onyx.core/task-map] :as event}]
   ;; (println (:seq/rdr event))

@@ -84,6 +84,7 @@
             ;;   (.write wtr (str (string/join "," data) "\n")))
                 ;; !! define argument (debug)
             ))))
+    (.flush wtr)
     true))
 
 ;; Builder function for your output plugin.

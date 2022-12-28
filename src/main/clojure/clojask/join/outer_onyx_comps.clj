@@ -37,7 +37,7 @@
 
 
 (defn worker-func-gen
-  [a b exception a-index b-index a-format b-format write-index]
+  [a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index]
   (let [a-count (count a-index)
         b-count (count b-index)
         b-nil (repeat b-count nil)
@@ -49,39 +49,66 @@
         ;; a-format (.getFormatter (:col-info a))
         ;; a-format (set/rename-keys a-format (zipmap (deref a-index) (iterate inc 0)))
         ]
-    (defn worker-func
-      "refered in preview"
-      [seq]
+    (if (= nil mgroup-a)
+      (defn worker-func
+        "refered in preview"
+        [seq]
       ;; (println seq)
-      (let [id (:id seq)
-            a-filename (:d seq)
-            a-data (read-csv-seq a-filename)
-            a-data (map #(u/gets-format % a-index-new a-format) a-data)
-            b-filename (string/replace-first a-filename "/a/" "/b/")]
-        (if (.exists (io/file b-filename))
-          (do
-            (let [b-data (mapv #(u/gets-format % b-index-new b-format) (read-csv-seq b-filename))]
-              (io/delete-file b-filename true)
-              {:id id :d (mapv #(u/gets % write-index) (for [a-row a-data b-row b-data] (concat a-row b-row)))}) ;; formatter here
-            )
-          {:id id :d (mapv #(u/gets % write-index) (map add-nil a-data))}))
-        )))
+        (let [id (:id seq)
+              a-filename (:d seq)
+              a-data (read-csv-seq a-filename)
+              a-data (map #(u/gets % a-index-new) a-data)
+              b-filename (string/replace-first a-filename "/a/" "/b/")]
+          (if (.exists (io/file b-filename))
+            (do
+              (let [b-data (mapv #(u/gets % b-index-new) (read-csv-seq b-filename))]
+                (io/delete-file b-filename true)
+                {:id id :d (mapv #(u/gets % write-index) (for [a-row a-data b-row b-data] (concat a-row b-row)))}) ;; formatter here
+              )
+            {:id id :d (mapv #(u/gets % write-index) (map add-nil a-data))})))
+      (defn worker-func
+        "refered in preview"
+        [seq]
+      ;; (println seq)
+        (let [id (:id seq)
+              a-filename (:d seq)
+              a-data (.getKey mgroup-a a-filename)
+              a-data (map #(u/gets % a-index-new) a-data)
+              b-filename a-filename
+              ]
+          ;; (println b-filename)
+          (if (.exists mgroup-b b-filename)
+            (do
+              (let [b-data (mapv #(u/gets % b-index-new) (.getKey mgroup-b b-filename))]
+                ;; (io/delete-file b-filename true)
+                {:id id :d (mapv #(u/gets % write-index) (for [a-row a-data b-row b-data] (concat a-row b-row)))}) ;; formatter here
+              )
+            {:id id :d (mapv #(u/gets % write-index) (map add-nil a-data))}))))))
 
 (defn worker-func-gen2
-  [a b exception a-index b-index a-format b-format write-index]
+  [a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index]
   (let [a-count (count a-index)
         b-count (count b-index)
         a-nil (repeat a-count nil)
         add-nil (fn [row] (concat a-nil row))
         b-index-new (take (count b-index) (iterate inc 0))]
-    (defn worker-func
-      "refered in preview"
-      [seq]
+    (if (= mgroup-a nil)
+      (defn worker-func
+        "refered in preview"
+        [seq]
       ;; (println seq)
-      (let [id (:id seq)
-            b-filename (:d seq)
-            b-data (mapv #(u/gets-format % b-index-new b-format) (read-csv-seq b-filename))]
-        {:id id :d (mapv #(u/gets % write-index) (mapv add-nil b-data))}))))
+        (let [id (:id seq)
+              b-filename (:d seq)
+              b-data (mapv #(u/gets % b-index-new) (read-csv-seq b-filename))]
+          {:id id :d (mapv #(u/gets % write-index) (mapv add-nil b-data))}))
+      (defn worker-func
+        "refered in preview"
+        [seq]
+      ;; (println seq)
+        (let [id (:id seq)
+              b-filename (:d seq)
+              b-data (mapv #(u/gets % b-index-new) (.getKey mgroup-b b-filename))]
+          {:id id :d (mapv #(u/gets % write-index) (mapv add-nil b-data))})))))
 
 (defn catalog-gen
   "Generate the catalog for running Onyx"
@@ -258,16 +285,16 @@
 
 (defn start-onyx-outer
   "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size a b dist exception a-index b-index a-format b-format write-index output]
+  [num-work batch-size a b mgroup-a mgroup-b dist exception a-index b-index a-format b-format write-index output]
   ;; step 1
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen a b exception a-index b-index a-format b-format write-index) ;;need some work
+    (worker-func-gen a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index) ;;need some work
     (catalog-gen num-work batch-size)
     (lifecycle-gen "./.clojask/join/a" dist)
     (flow-cond-gen num-work)
-    ;; (input/inject-dataframe dataframe)
+    (input/inject-dataframe mgroup-a mgroup-b)
     (output/inject-write-func output)
     (catch Exception e (do
                          (shutdown)
@@ -289,9 +316,10 @@
 
   ;; step 2
   (try
-    (worker-func-gen2 a b exception a-index b-index a-format b-format write-index) ;;need some work
+    (if (not= mgroup-b nil) (.final mgroup-b))
+    (worker-func-gen2 a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index) ;;need some work
     (lifecycle-gen "./.clojask/join/b" dist)
-    ;; (input/inject-dataframe dataframe)
+    (input/inject-dataframe mgroup-b nil)
 
     (catch Exception e (do
                          (shutdown)
