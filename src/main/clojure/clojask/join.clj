@@ -15,7 +15,7 @@
   ;;   (def output-filename (str output-filename "_" (name (nth b-keys i)) "-" (nth a-row (get a-map (nth a-keys i))))))
   ;; (str output-filename ".csv")
   (let [a-val (mapv (fn [_] ((or (nth _ 0) identity) (nth a-row (nth _ 1)))) a-keys)]
-    (str dist a-val)))
+    (if (nil? dist) (str a-val) (str dist (u/encode-str (str a-val))))))
 
 (defn output-join-inner
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
@@ -38,7 +38,7 @@
 
 (defn output-join-inner-mem
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
-  (let [filename (gen-join-filenames "" a-row a-keys)]
+  (let [filename (gen-join-filenames nil a-row a-keys)]
     (if (.exists source filename)
       (let [a-row (u/gets-format a-row a-index a-format)]
         (doseq [b-row (.getKey source filename)]
@@ -81,7 +81,7 @@
 (defn output-join-loo-mem
   "used for left join right join or outter join"
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
-  (let [filename (gen-join-filenames "" a-row a-keys)]
+  (let [filename (gen-join-filenames nil a-row a-keys)]
     ;; (println a-row)
     (if (.exists source filename)
       (let [b-rows (.getKey source filename)]
@@ -146,7 +146,7 @@
                   (let [a-row (u/gets-format a-row a-index a-format)]
                     (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))))
             (fn [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
-              (let [filename (gen-join-filenames "" a-row a-keys)]
+              (let [filename (gen-join-filenames nil a-row a-keys)]
                 (if (.exists source filename)
                   (let []
                     (if-let [b-row (roll-join-get-line-forward-mem (nth a-row a-roll) filename b-roll)] ;; bench is a string
@@ -194,7 +194,7 @@
                 (let [a-row (u/gets-format a-row a-index a-format)]
                   (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))))
             (fn [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
-              (let [filename (gen-join-filenames "" a-row a-keys)]
+              (let [filename (gen-join-filenames nil a-row a-keys)]
                 (if (.exists source filename)
                   (let []
                     (if-let [b-row (roll-join-get-line-backward-mem (nth a-row a-roll) filename b-roll)] ;; bench is a string

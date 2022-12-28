@@ -48,7 +48,7 @@
                        (nth msg _)
                        ))) 
                   index)]
-    (if (string? dist) (str dist val) (str val))))
+    (if (string? dist) (str dist (u/encode-str (str val))) (str val))))
 
 (defn output-groupby
   "internal function called by output when aggregation is applied"

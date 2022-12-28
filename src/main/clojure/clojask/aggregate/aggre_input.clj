@@ -5,7 +5,8 @@
             [clojure.data.csv :as csv]
             [clojask.utils :refer [filter-check]]
             [taoensso.timbre :refer [fatal info debug] :as timbre]
-            [clojure.java.io :as java.io])
+            [clojure.java.io :as java.io]
+            [clojask.utils :as u])
   (:import (java.io BufferedReader)))
 
 (defrecord AbsSeqReader [event path rst completed? checkpoint? offset source]
@@ -40,7 +41,7 @@
                   (def tmp (volatile! -1))
                   (map (fn [file]
                          (vswap! tmp inc)
-                         {:id @tmp :file file :d (read-string (subs (str file) (inc (count (str (java.io/file path))))))})
+                         {:id @tmp :file file :d (read-string (u/decode-str (.getName file)))})
                        (rest (file-seq (java.io/file path))))))
          ]
      (if (nil? checkpoint)

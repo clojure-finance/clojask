@@ -95,7 +95,7 @@
               groupby-res (loop [sample compute-res groupby {}]
                             (if-let [row (first sample)]
                               (let [res (rest sample)
-                                    key (gen-groupby-filenames "" row groupby-keys key-index formatters)]
+                                    key (gen-groupby-filenames nil row groupby-keys key-index formatters)]
                                 (recur res (assoc groupby key (conj (or (get groupby key) []) row))))
                               groupby))
               aggre-funcs (.getAggreFunc (.row-info dataframe))
