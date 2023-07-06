@@ -23,7 +23,7 @@
 
 (defn count
   [list]
-  (count list))
+  (clojure.core/count list))
 
 ;; multi-row aggregation functions
 
