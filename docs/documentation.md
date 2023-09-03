@@ -147,7 +147,7 @@ Set the data type of a column. As a result, the value will be parsed as the assi
 | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
 | `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |                                                              |
 | `column`    | String            | Target columns      | Should be existing columns within the dataframe.             |
-| `type`      | String            | Type of the column  | The natively supported types are: int, double, string, date. Note that by default all the column types are string. If you need a special parsing function, see `add-parser`. |
+| `type`      | String            | Type of the column  | The natively supported types are: int, double, string, date. Note that by default all the column types are string. If you need a special parsing function, see `set-parser`. |
 
 **Example**
 
