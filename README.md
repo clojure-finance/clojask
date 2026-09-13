@@ -25,7 +25,7 @@
 
 - **Parallel**
 
-  Most operations could be executed into multiple threads or even machines. See the principle in [Onyx](http://www.onyxplatform.org/).
+  Most operations could be executed into multiple threads or even machines. See the principle in [Onyx](https://github.com/clojure-finance/onyx), a maintained fork of the original project.
 
 - **Lazy Operations**
 
@@ -42,19 +42,24 @@ Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask) !
 Insert this line into your `project.clj` if using Leiningen.
 
 ```
-[com.github.clojure-finance/clojask "2.0.0"]
+[com.github.clojure-finance/clojask "2.0.3"]
 ```
 
 Insert this line into your `deps.edn` if using CLI.
 
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "2.0.0"}
+com.github.clojure-finance/clojask {:mvn/version "2.0.3"}
 ```
 
 **Requirements:**
 
 - MacOS or Linux
-- Java 8 - 11
+- JDK 17 or newer (tested on JDK 21)
+- The JVM flag `--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED`.
+  Leiningen and deps.edn users put it in `:jvm-opts`; when running from
+  plain `java`, pass it on the command line. Without it the first `compute`
+  fails while starting the embedded media driver with
+  `IllegalAccessError: class org.agrona.UnsafeApi ... cannot access class jdk.internal.misc.Unsafe`.
 
 ### Example Usage
 
