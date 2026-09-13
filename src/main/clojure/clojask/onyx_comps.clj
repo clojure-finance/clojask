@@ -486,8 +486,19 @@
   ;; (println flow-conditions) ;; !! debugging
   )
 
+;; Components started by config-env. Kept as top-level vars so shutdown can
+;; tear down whatever a partial startup managed to create.
+(def env nil)
+(def peer-group nil)
+(def v-peers nil)
+
 (defn config-env
   []
+  ;; Clear the previous run first, so a failure below leaves only the
+  ;; components that were actually started in this run.
+  (def env nil)
+  (def peer-group nil)
+  (def v-peers nil)
   (def env-config
     {:zookeeper/address "127.0.0.1:2188"
      :zookeeper/server? true
@@ -513,11 +524,25 @@
   (def v-peers (onyx.api/start-peers n-peers peer-group)))
 
 (defn shutdown
+  "Tear down whatever config-env managed to start, in reverse order. Every
+   step is attempted even if an earlier one fails, so a startup that dies
+   after ZooKeeper is up (for example in the peer group) still releases the
+   ZooKeeper port instead of poisoning every later compute in this JVM. The
+   first error, if any, is rethrown once all steps have run."
   []
-  (doseq [v-peer v-peers]
-    (onyx.api/shutdown-peer v-peer))
-  (onyx.api/shutdown-peer-group peer-group)
-  (onyx.api/shutdown-env env))
+  (let [errors (volatile! [])
+        attempt (fn [f] (try (f) (catch Exception e (vswap! errors conj e))))]
+    (doseq [v-peer v-peers]
+      (attempt #(onyx.api/shutdown-peer v-peer)))
+    (when peer-group
+      (attempt #(onyx.api/shutdown-peer-group peer-group)))
+    (when env
+      (attempt #(onyx.api/shutdown-env env)))
+    (def v-peers nil)
+    (def peer-group nil)
+    (def env nil)
+    (when-let [e (first @errors)]
+      (throw e))))
 
 (defn start-onyx
   "start the onyx cluster with the specification inside dataframe"

@@ -7,9 +7,13 @@
               [clojask.api.aggregate :as aggre]
               [clojask.sort :refer :all]
               [clojure.data.csv :as csv]
-              [clojure.string :as str]))
+              [clojure.string :as str]
+              [clojure.java.io :as io]))
         
 (use '[clojure.java.shell :only [sh]])
+
+;; The output directory is gitignored, so create it before any test writes to it.
+(io/make-parents "test/clojask/test_outputs/.keep")
 
 ;; an alternative for diff | sort with better compatibility
 (defn _get-diff
@@ -117,10 +121,10 @@
     (testing "Join dataframes APIs"
     (def x (dataframe "test/clojask/Employees-example.csv"))
     (def y (dataframe "test/clojask/Employees-example.csv"))
-    (is (= clojask.classes.DataFrame.DataFrame (type (compute (left-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.classes.DataFrame.DataFrame (type (compute (right-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.classes.DataFrame.DataFrame (type (compute (inner-join x y ["Employee"] ["Employee"]) 8 "resources/test.csv" :exception false))))
-    (is (= clojask.classes.DataFrame.DataFrame (type (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "resources/test.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (left-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/join-api.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (right-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/join-api.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (inner-join x y ["Employee"] ["Employee"]) 8 "test/clojask/test_outputs/join-api.csv" :exception false))))
+    (is (= clojask.classes.DataFrame.DataFrame (type (compute (rolling-join-forward x y ["Employee"] ["Employee"] "Salary" "Salary") 8 "test/clojask/test_outputs/join-api.csv" :exception false))))
     ))
 
 (deftest join-api-output-test

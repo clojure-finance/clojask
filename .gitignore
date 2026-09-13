@@ -17,3 +17,4 @@ api_design.clj
 # _*.csv
 .vscode
 *.csv
+CLAUDE.md
