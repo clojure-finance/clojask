@@ -544,152 +544,138 @@
     (when-let [e (first @errors)]
       (throw e))))
 
-(defn start-onyx
-  "start the onyx cluster with the specification inside dataframe"
-  [num-work batch-size dataframe dist exception order index melt out]
+(defn- stage-error
+  [stage e]
+  (ExecutionException.
+   (format "[%s] Refer to .clojask/clojask.log for detailed information. (original error: %s)"
+           stage (.getMessage e))
+   e))
+
+(defn submit-and-wait
+  "Submit one job to the running environment and block until it has
+   finished, rethrowing the job's own exception if it failed. The job map
+   supplies :catalog, :lifecycles and :flow-conditions; the workflow is the
+   one config-env sized the peers for."
+  [job]
+  (let [submission (onyx.api/submit-job peer-config
+                                        (assoc job
+                                               :workflow workflow
+                                               :task-scheduler :onyx.task-scheduler/balanced))
+        job-id (:job-id submission)]
+    (assert job-id "Job was not successfully submitted")
+    (feedback-exception! peer-config job-id)))
+
+(defn run-job
+  "Run one job inside with-onyx-env. prepare! does the per-job setup and
+   returns the job map for submit-and-wait. Failures are tagged with the
+   stage they came from; with-onyx-env shuts the environment down."
+  [stage prepare!]
+  (let [job (try
+              (prepare!)
+              (catch Exception e
+                (throw (stage-error (str "preparing stage (" stage ")") e))))]
+    (try
+      (submit-and-wait job)
+      (catch Exception e
+        (throw (stage-error (str "submit-to-onyx stage (" stage ")") e))))))
+
+(defn with-onyx-env
+  "Start the Onyx environment (embedded ZooKeeper, peer group and one peer
+   per task) for num-work workers, call f, and shut everything down again
+   whether or not f threw. This is the only place that starts or stops the
+   environment, so every driver gets the same partial-startup handling."
+  [stage num-work f]
   (try
     (workflow-gen num-work)
     (config-env)
-    (worker-func-gen-format dataframe exception index) ;;need some work
-    (catalog-gen num-work batch-size)
-    (lifecycle-gen (.getFunc dataframe) dist order index)
-    (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
-    (output/inject-dataframe dataframe out)
-    (output/inject-melt melt)
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+    (catch Exception e
+      (try (shutdown) (catch Exception _))
+      (throw (stage-error (str "preparing stage (" stage ")") e))))
   (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
+    (f)
+    (catch Exception e
+      (try (shutdown) (catch Exception _))
+      (throw (if (instance? ExecutionException e)
+               e
+               (stage-error (str "run stage (" stage ")") e)))))
   (try
     (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
+    (catch Exception e
+      (throw (stage-error (str "terminate-node stage (" stage ")") e))))
   "success")
+
+(defn- job-spec
+  "The job map built by the *-gen functions of this namespace."
+  []
+  {:catalog catalog :lifecycles lifecycles :flow-conditions flow-conditions})
+
+(defn start-onyx
+  "start the onyx cluster with the specification inside dataframe"
+  [num-work batch-size dataframe dist exception order index melt out]
+  (with-onyx-env "compute" num-work
+    (fn []
+      (run-job "compute"
+               (fn []
+                 (worker-func-gen-format dataframe exception index)
+                 (catalog-gen num-work batch-size)
+                 (lifecycle-gen (.getFunc dataframe) dist order index)
+                 (flow-cond-gen num-work)
+                 (input/inject-dataframe dataframe)
+                 (output/inject-dataframe dataframe out)
+                 (output/inject-melt melt)
+                 (job-spec))))))
 
 (defn start-onyx-aggre-only
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe dist exception aggre-func index select out]
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen dataframe exception index) ;;need some work
-    (catalog-aggre-gen num-work batch-size)
-    (lifecycle-aggre-gen (.getFunc dataframe) dist)
-    (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
-    (aggre/inject-dataframe dataframe aggre-func select out)
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (aggregate)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
-  "success")
+  (with-onyx-env "aggregate" num-work
+    (fn []
+      (run-job "aggregate"
+               (fn []
+                 (worker-func-gen dataframe exception index)
+                 (catalog-aggre-gen num-work batch-size)
+                 (lifecycle-aggre-gen (.getFunc dataframe) dist)
+                 (flow-cond-gen num-work)
+                 (input/inject-dataframe dataframe)
+                 (aggre/inject-dataframe dataframe aggre-func select out)
+                 (job-spec))))))
 
 (defn start-onyx-groupby
   "start the onyx cluster with the specification inside dataframe\n
    @format: if format the value before writing to file. For procedures that will need to compare / use the actual
-   value of each element, should be set to false, such as aggregate, rolling join. For others, should be set to 
+   value of each element, should be set to false, such as aggregate, rolling join. For others, should be set to
    false to avoid repeated formatting
    "
   [num-work batch-size dataframe dist groupby-keys groupby-index exception & {:keys [format] :or {format false}}]
-  ;; (println groupby-index)
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0)))) ;;need some work
-    (catalog-groupby-gen num-work batch-size)
-    (if (string? dist) ;; use of dist from here is deprecated
-      (lifecycle-groupby-gen (.getFunc dataframe) dist groupby-keys (.getKeyIndex (.col-info dataframe)))
-      (lifecycle-groupby-gen (.getFunc dataframe) nil groupby-keys (.getKeyIndex (.col-info dataframe))))
-    (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
-    (groupby/inject-dataframe dataframe groupby-keys groupby-index dist format)
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
-  "success")
+  (with-onyx-env "groupby" num-work
+    (fn []
+      (run-job "groupby"
+               (fn []
+                 (worker-func-gen dataframe exception (vec (take (count (.getKeyIndex (.col-info dataframe))) (iterate inc 0))))
+                 (catalog-groupby-gen num-work batch-size)
+                 ;; use of dist from here is deprecated
+                 (lifecycle-groupby-gen (.getFunc dataframe) (if (string? dist) dist nil) groupby-keys (.getKeyIndex (.col-info dataframe)))
+                 (flow-cond-gen num-work)
+                 (input/inject-dataframe dataframe)
+                 (groupby/inject-dataframe dataframe groupby-keys groupby-index dist format)
+                 (job-spec))))))
 
-(defn start-onyx-join ;; to-do
+(defn start-onyx-join
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe b source dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
   ;; dataframe means a
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0))) ;;need some work
-    (catalog-join-gen num-work batch-size)
-    (lifecycle-join-gen (.getFunc dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
-    (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe)
-    (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
-    (let [limit (or limit (fn [a b] true))]
-     (defn-join join-type limit source))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (join)] Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
-  "success")
+  (with-onyx-env "join" num-work
+    (fn []
+      (run-job "join"
+               (fn []
+                 (worker-func-gen dataframe exception (take (count (.getKeyIndex (:col-info dataframe))) (iterate inc 0)))
+                 (catalog-join-gen num-work batch-size)
+                 (lifecycle-join-gen (.getFunc dataframe) dist dataframe b a-keys b-keys a-roll b-roll join-type)
+                 (flow-cond-gen num-work)
+                 (input/inject-dataframe dataframe)
+                 (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
+                 (defn-join join-type (or limit (fn [a b] true)) source)
+                 (job-spec))))))
 
 
 ;; !! debugging
