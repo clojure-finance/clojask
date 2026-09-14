@@ -485,11 +485,11 @@
   [stage prepare!]
   (let [job (try
               (prepare!)
-              (catch Exception e
+              (catch Throwable e
                 (throw (stage-error (str "preparing stage (" stage ")") e))))]
     (try
       (submit-and-wait job)
-      (catch Exception e
+      (catch Throwable e
         (throw (stage-error (str "submit-to-onyx stage (" stage ")") e))))))
 
 (defn with-onyx-env
@@ -506,7 +506,8 @@
       (throw (stage-error (str "preparing stage (" stage ")") e))))
   (try
     (f)
-    (catch Exception e
+    ;; Throwable: an AssertionError from a worker must still shut Onyx down
+    (catch Throwable e
       (try (shutdown) (catch Exception _))
       (throw (if (instance? ExecutionException e)
                e

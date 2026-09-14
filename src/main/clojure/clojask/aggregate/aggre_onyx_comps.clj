@@ -3,7 +3,6 @@
             [clojask.aggregate.aggre-output :as output]
             [clojask.onyx-comps :as oc]
             [clojask.utils :as u]
-            [clojure.set :as set]
             [clojask.groupby :refer [read-csv-seq]]))
 
 (def dataframe (atom nil))
@@ -17,7 +16,7 @@
                   (u/gets (concat a b) index))
         groupby-keys (.getGroupbyKeys (:row-info df))
         groupby-index (mapv #(nth % 1) groupby-keys)
-        org-format (set/rename-keys (.getFormatter (:col-info df)) (zipmap groupby-index (iterate inc 0)))
+        org-format (u/formatters-by-position (.getFormatter (:col-info df)) groupby-index)
         pre-index (take (count groupby-index) (iterate inc 0))
         ]
     (defn worker-func

@@ -182,6 +182,13 @@
   (io/make-parents "./.clojask/sort/a.txt")
   )
 
+(defn formatters-by-position
+  "Formatters keyed by position in indices instead of by column index.
+   Columns not in indices are dropped, so a formatter cannot land on
+   whichever column now sits at its old index."
+  [formatters indices]
+  (into {} (keep-indexed (fn [i col] (when-let [f (get formatters col)] [i f])) indices)))
+
 (defn get-type-string
   [x]
   (if (not= x nil)

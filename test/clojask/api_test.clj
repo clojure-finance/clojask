@@ -3,6 +3,7 @@
    these run in well under a second."
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
+            [clojure.string :as str]
             [clojask.dataframe :as ck]
             [clojask.api.gb-aggregate :as gb])
   (:import [com.clojask.exception OperationException TypeException]))
@@ -47,7 +48,39 @@
   (testing "mean and median return doubles, not ratios"
     (is (= 1.5 (gb/mean [1 2])))
     (is (= 2.5 (gb/median [1 2 3 4])))
-    (is (= 2 (gb/median [1 2 3]))))
+    (is (= 2.0 (gb/median [1 2 3])))
+    (is (= 0.0 (gb/sd [7]))))
   (testing "skew is NaN instead of throwing when the standard deviation is zero"
     (is (Double/isNaN (gb/skew [5])))
-    (is (Double/isNaN (gb/skew [2.0 2.0 2.0])))))
+    (is (Double/isNaN (gb/skew [2.0 2.0 2.0])))
+    (is (Double/isNaN (gb/skew [0.1 0.1 0.1])) "sd is 1.7e-17 here, not zero")))
+
+(deftest joins-reject-unknown-key-columns
+  (let [a (ck/dataframe input)
+        b (ck/dataframe input-b)]
+    (is (thrown-with-msg? TypeException #"non-existent" (ck/inner-join a b ["Nope"] ["Employee"])))
+    (is (thrown-with-msg? TypeException #"non-existent" (ck/left-join a b ["Employee"] ["Nope"])))
+    (is (thrown-with-msg? TypeException #"non-existent" (ck/rolling-join-forward a b ["Nope"] ["Employee"] "UpdateDate" "UpdateDate")))))
+
+(deftest rename-col-refuses-existing-name
+  (let [df (ck/dataframe input)
+        names (ck/get-col-names df)]
+    (is (thrown-with-msg? TypeException #"already exists" (ck/rename-col df "Employee" "Salary")))
+    (is (= names (ck/get-col-names df)))))
+
+(deftest failed-set-type-rolls-back-parser-and-formatter
+  (let [df (ck/dataframe (fn [] [["d"] ["not a date"]]))]
+    (is (thrown? OperationException (ck/set-type df "d" "date:dd/MM/yyyy")))
+    (is (= [{"d" "not a date"}] (ck/preview df 10 10)) "the column is usable again")))
+
+(deftest print-df-marks-truncation
+  (let [df (ck/dataframe input)]
+    (is (str/includes? (with-out-str (ck/print-df df 100 3)) "...") "seven rows, three shown")
+    (is (not (str/includes? (with-out-str (ck/print-df df 100 7)) "...")) "all seven shown")
+    (is (= 3 (count (re-seq #"(?m)^\|\s+\d+ \|" (with-out-str (ck/print-df df 100 3))))) "three data rows")))
+
+(deftest formatted-preview-drops-filtered-rows
+  (let [df (ck/dataframe input)]
+    (ck/set-type df "Salary" "double")
+    (ck/filter df "Salary" (fn [salary] (<= salary 800)))
+    (is (= 4 (count (ck/preview df 100 100 :format true))))))

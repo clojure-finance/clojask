@@ -20,7 +20,7 @@
         df (ck/dataframe input)]
     (io/make-parents out)
     (ck/compute df 2 out)
-    (is (= 8 (count (line-seq (io/reader out)))))))
+    (is (= 8 (with-open [r (io/reader out)] (count (line-seq r)))))))
 
 (deftest partial-startup-releases-zookeeper
   (testing "A startup that fails after ZooKeeper is up can be shut down, and later computes still work"
