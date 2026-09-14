@@ -1,152 +1,129 @@
 # Clojask
-> Clojure data processing framework with parallel computing on larger-than-memory datasets
 
-### Features
+[![Clojars](https://img.shields.io/clojars/v/com.github.clojure-finance/clojask.svg)](https://clojars.org/com.github.clojure-finance/clojask)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-- **Unlimited Size**
+A Clojure dataframe library for **larger-than-memory** datasets. Process millions of rows with lazy evaluation and parallel execution—all with familiar dataframe operations.
 
-  It supports datasets larger than memory.
+## Why Clojask?
 
-- **Various Operations**
+| Feature | Description |
+|---------|-------------|
+| **Larger than memory** | Stream data from disk—no need to fit everything in RAM |
+| **Lazy & parallel** | Operations are pipelined and executed across multiple threads |
+| **Full dataframe API** | Filter, transform, group-by, aggregate, join—everything you expect |
+| **File-to-file** | Read CSV in, write CSV out, with built-in IO |
+| **Native types** | Works with standard Clojure and Java types |
+| **Faster than Dask** | [Benchmarks](https://clojure-finance.github.io/clojask-website/pages-output/about/#benchmarks) show significant speedups on large datasets |
 
-  Although Clojask is designed for larger-than-memory datasets, like NoSQLs, it does not sacrifice common operations on relational dataframes, such as [group by](https://clojure-finance.github.io/clojask-website/posts-output/API/#group-by), [aggregate](https://clojure-finance.github.io/clojask-website/posts-output/API/#aggregate), [join](https://clojure-finance.github.io/clojask-website/posts-output/API/#inner-join--left-join--right-join).
+## Quick Start
 
-- **Fast**
-
-  Faster than Dask in most operations, and the larger the dataframe is, the bigger the advantage. Please find the benchmarks [here](https://clojure-finance.github.io/clojask-website/pages-output/about/#benchmarks).
-
-- **All Native Types**
-
-  All the datatypes used to store data are native Clojure (or Java) types.
-
-- **From File to File**
-
-  Integrate IO inside the dataframe. No need to write your own read-in and output functions.
-
-- **Parallel**
-
-  Most operations could be executed in multiple threads. See the principle in [Onyx](https://github.com/clojure-finance/onyx), a maintained fork of the original project.
-
-- **Lazy Operations**
-
-  Most operations will not be executed immediately. Dataframe will intelligently pipeline the operations altogether in computation.
-
-- **Little Constraints on programming**
-
-  Except for some aggregations where you need to write customized functions subject to simple templates, operations in Clojask support arbitrary Clojure functions as input
-
-### Installation
-
-Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask) ![Clojars Project](https://img.shields.io/clojars/v/com.github.clojure-finance/clojask.svg).
-
-Insert this line into your `project.clj` if using Leiningen.
-
-```
+**Add to project.clj:**
+```clojure
 [com.github.clojure-finance/clojask "2.0.5"]
 ```
 
-Insert this line into your `deps.edn` if using CLI.
-
+**Or deps.edn:**
 ```clojure
 com.github.clojure-finance/clojask {:mvn/version "2.0.5"}
 ```
 
-**Requirements:**
+**Basic example:**
+```clojure
+(require '[clojask.dataframe :as ck])
 
-- MacOS or Linux
-- JDK 17 or newer (tested on JDK 17, 21 and 25)
-- The JVM flag `--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED`.
-  Leiningen and deps.edn users put it in `:jvm-opts`; when running from
-  plain `java`, pass it on the command line. Without it the first `compute`
-  fails while starting the embedded media driver with
-  `IllegalAccessError: class org.agrona.UnsafeApi ... cannot access class jdk.internal.misc.Unsafe`.
-- The JVM flag `--enable-native-access=ALL-UNNAMED`, passed the same way.
-  The lz4 compression library loads native code; JDK 24 and newer print a
-  warning without the flag, and a future JDK will block the load.
-- Each `compute` starts an embedded ZooKeeper on port 2188 and Aeron on
-  port 40200, with Aeron's files in the default media-driver directory
-  (`/dev/shm` on Linux). Two clojask processes on one machine need
-  different settings: the JVM system properties `clojask.zookeeper.port`,
-  `clojask.aeron.port` and `clojask.aeron.dir`, or the environment
-  variables `CLOJASK_ZOOKEEPER_PORT`, `CLOJASK_AERON_PORT` and
-  `CLOJASK_AERON_DIR`.
-- Onyx writes warnings and errors to `.clojask/clojask.log` in the working
-  directory, rotated at 10 MB with one backup.
+;; Load a CSV
+(def df (ck/dataframe "employees.csv"))
 
-### Example Usage
+;; Preview the data
+(ck/print-df df)
+;; | Employee | EmployeeName | Department | Salary   | UpdateDate |
+;; |----------|--------------|------------|----------|------------|
+;; | 1        | Alice        | 11         | 300      | 2019/12/21 |
+;; | 2        | Bob          | 12         | 400      | 2018/05/23 |
+;; ...
 
-1. Import `Clojask`
+;; Set column types
+(ck/set-type df "Salary" "double")
+(ck/set-type df "UpdateDate" "date:yyyy/MM/dd")
 
-   ```clojure
-   (require '[clojask.dataframe :as ck])
-   ```
+;; Transform data: give Bob a raise
+(ck/operate df 
+  (fn [name salary] 
+    (if (= name "Bob") (+ salary 100) salary))
+  ["EmployeeName" "Salary"] 
+  "Salary")
 
-2. Initialize a dataframe
+;; Compute with 8 threads, output to file
+(ck/compute df 8 "results.csv" 
+  :select ["Employee" "EmployeeName" "Department" "Salary"])
+```
 
-   ```clojure
-   (def df (ck/dataframe "Employees-example.csv"))
-   ```
+## Operations
 
-   The source file can be found [here](https://github.com/clojure-finance/clojask/blob/2.x.x/test/clojask/Employees-example.csv).
+![Clojask operations](docs/clojask_functions.png)
 
-   See [`dataframe`](https://clojure-finance.github.io/clojask-website/posts-output/API/#dataframe)
+*Solid arrows show required sequence; dotted arrows show optional paths.*
 
-3. Preview the first few lines of the dataframe
+**Available operations:**
+- **Transform:** `operate`, `set-type`, `set-parser`, `set-formatter`, `rename-col`
+- **Filter:** `filter`
+- **Reshape:** `group-by`, `aggregate`, `melt`, `sort` (in-memory only)
+- **Combine:** `inner-join`, `left-join`, `right-join`, `rolling-join-forward`, `rolling-join-backward`
+- **Output:** `compute`, `print-df`, `preview`
 
-   ```clojure
-   (ck/print-df df)
-   ```
+## Requirements
 
-   ![image-20220405210757274](docs/img/image-20220405210757274.png)
+- **OS:** macOS or Linux
+- **JDK:** 17 or newer (tested on 17, 21, and 25)
 
-   See [`print-df`](https://clojure-finance.github.io/clojask-website/posts-output/API/#print-df)
+**Required JVM flags** (add to `:jvm-opts` in project.clj/deps.edn):
+```clojure
+:jvm-opts ["--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"
+           "--enable-native-access=ALL-UNNAMED"]
+```
 
-4. Change the data type of some columns
+The first flag is required for Agrona (used by Onyx's messaging). The second prevents warnings on JDK 24+ from lz4's native code.
 
-   ```clojure
-   (ck/set-type df "Salary" "double")
-   (ck/set-type df "UpdateDate" "date:yyyy/MM/dd")
-   (ck/print-df df)
-   ```
+<details>
+<summary><strong>Running multiple Clojask processes</strong></summary>
 
-   ![image-20220405210826777](docs/img/image-20220405210826777.png)
+Each `compute` starts embedded ZooKeeper (port 2188) and Aeron (port 40200). To run multiple processes on one machine, configure different ports:
 
-   See [`set-type`](https://clojure-finance.github.io/clojask-website/posts-output/API/#set-type)
+**System properties:**
+- `clojask.zookeeper.port`
+- `clojask.aeron.port`
+- `clojask.aeron.dir`
 
-5. Add 100 to Bob as `NewSalary`
+**Or environment variables:**
+- `CLOJASK_ZOOKEEPER_PORT`
+- `CLOJASK_AERON_PORT`
+- `CLOJASK_AERON_DIR`
 
-   ```clojure
-   (ck/operate df (fn [EmployeeName Salary] (if (= EmployeeName "Bob") (+ Salary 100) Salary)) ["EmployeeName" "Salary"] "NewSalary")
-   (ck/print-df df)
-   ```
+</details>
 
-   ![image-20220405211348723](docs/img/image-20220405211348723.png)
+<details>
+<summary><strong>Logging</strong></summary>
 
-   See [`operate`](https://clojure-finance.github.io/clojask-website/posts-output/API/#operate-in-place-modification)
+Onyx writes warnings and errors to `.clojask/clojask.log` in the working directory, rotated at 10 MB.
 
-6. Output the resultant dataset to "result.csv" (Use 8 threads)
+</details>
 
-   ```clojure
-   (ck/compute df 8 "result.csv" :select ["Employee" "EmployeeName" "Department" "NewSalary" "UpdateDate"])
-   ```
+## Documentation
 
-   See [`compute`](https://clojure-finance.github.io/clojask-website/posts-output/API/#compute)
+- **[API Reference](https://clojure-finance.github.io/clojask-website/posts-output/API/)** — Full documentation for all functions
+- **[Examples Repository](https://github.com/clojure-finance/clojask-examples)** — Real-world usage patterns
+- **[Aggregation Functions](docs/aggregation%20functions.md)** — Built-in and custom aggregations
+- **[Type System](docs/clojask%20types.md)** — Supported data types and parsing
 
-### Supported Functions and Procedures
+## How It Works
 
-![clojask functions](docs/clojask_functions.png)
+Clojask uses [Onyx](https://github.com/clojure-finance/onyx) (a maintained fork) as a single-machine thread pool. Operations are collected lazily and executed together when you call `compute`, streaming data through your transformation pipeline without loading the full dataset into memory.
 
-- *The solid arrows point to the fixed next step; dotted arrows point to all possible next steps.*
-- *Any step except for Initialization is optional.*
+## Issues & Feedback
 
-### Documentation
+Found a bug or have a question? Check the [existing issues](https://github.com/clojure-finance/clojask/issues) or open a new one.
 
-The detailed documentation for every API can be found [here](https://clojure-finance.github.io/clojask-website/posts-output/API/).
+## License
 
-### Examples
-
-A separate repository for some typical usage of Clojask can be found [here](https://github.com/clojure-finance/clojask-examples).
-
-### Problem Feedback
-
-If your question is not answered in existing [issues](https://github.com/clojure-finance/clojask/issues), feel free to create a new one.
+[MIT](LICENSE)
