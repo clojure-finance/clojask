@@ -60,6 +60,15 @@ com.github.clojure-finance/clojask {:mvn/version "2.0.3"}
   plain `java`, pass it on the command line. Without it the first `compute`
   fails while starting the embedded media driver with
   `IllegalAccessError: class org.agrona.UnsafeApi ... cannot access class jdk.internal.misc.Unsafe`.
+- Each `compute` starts an embedded ZooKeeper on port 2188 and Aeron on
+  port 40200, with Aeron's files in the default media-driver directory
+  (`/dev/shm` on Linux). Two clojask processes on one machine need
+  different settings: the JVM system properties `clojask.zookeeper.port`,
+  `clojask.aeron.port` and `clojask.aeron.dir`, or the environment
+  variables `CLOJASK_ZOOKEEPER_PORT`, `CLOJASK_AERON_PORT` and
+  `CLOJASK_AERON_DIR`.
+- Onyx writes warnings and errors to `.clojask/clojask.log` in the working
+  directory, rotated at 10 MB with one backup.
 
 ### Example Usage
 
