@@ -33,11 +33,6 @@
 
 (defn- write-msg
   [wtr msg melt output-func]
-  ;; (if (not= (:d msg) nil)
-  ;;   (doseq []
-  ;;     (output-func wtr (melt (:d msg)))
-  ;;               ;; !! define argument (debug)
-  ;;     ))
   (doseq [row (remove nil? (:d msg))]
     (output-func wtr (melt row)))
   )

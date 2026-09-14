@@ -81,9 +81,6 @@
           ;; (swap! example-datasink conj msg)
         (if (not= (:d msg) nil)
           (do
-            ;; (doseq [data (:d msg)]
-            ;;   (.write wtr (str (string/join "," data) "\n")))
-            ;; (println (:d msg))
             (output-func wtr (:d msg))
                 ;; !! define argument (debug)
             ))))

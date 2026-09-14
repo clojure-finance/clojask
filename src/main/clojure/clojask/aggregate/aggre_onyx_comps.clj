@@ -9,13 +9,11 @@
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
-            [clojask.groupby :refer [read-csv-seq insert-mgroup]])
+            [clojask.groupby :refer [read-csv-seq]])
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
-
 (def dataframe (atom nil))
-
 
 (defn worker-func-gen
   [df exception aggre-funcs index formatter source]
@@ -44,11 +42,6 @@
             data-map (-> (iterate inc 0)
                          (zipmap (apply map vector data)))]
         ;; (mapv (fn [_]
-        ;;        (let [func (first _)
-        ;;              index (nth _ 1)]
-        ;;          (func (get data-map index))))
-        ;;      aggre-funcs)
-        ;; (println data)
         (loop [aggre-funcs aggre-funcs
                res []]
           (if (= aggre-funcs [])
@@ -119,16 +112,13 @@
     ;; (println catalog) ;; !! debugging
     )
 
-
 (defn inject-in-reader [event lifecycle]
   (let []
     {:buffered-reader/path (:buffered-reader/path lifecycle)
      }))
 
-
 (def in-calls
   {:lifecycle/before-task-start inject-in-reader})
-
 
 (defn lifecycle-gen
   [source dist]
@@ -142,59 +132,9 @@
       :buffered-wtr/filename dist
       :lifecycle/calls :clojask.aggregate.aggre-output/writer-calls}]))
 
-(def num-workers (atom 1))
-
-;; (defn rem0?
-;;   [event old-segment new-segment all-new-segment]
-;;   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-;;   (= (mod (:id new-segment) (deref num-workers)) 0))
-
-;; (defn rem1?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 1))
-
-;; (defn rem2?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 2))
-
-;; (defn rem3?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 3))
-
-;; (defn rem4?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 4))
-
-;; (defn rem5?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 5))
-
-;; (defn rem6?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 6))
-
-;; (defn rem7?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 7))
-
-;; (defn rem8?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 8))
-
-
-;; [{:flow/from :in
-;;   :flow/to [:sample-worker1]
-;;   :flow/predicate :clojask.onyx-comps/rem0?
-;;   :flow/doc ""}
-;;  {:flow/from :in
-;;   :flow/to [:sample-worker2]
-;;   :flow/predicate :clojask.onyx-comps/rem1?
-;;   :flow/doc ""}]
-
 (defn flow-cond-gen
   "Generate the flow conditions for running Onyx"
   [num-work]
-  (reset! num-workers num-work)
   (def flow-conditions []) ;; initialisation
 
   ;; for loop for sample workers

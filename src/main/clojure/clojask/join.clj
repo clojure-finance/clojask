@@ -10,19 +10,12 @@
 
 (defn gen-join-filenames
   [dist a-row a-keys]
-  ;; (def output-filename dist)
-  ;; (doseq [i (take (count a-keys) (iterate inc 0))]
-  ;;   (def output-filename (str output-filename "_" (name (nth b-keys i)) "-" (nth a-row (get a-map (nth a-keys i))))))
-  ;; (str output-filename ".csv")
   (let [a-val (mapv (fn [_] ((or (nth _ 0) identity) (nth a-row (nth _ 1)))) a-keys)]
     (if (nil? dist) (str a-val) (str dist (u/encode-str (str a-val))))))
 
 (defn output-join-inner
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
   (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
-    ;; (println writer)
-    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
-    ;; (.write writer (str [a-row a-keys a-map b-keys a-format b-format a-index b-index] "\n"))
     (if (.exists (io/file filename))
       ;; (.write writer (str (map type a-row) "\n"))
       ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
@@ -48,13 +41,7 @@
 (defn output-join-loo
   "used for left join right join or outter join"
   [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
-  ;; (println a-format)
-  ;; (println b-format)
-  ;; (println a-index)
-  ;; (println b-index)
   (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
-    ;; (println writer)
-    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
     (if (.exists (io/file filename))
       ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
       (let [filename (io/reader filename)]
@@ -63,15 +50,9 @@
           (let [a-row (u/gets-format a-row a-index a-format)
                 ;; tmp (println a-row)
                 ;; a-row (for [index a-index]
-                ;;         (if-let [format (get a-format index)]
-                ;;           (format (nth a-row index))
-                ;;           (nth a-row index)))
                 b-row (u/gets b-row b-index)
                 ;; tmp (println b-row)
                 ;; b-row (for [index b-index]
-                ;;         (if-let [format (get b-format index)]
-                ;;           (format (nth b-row index))
-                ;;           (nth b-row index)))
                 ]
             (write-func writer (vector (u/gets (concat a-row b-row) join-index)))))
         (.close filename))
@@ -127,14 +108,8 @@
                   (let [filename (io/reader filename)]
                     (if-let [b-row (roll-join-get-line-forward (nth a-row a-roll) filename b-roll)] ;; bench is a string
                       (let [;; a-row (for [index a-index]
-                          ;;         (if-let [format (get a-format index)]
-                          ;;           (format (nth a-row index))
-                          ;;           (nth a-row index)))
                             a-row (u/gets-format a-row a-index a-format)
                           ;; b-row (for [index b-index]
-                          ;;         (if-let [format (get b-format index)]
-                          ;;           (format (nth b-row index))
-                          ;;           (nth b-row index)))
                             b-row (u/gets-format b-row b-index b-format)]
                         (write-func writer [(u/gets (concat a-row b-row) join-index)]))
                       (let [a-row (for [index a-index]
@@ -179,8 +154,6 @@
            (fn
             [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
             (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
-    ;; (println writer)
-    ;; (spit ".clojask/join/test.txt" (str writer "\n") :append true)
               (if (.exists (io/file filename))
       ;; (spit ".clojask/join/test.txt" (str (vec (read-csv-seq filename)) "\n") :append true)
                 (let [filename (io/reader filename)]
