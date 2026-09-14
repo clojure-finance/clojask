@@ -9,8 +9,6 @@
               [clojure.data.csv :as csv]
               [clojure.string :as str]
               [clojure.java.io :as io]))
-        
-(use '[clojure.java.shell :only [sh]])
 
 ;; The output directory is gitignored, so create it before any test writes to it.
 (io/make-parents "test/clojask/test_outputs/.keep")
@@ -186,22 +184,22 @@
     (let [result (get-diff "test/clojask/test_outputs/1-9.csv" "test/clojask/correct_outputs/1-9.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-4.csv) <(sort test/clojask/correct_outputs/1-4.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-4.csv" "test/clojask/correct_outputs/1-4.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-5.csv) <(sort test/clojask/correct_outputs/1-5.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-5.csv" "test/clojask/correct_outputs/1-5.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-6.csv) <(sort test/clojask/correct_outputs/1-6.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-6.csv" "test/clojask/correct_outputs/1-6.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-7.csv) <(sort test/clojask/correct_outputs/1-7.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-7.csv" "test/clojask/correct_outputs/1-7.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-8.csv) <(sort test/clojask/correct_outputs/1-8.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-8.csv" "test/clojask/correct_outputs/1-8.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))
-    (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-12.csv) <(sort test/clojask/correct_outputs/1-12.csv)")]
+    (let [result (get-diff "test/clojask/test_outputs/1-12.csv" "test/clojask/correct_outputs/1-12.csv")]
       (is (= "" (:out result)))
       (is (= "" (:err result))))))
 
