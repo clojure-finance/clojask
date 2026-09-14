@@ -9,6 +9,7 @@
             [clojask.utils :as u]
             [onyx.api :refer :all]
             [onyx.test-helper :refer [feedback-exception!]] ;; [tech.v3.dataset :as ds]
+            [taoensso.timbre.appenders.3rd-party.rotor :as rotor]
 )
   (:import [com.clojask.exception ExecutionException]
            [java.io FileReader]))
@@ -404,28 +405,67 @@
 (def peer-group nil)
 (def v-peers nil)
 
+(defn- setting
+  "The JVM system property prop, else the environment variable env, else
+   default."
+  [prop env default]
+  (or (System/getProperty prop) (System/getenv env) default))
+
+(defn- port-setting
+  [prop env default]
+  (let [v (setting prop env default)]
+    (if (string? v) (Long/parseLong v) v)))
+
+(def log-path ".clojask/clojask.log")
+
+(defn- log-config
+  "timbre configuration handed to Onyx: warnings and errors go to the log
+   file, rotated at 10 MB with one backup, and errors also to stdout.
+   Onyx's own default logs at :info, which adds a few hundred KB per
+   compute and keeps up to 300 MB of files."
+  []
+  {:min-level :warn
+   :appenders {:println {:min-level :error :enabled? true}
+               :rotor (assoc (rotor/rotor-appender {:path log-path
+                                                    :max-size (* 10 1024 1024)
+                                                    :backlog 1})
+                             :min-level :warn)}})
+
 (defn config-env
+  "Start the embedded ZooKeeper, the peer group and the peers for the
+   current workflow. The ZooKeeper port, the Aeron port and the Aeron
+   media-driver directory come from the JVM system properties
+   clojask.zookeeper.port, clojask.aeron.port and clojask.aeron.dir, or
+   the environment variables CLOJASK_ZOOKEEPER_PORT, CLOJASK_AERON_PORT
+   and CLOJASK_AERON_DIR, so two clojask processes can share a machine."
   []
   ;; Clear the previous run first, so a failure below leaves only the
   ;; components that were actually started in this run.
   (def env nil)
   (def peer-group nil)
   (def v-peers nil)
-  (def env-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :zookeeper/server? true
-     :zookeeper.server/port 2188
-     :onyx/tenancy-id id
-     :onyx.log/file ".clojask/clojask.log"})
-
-  (def peer-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :onyx/tenancy-id id
-     :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
-     :onyx.messaging/impl :aeron
-     :onyx.messaging/peer-port 40200
-     :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file ".clojask/clojask.log"})
+  (let [zk-port (port-setting "clojask.zookeeper.port" "CLOJASK_ZOOKEEPER_PORT" 2188)
+        aeron-port (port-setting "clojask.aeron.port" "CLOJASK_AERON_PORT" 40200)
+        aeron-dir (setting "clojask.aeron.dir" "CLOJASK_AERON_DIR" nil)
+        zk-address (str "127.0.0.1:" zk-port)
+        log (log-config)]
+    (def env-config
+      {:zookeeper/address zk-address
+       :zookeeper/server? true
+       :zookeeper.server/port zk-port
+       :onyx/tenancy-id id
+       :onyx.log/file log-path
+       :onyx.log/config log})
+    (def peer-config
+      (cond-> {:zookeeper/address zk-address
+               :onyx/tenancy-id id
+               :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
+               :onyx.messaging/impl :aeron
+               :onyx.messaging/peer-port aeron-port
+               :onyx.messaging/bind-addr "localhost"
+               :onyx.log/file log-path
+               :onyx.log/config log}
+        aeron-dir (assoc :onyx.messaging.aeron/media-driver-dir aeron-dir))))
 
   (def env (onyx.api/start-env env-config))
 

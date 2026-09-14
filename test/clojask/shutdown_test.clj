@@ -51,3 +51,31 @@
                               (ag/start-onyx-aggre 1 10 df nil "test/clojask/test_outputs/never.csv" false [] [] {} nil))))
       (env-is-down)
       (compute-still-works))))
+
+(deftest ports-and-directory-are-configurable
+  (testing "system properties choose the ZooKeeper port, the Aeron port and the Aeron directory"
+    (let [dir (str (System/getProperty "java.io.tmpdir") "/clojask-test-aeron")]
+      (try
+        (System/setProperty "clojask.zookeeper.port" "2199")
+        (System/setProperty "clojask.aeron.port" "40211")
+        (System/setProperty "clojask.aeron.dir" dir)
+        (compute-still-works)
+        (is (= 2199 (:zookeeper.server/port oc/env-config)))
+        (is (= "127.0.0.1:2199" (:zookeeper/address oc/peer-config)))
+        (is (= 40211 (:onyx.messaging/peer-port oc/peer-config)))
+        (is (= dir (:onyx.messaging.aeron/media-driver-dir oc/peer-config)))
+        (finally
+          (System/clearProperty "clojask.zookeeper.port")
+          (System/clearProperty "clojask.aeron.port")
+          (System/clearProperty "clojask.aeron.dir"))))
+    (compute-still-works)
+    (is (= 2188 (:zookeeper.server/port oc/env-config)) "defaults are back")
+    (is (nil? (:onyx.messaging.aeron/media-driver-dir oc/peer-config)))))
+
+(deftest log-stays-small
+  (testing "a compute adds no :info chatter to the Onyx log"
+    (let [log (io/file oc/log-path)
+          before (if (.exists log) (.length log) 0)]
+      (compute-still-works)
+      (is (< (- (.length log) before) 20000)
+          "Onyx's default :info logging adds a few hundred KB per compute"))))
