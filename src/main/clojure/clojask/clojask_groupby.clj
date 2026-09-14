@@ -1,10 +1,6 @@
 (ns clojask.clojask-groupby
   (:require [clojask.groupby :refer [output-groupby]]
-            [onyx.peer.function :as function]
-            [onyx.plugin.protocols :as p]
-            [clojure.set :as set]
-            [taoensso.timbre :refer [debug info] :as timbre])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+            [onyx.plugin.protocols :as p]))
 
 (def dataframe (atom nil))
 (def groupby-keys (atom nil))
@@ -20,7 +16,6 @@
   (reset! write-index index)
   (reset! dist _dist)
   (reset! format_ _format)
-  ;; (reset! output-func out)
   )
 
 (defn- inject-into-eventmap
@@ -28,16 +23,10 @@
   (let [key-index (.getKeyIndex (.col-info (deref dataframe)))
         formatters (.getFormatter (.col-info (deref dataframe)))
         groupby-keys (deref groupby-keys)]
-  ;;  [wtr (BufferedWriter. (FileWriter. (:buffered-wtr/filename lifecycle)))]
     {:clojask/dist (deref dist)
-    ;;  :clojask/dist (:buffered-wtr/filename lifecycle) 
-    ;;  :clojask/groupby-keys (:clojask/groupby-keys lifecycle) 
      :clojask/groupby-keys groupby-keys
      :clojask/key-index key-index
      :clojask/formatter formatters}))
-
-(defn- close-writer [event lifecycle]
-  (.close (:clojask/wtr event)))
 
 ;; Map of lifecycle calls that are required to use this plugin.
 ;; Users will generally always have to include these in their lifecycle calls
@@ -88,17 +77,10 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch clojask/dist clojask/groupby-keys clojask/key-index clojask/formatter]} replica messenger]
-              ;;  keys [:Departement]
-    ;; Write the batch to your datasink.
-    ;; In this case we are conjoining elements onto a collection.
     (doseq [msg write-batch]
       (doseq [data (:d msg)]
-          ;; (swap! example-datasink conj msg)
         (if (not= data nil)
           (do
-                ;(.write wtr (str msg "\n"))
-                ;; !! define argument (debug)
-            ;;   (def groupby-keys [:Department :EmployeeName])
             (output-groupby dist data groupby-keys key-index formatter write-index (deref format_))))))
     true))
 

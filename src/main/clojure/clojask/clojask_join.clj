@@ -1,11 +1,7 @@
 (ns clojask.clojask-join
   (:require [clojask.join :as join]
-            [clojure.set :as set]
-            [onyx.peer.function :as function]
             [clojure.java.io :as io]
-            [onyx.plugin.protocols :as p]
-            [taoensso.timbre :refer [debug info] :as timbre])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+            [onyx.plugin.protocols :as p]))
 
 (def a (atom nil))
 (def b (atom nil))
@@ -32,19 +28,12 @@
 (defn- inject-into-eventmap
   [event lifecycle]
   (let [wtr (io/writer (:buffered-wtr/filename lifecycle) :append true)
-    ;; a-map (.getKeyIndex (.col-info (deref a)))
         a-format (.getFormatter (.col-info (deref a)))
-    ;; b-map (.getKeyIndex (.col-info (deref b)))
-        ;; a-format (set/rename-keys a-format (zipmap (deref a-index) (iterate inc 0)))
-        ;; b-format (.getFormatter (.col-info (deref b)))
-        ;; b-format (set/rename-keys b-format (zipmap (deref b-index) (iterate inc 0)))
         b-format (deref b-format)
         ]
 
     {:clojask/wtr wtr
-    ;;  :clojask/a-keys (:clojask/a-keys lifecycle)
      :clojask/a-keys (deref a-keys)
-    ;;  :clojask/b-keys (:clojask/b-keys lifecycle)
      :clojask/b-keys (deref b-keys)
      :clojask/a-roll (:clojask/a-roll lifecycle)
      :clojask/b-roll (:clojask/b-roll lifecycle)
@@ -107,17 +96,10 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch clojask/wtr clojask/a-keys clojask/b-keys clojask/a-roll clojask/b-roll  clojask/a-map clojask/b-map clojask/a-format clojask/b-format clojask/join]} replica messenger]
-              ;;  keys [:Departement]
-    ;; Write the batch to your datasink.
-    ;; In this case we are conjoining elements onto a collection.
     (doseq [msg write-batch]
       (doseq [data (:d msg)]
-          ;; (swap! example-datasink conj msg)
         (if (not= data nil)
           (do
-                ;(.write wtr (str msg "\n"))
-                ;; !! define argument (debug)
-            ;;   (def groupby-keys [:Department :EmployeeName])
             (join/output-join wtr data a-keys a-map b-keys (count b-map) a-roll b-roll a-format b-format a-index b-index join-index write-func)))))
     true))
 

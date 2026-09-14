@@ -3,13 +3,9 @@
             [clojask.join.outer-output :as output]
             [clojask.onyx-comps :as oc]
             [clojure.string :as string]
-            [clojure.data.csv :as csv]
             [clojask.utils :as u]
-            [clojure.set :as set]
             [clojure.java.io :as io]
-            [clojask.groupby :refer [read-csv-seq]])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
-           [com.clojask.exception ExecutionException]))
+            [clojask.groupby :refer [read-csv-seq]]))
 
 (def dataframe (atom nil))
 
@@ -21,16 +17,11 @@
         add-nil (fn [row] (concat row b-nil))
         a-index-new (take (count a-index) (iterate inc 0))
         b-index-new (take (count b-index) (iterate inc 0))
-        ;; a-format (.getFormatter (:col-info a))
-        ;; a-format (set/rename-keys a-format (zipmap (deref a-index) (iterate inc 0)))
-        ;; a-format (.getFormatter (:col-info a))
-        ;; a-format (set/rename-keys a-format (zipmap (deref a-index) (iterate inc 0)))
         ]
     (if (= nil mgroup-a)
       (defn worker-func
         "refered in preview"
         [seq]
-      ;; (println seq)
         (let [id (:id seq)
               a-filename (:d seq)
               a-data (read-csv-seq a-filename)
@@ -46,18 +37,15 @@
       (defn worker-func
         "refered in preview"
         [seq]
-      ;; (println seq)
         (let [id (:id seq)
               a-filename (:d seq)
               a-data (.getKey mgroup-a a-filename)
               a-data (map #(u/gets % a-index-new) a-data)
               b-filename a-filename
               ]
-          ;; (println b-filename)
           (if (.exists mgroup-b b-filename)
             (do
               (let [b-data (mapv #(u/gets % b-index-new) (.getKey mgroup-b b-filename))]
-                ;; (io/delete-file b-filename true)
                 {:id id :d (mapv #(u/gets % write-index) (for [a-row a-data b-row b-data] (concat a-row b-row)))}) ;; formatter here
               )
             {:id id :d (mapv #(u/gets % write-index) (map add-nil a-data))}))))))
@@ -73,7 +61,6 @@
       (defn worker-func
         "refered in preview"
         [seq]
-      ;; (println seq)
         (let [id (:id seq)
               b-filename (:d seq)
               b-data (mapv #(u/gets % b-index-new) (read-csv-seq b-filename))]
@@ -81,7 +68,6 @@
       (defn worker-func
         "refered in preview"
         [seq]
-      ;; (println seq)
         (let [id (:id seq)
               b-filename (:d seq)
               b-data (mapv #(u/gets % b-index-new) (.getKey mgroup-b b-filename))]
@@ -129,7 +115,6 @@
         :onyx/batch-size batch-size
         :output/doc "Writes segments to the file"}))
 
-    ;; (println catalog) ;; !! debugging
     )
 
 (defn inject-in-reader [event lifecycle]
@@ -171,7 +156,6 @@
               :worker/doc "This is a flow condition"}
               ))))
     
-  ;; (println flow-conditions) ;; !! debugging
   )
 
 (defn start-onyx-outer

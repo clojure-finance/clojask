@@ -1,13 +1,7 @@
-(ns clojask.classes.RowInfo
-  ;; (:require [clojask.utils :refer :all])
-  )
-
-(import '[com.clojask.exception TypeException]
-        '[com.clojask.exception OperationException])
+(ns clojask.classes.RowInfo)
 
 (definterface RowIntf
   (getFilters [])
-  (getAggreOldKeys [])
   (getAggreNewKeys [])
   (getAggreFunc [])
   (getGroupbyKeys [])
@@ -15,7 +9,6 @@
   (groupby [a])
   (aggregate [func old-key new-key])
   (setRowInfo [new-col-desc new-col-set])
-  (renameRowInfo [new-col-names])
   (copy [])
   (rollback [])
   (commit []))
@@ -24,7 +17,6 @@
          [^:unsynchronized-mutable filters
           ^:unsynchronized-mutable groupby-key
           ^:unsynchronized-mutable aggre-func
-          ;; ^:unsynchronized-mutable aggre-old-key
           ^:unsynchronized-mutable aggre-new-key
           ^:unsynchronized-mutable hist]
   RowIntf
@@ -36,9 +28,6 @@
     [this]
     groupby-key)
 
-  ;; (getAggreOldKeys
-  ;;  [this]
-  ;;  aggre-old-key)
   (getAggreNewKeys
     [this]
     aggre-new-key)
@@ -51,30 +40,22 @@
     [this cols predicate]
     (.copy this)
     (set! filters (conj filters [predicate cols]))
-   ;; "success"
     nil)
 
   (groupby
     [this key]
     (.copy this)
     (set! groupby-key key)
-    ;; "success"
     nil)
 
   (aggregate
     [this func old-keys new-keys]
     (.copy this)
-    (if true
-    ;;  (not= groupby-key [])
-      (do
-        (doseq [old-key old-keys]
-          (set! aggre-func (conj aggre-func [func old-key])))
-        ;; (set! aggre-old-key old-key)
-        (doseq [new-key new-keys]
-          (set! aggre-new-key (conj aggre-new-key new-key)))
-        ; "success"
-        nil)
-      (throw (OperationException. "you must first group the dataframe by some keys then aggregate"))))
+    (doseq [old-key old-keys]
+      (set! aggre-func (conj aggre-func [func old-key])))
+    (doseq [new-key new-keys]
+      (set! aggre-new-key (conj aggre-new-key new-key)))
+    nil)
 
   (setRowInfo
     [this new-col-desc new-col-set]
@@ -92,7 +73,6 @@
         (set! filters (vec (map vector new-filter-fns new-filter-cols))))
       (if (not (empty? (.getGroupbyKeys this)))
         (set! groupby-key (vec (map vector new-groupby-fns new-groupby-cols)))
-        ;(set! groupby-key (vec (map #(first (first (get new-col-desc %))) original-groupby-keys)))
         )
       (if (not (empty? (.getAggreFunc this)))
         (set! aggre-func (vec (map vector new-aggre-fns new-aggre-cols))))))

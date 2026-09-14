@@ -1,10 +1,6 @@
 (ns clojask.join.outer-output
-  (:require [onyx.peer.function :as function]
-            [onyx.plugin.protocols :as p]
-            [clojure.java.io :as io]
-            [taoensso.timbre :refer [debug info] :as timbre]
-            [clojure.string :as string])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+  (:require [onyx.plugin.protocols :as p]
+            [clojure.java.io :as io]))
 
 (def write-func (atom nil))
 
@@ -70,13 +66,8 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr]} replica messenger]
-              ;;  keys [:Departement]
-    ;; Write the batch to your datasink.
-    ;; In this case we are conjoining elements onto a collection.
     (doseq [msg write-batch]
-      ;; (if-let [msg (first batch)]
       (do
-          ;; (swap! example-datasink conj msg)
         (if (not= (:d msg) nil)
           (do
             (write-func wtr (:d msg))

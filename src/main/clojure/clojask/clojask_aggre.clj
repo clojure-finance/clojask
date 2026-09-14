@@ -1,13 +1,9 @@
 (ns clojask.clojask-aggre
-  (:require [onyx.peer.function :as function]
-            [onyx.plugin.protocols :as p]
+  (:require [onyx.plugin.protocols :as p]
             [clojure.java.io :as io]
-            [taoensso.timbre :refer [debug info] :as timbre]
-            [clojure.string :as string]
             [clojask.api.aggregate :refer [start]]
             [clojask.utils :as u])
-  (:import [java.io BufferedReader FileReader BufferedWriter FileWriter]
-           [com.clojask.exception ExecutionException]))
+  (:import [com.clojask.exception ExecutionException]))
 
 (def df (atom nil))
 (def aggre-func (atom nil))
@@ -62,7 +58,6 @@
     ;; Mind that such cleanup is also achievable with lifecycles.
         (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))
               wtr (:clojask/wtr event)]
-          ;; (.write (:clojask/wtr event) (str data "\n"))
           (if (apply = (map count data))
             (do
               (mapv
@@ -103,22 +98,14 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch clojask/wtr]} replica messenger]
-              ;;  keys [:Departement]
-    ;; Write the batch to your datasink.
-    ;; In this case we are conjoining elements onto a collection.
     (let []
       (doseq [msg write-batch]
         (doseq [data (:d msg)]
-          ;; (swap! example-datasink conj msg)
           (if (not= data nil)
             (let [
-                  ;; data (:d msg)
                   ]
-            ;;   (.write wtr (str (string/join "," (:d msg)) "\n"))
 
-            ;;    (swap! memo assoc index (func (get index (deref memo)) (:d msg)))
               (vreset! memo (doall (map-indexed (fn [ind prev] ((nth (nth aggre-func ind) 0) prev (nth data (nth (nth aggre-func ind) 1)))) (deref memo))))
-            ;;   (.write wtr (str (vec (deref memo)) "\n"))
               )))))
     true))
 
@@ -133,5 +120,4 @@
                                      (repeat start))))
                     (deref aggre-func)
                     (deref select)
-                    ;; (.getOutput (deref df))
                     (deref output-func))))

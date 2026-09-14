@@ -6,9 +6,9 @@
               [clojask.api.gb-aggregate :as gb-aggre]
               [clojask.api.aggregate :as aggre]
               [clojask.sort :refer :all]
-              [clojure.data.csv :as csv]
               [clojure.string :as str]
-              [clojure.java.io :as io]))
+              [clojure.java.io :as io])
+    (:refer-clojure :exclude [filter group-by sort]))
 
 ;; The output directory is gitignored, so create it before any test writes to it.
 (io/make-parents "test/clojask/test_outputs/.keep")

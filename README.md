@@ -54,7 +54,7 @@ com.github.clojure-finance/clojask {:mvn/version "2.0.4"}
 **Requirements:**
 
 - MacOS or Linux
-- JDK 17 or newer (tested on JDK 21)
+- JDK 17 or newer (tested on JDK 17 and 21)
 - The JVM flag `--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED`.
   Leiningen and deps.edn users put it in `:jvm-opts`; when running from
   plain `java`, pass it on the command line. Without it the first `compute`
