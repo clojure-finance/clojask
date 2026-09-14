@@ -1,9 +1,8 @@
 (ns clojask.join.outer-onyx-comps
   (:require [clojask.join.outer-input :as input]
             [clojask.join.outer-output :as output]
-            [onyx.api :refer :all]
+            [clojask.onyx-comps :as oc]
             [clojure.string :as string]
-            [onyx.test-helper :refer [with-test-env feedback-exception!]]
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
             [clojure.set :as set]
@@ -12,26 +11,6 @@
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
-
-(def id (java.util.UUID/randomUUID))
-
-(defn workflow-gen
-  "Generate workflow for running Onyx"
-  [num-work]
-  (def workflow []) ;; initialisation
-
-  ;; for loop for input edges
-  (doseq [x (range 1 (+ num-work 1))]
-    (let [worker-name (keyword (str "sample-worker" x))]
-          (def workflow (conj workflow [:in worker-name]
-              ))))
-
-  ;; for loop for output edges
-  (doseq [x (range 1 (+ num-work 1))]
-    (let [worker-name (keyword (str "sample-worker" x))]
-          (def workflow (conj workflow [worker-name :output]
-              ))))
-)
 
 (def dataframe (atom nil))
 
@@ -250,96 +229,26 @@
   ;; (println flow-conditions) ;; !! debugging
   )
 
-(defn config-env
-  []
-  (def env-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :zookeeper/server? true
-     :zookeeper.server/port 2188
-     :onyx/tenancy-id id
-     :onyx.log/file ".clojask/clojask.log"})
-
-  (def peer-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :onyx/tenancy-id id
-     :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
-     :onyx.messaging/impl :aeron
-     :onyx.messaging/peer-port 40200
-     :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file ".clojask/clojask.log"})
-
-  (def env (onyx.api/start-env env-config))
-
-  (def peer-group (onyx.api/start-peer-group peer-config))
-
-  (def n-peers (count (set (mapcat identity workflow))))
-
-  (def v-peers (onyx.api/start-peers n-peers peer-group)))
-
-(defn shutdown
-  []
-  (doseq [v-peer v-peers]
-    (onyx.api/shutdown-peer v-peer))
-  (onyx.api/shutdown-peer-group peer-group)
-  (onyx.api/shutdown-env env))
-
 (defn start-onyx-outer
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size a b mgroup-a mgroup-b dist exception a-index b-index a-format b-format write-index output]
-  ;; step 1
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index) ;;need some work
-    (catalog-gen num-work batch-size)
-    (lifecycle-gen "./.clojask/join/a" dist)
-    (flow-cond-gen num-work)
-    (input/inject-dataframe mgroup-a mgroup-b)
-    (output/inject-write-func output)
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-
-  ;; step 2
-  (try
-    (if (not= mgroup-b nil) (.final mgroup-b))
-    (worker-func-gen2 a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index) ;;need some work
-    (lifecycle-gen "./.clojask/join/b" dist)
-    (input/inject-dataframe mgroup-b nil)
-
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[preparing stage (outer join 2)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (outer join 2)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-
-  (try
-    (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (outer join)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
-  "success")
+  (oc/with-onyx-env "outer join" num-work
+    (fn []
+      ;; step 1: every row of a, with its matches in b
+      (oc/run-job "outer join"
+                  (fn []
+                    (worker-func-gen a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index)
+                    (catalog-gen num-work batch-size)
+                    (lifecycle-gen "./.clojask/join/a" dist)
+                    (flow-cond-gen num-work)
+                    (input/inject-dataframe mgroup-a mgroup-b)
+                    (output/inject-write-func output)
+                    {:catalog catalog :lifecycles lifecycles :flow-conditions flow-conditions}))
+      ;; step 2: the rows of b that had no match, on the same environment
+      (oc/run-job "outer join 2"
+                  (fn []
+                    (if (not= mgroup-b nil) (.final mgroup-b))
+                    (worker-func-gen2 a b mgroup-a mgroup-b exception a-index b-index a-format b-format write-index)
+                    (lifecycle-gen "./.clojask/join/b" dist)
+                    (input/inject-dataframe mgroup-b nil)
+                    {:catalog catalog :lifecycles lifecycles :flow-conditions flow-conditions})))))

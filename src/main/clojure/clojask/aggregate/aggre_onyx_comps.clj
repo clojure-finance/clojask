@@ -3,9 +3,8 @@
             [clojask.aggregate.aggre-output :as output]
             ;; [clojask.clojask-groupby :as groupby]
             ;; [clojask.clojask-join :as join]
-            [onyx.api :refer :all]
+            [clojask.onyx-comps :as oc]
             [clojure.string :as string]
-            [onyx.test-helper :refer [with-test-env feedback-exception!]]
             ;; [tech.v3.dataset :as ds]
             [clojure.data.csv :as csv]
             [clojask.utils :as u]
@@ -14,26 +13,6 @@
   (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)
            [com.clojask.exception ExecutionException]))
 
-
-(def id (java.util.UUID/randomUUID))
-
-(defn workflow-gen
-  "Generate workflow for running Onyx"
-  [num-work]
-  (def workflow []) ;; initialisation
-
-  ;; for loop for input edges
-  (doseq [x (range 1 (+ num-work 1))]
-    (let [worker-name (keyword (str "sample-worker" x))]
-          (def workflow (conj workflow [:in worker-name]
-              ))))
-
-  ;; for loop for output edges
-  (doseq [x (range 1 (+ num-work 1))]
-    (let [worker-name (keyword (str "sample-worker" x))]
-          (def workflow (conj workflow [worker-name :output]
-              ))))
-)
 
 (def dataframe (atom nil))
 
@@ -235,69 +214,17 @@
   ;; (println flow-conditions) ;; !! debugging
   )
 
-(defn config-env
-  []
-  (def env-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :zookeeper/server? true
-     :zookeeper.server/port 2188
-     :onyx/tenancy-id id
-     :onyx.log/file ".clojask/clojask.log"})
-
-  (def peer-config
-    {:zookeeper/address "127.0.0.1:2188"
-     :onyx/tenancy-id id
-     :onyx.peer/job-scheduler :onyx.job-scheduler/balanced
-     :onyx.messaging/impl :aeron
-     :onyx.messaging/peer-port 40200
-     :onyx.messaging/bind-addr "localhost"
-     :onyx.log/file ".clojask/clojask.log"})
-
-  (def env (onyx.api/start-env env-config))
-
-  (def peer-group (onyx.api/start-peer-group peer-config))
-
-  (def n-peers (count (set (mapcat identity workflow))))
-
-  (def v-peers (onyx.api/start-peers n-peers peer-group)))
-
-(defn shutdown
-  []
-  (doseq [v-peer v-peers]
-    (onyx.api/shutdown-peer v-peer))
-  (onyx.api/shutdown-peer-group peer-group)
-  (onyx.api/shutdown-env env))
-
 (defn start-onyx-aggre
   "start the onyx cluster with the specification inside dataframe"
   [num-work batch-size dataframe source dist exception aggre-func index formatter out]
-  (try
-    (workflow-gen num-work)
-    (config-env)
-    (worker-func-gen dataframe exception aggre-func index formatter source) ;;need some work
-    (catalog-gen num-work batch-size)
-    (lifecycle-gen (if (nil? source) "./.clojask/grouped" nil) dist)
-    (flow-cond-gen num-work)
-    (input/inject-dataframe dataframe source)
-    (output/inject-dataframe dataframe out)
-    ;; (insert-mgroup source)
-    (catch Exception e (do
-                         (throw (ExecutionException. (format "[preparing stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (let [submission (onyx.api/submit-job peer-config
-                                          {:workflow workflow
-                                           :catalog catalog
-                                           :lifecycles lifecycles
-                                           :flow-conditions flow-conditions
-                                           :task-scheduler :onyx.task-scheduler/balanced})
-          job-id (:job-id submission)]
-      ;; (println submission)
-      (assert job-id "Job was not successfully submitted")
-      (feedback-exception! peer-config job-id))
-    (catch Exception e (do
-                         (shutdown)
-                         (throw (ExecutionException. (format "[submit-to-onyx stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e)))))))
-  (try
-    (shutdown)
-    (catch Exception e (throw (ExecutionException. (format "[terminate-node stage (groupby aggregate)]  Refer to .clojask/clojask.log for detailed information. (original error: %s)" (.getMessage e))))))
-  "success")
+  (oc/with-onyx-env "groupby aggregate" num-work
+    (fn []
+      (oc/run-job "groupby aggregate"
+                  (fn []
+                    (worker-func-gen dataframe exception aggre-func index formatter source)
+                    (catalog-gen num-work batch-size)
+                    (lifecycle-gen (if (nil? source) "./.clojask/grouped" nil) dist)
+                    (flow-cond-gen num-work)
+                    (input/inject-dataframe dataframe source)
+                    (output/inject-dataframe dataframe out)
+                    {:catalog catalog :lifecycles lifecycles :flow-conditions flow-conditions})))))
