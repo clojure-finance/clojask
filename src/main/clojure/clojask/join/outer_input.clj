@@ -1,12 +1,8 @@
 (ns clojask.join.outer-input
-  (:require [clojure.core.async :refer [poll! timeout chan close!]]
-            [clojure.set :refer [join]]
-            [onyx.plugin.protocols :as p]
-            [clojure.data.csv :as csv]
-            [clojask.utils :refer [filter-check]]
-            [taoensso.timbre :refer [fatal info debug] :as timbre]
-            [clojure.java.io :as java.io])
-  (:import (java.io BufferedReader)))
+  (:require [onyx.plugin.protocols :as p]
+            [clojask.utils]
+            [taoensso.timbre :refer [info]]
+            [clojure.java.io :as java.io]))
 
 (def mgroup-a nil)
 (def mgroup-b nil)
@@ -32,7 +28,6 @@
          files (if (= mgroup-a nil)
                  (rest (file-seq directory))
                  (.getKeys mgroup-a))
-        ;;  data (map zipmap (repeat [:id :file :d]) (map vector (iterate inc 0) [files (mapv (fn [_] (read-string (str _))) files)]))
          data 
          (if (= mgroup-a nil)
                 (do
@@ -83,12 +78,7 @@
   (def mgroup-b _mgroup-b))
 
 (defn input [{:keys [onyx.core/task-map] :as event}]
-  ;; (println (:seq/rdr event))
   (map->AbsSeqReader {:event event
-                      ;; :sequential (:seq/seq event)
-                      ;; :reader (:seq/rdr event)
-                      ;; :filters (.getFilters (:row-info  df))
-                      ;; :types (.getType (:col-info df))
                       :path (:buffered-reader/path event)
                       :rst (volatile! nil)
                       :completed? (volatile! false)

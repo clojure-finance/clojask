@@ -3,7 +3,9 @@
             [clojure.java.io :as io]
             [clojask.onyx-comps :as oc]
             [clojask.aggregate.aggre-onyx-comps :as ag]
-            [clojask.dataframe :as ck])
+            [clojask.dataframe :as ck]
+            [onyx.api]
+            [taoensso.timbre :as timbre])
   (:import [com.clojask.exception ExecutionException]))
 
 (def input "test/clojask/Employees-example.csv")
@@ -79,3 +81,12 @@
       (compute-still-works)
       (is (< (- (.length log) before) 20000)
           "Onyx's default :info logging adds a few hundred KB per compute"))))
+
+(deftest compute-keeps-debug-log-level
+  (testing "The log configuration handed to Onyx leaves enable-debug in effect"
+    (try
+      (ck/enable-debug)
+      (compute-still-works)
+      (is (= :debug (:min-level timbre/*config*)))
+      (finally
+        (ck/disable-debug)))))

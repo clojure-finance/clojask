@@ -1,16 +1,8 @@
 (ns clojask.utils
-  (:require [clojure.core.async :refer [chan sliding-buffer >!! close!]]
-            [clojure.java.io :refer [resource]]
-            [onyx.plugin.core-async :refer [take-segments!]]
-            ;; [tech.v3.dataset :as ds]
-            [clojure.string :as str]
+  "Utility functions used in dataframe."
+  (:require [clojure.string :as str]
             [clojure.java.io :as io])
-  (:import (java.util Date)
-           (java.time LocalDate)
-           (java.time LocalDateTime)
-           (java.time.format DateTimeFormatter)
-           (java.util Base64)))
-"Utility function used in dataframe"
+  (:import (java.util Base64)))
 
 (defn gets
   "unlike core/get, get elements from indices"
@@ -46,7 +38,6 @@
   [row types formats operations index]
   (let [opr-vec (get operations index)
         vals (get-val row types (first opr-vec))]
-    ;; (println [vals])
     (loop [res vals oprs (rest opr-vec)]
       (if (= (count oprs) 0)
         (first res)
@@ -59,7 +50,6 @@
   (try
     (let [opr-vec (get operations index)
           vals (get-val row types (first opr-vec))]
-    ;; (println [vals])
       (loop [res vals oprs (rest opr-vec)]
         (if (= (count oprs) 0)
           (first res)
@@ -70,13 +60,11 @@
 
 (defn filter-check
   [filters types row]
-  ;; (loop [filters filters]
   (if (= filters [])
     true
     (loop [filters filters]
       (let [com (first filters)
             rem (rest filters)]
-        ;; (println com)
         (if (= com nil)
           true
           (do
@@ -107,7 +95,6 @@
   (atom (fn [string]
           (try
             (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-            ;; (catch Exception e (throw e))
             (catch Exception e nil)
             ))))
 
@@ -139,7 +126,6 @@
               (fn [string]
                 (try
                   (.parse (java.text.SimpleDateFormat. "yyyy-MM-dd") string)
-                  ;; (catch Exception e (throw e))
                   (catch Exception e nil)
                   )))
 
@@ -271,15 +257,3 @@
 (defn decode-str
   [s]
   (String. (.decode decoder s)))
-
-;;       (reset! fromDate
-
-;;       (reset! toDateTime
-
-;;       (reset! fromDateTime
-
-;; ;; (def operation-type-map
-;; ;;   {toInt "int"
-;; ;;    toDouble "double"
-;; ;;    toString "string"
-;; ;;    toDate "date"})

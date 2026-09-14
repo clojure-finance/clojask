@@ -1,9 +1,6 @@
 (ns clojask.classes.DataStat
   (:require [clojure.java.io :as io]))
 
-(import '[com.clojask.exception TypeException]
-        '[com.clojask.exception OperationException])
-
 (definterface DataIntf
   (init [source file])
   (initWithIO [io-func])

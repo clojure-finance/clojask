@@ -1,9 +1,6 @@
 (ns clojask.extensions.bind
   "Contains functions that extends the power of clojask, while not directly applying to the dataframe class"
-  (:require [clojure.data.csv :as csv]
-            [clojure.java.io :as io]
-            [clojure.string :as str]
-            [clojask.dataframe :as ck]
+  (:require [clojask.dataframe :as ck]
             [clojask-io.input :refer [read-file]]
             [clojask-io.output :refer [write-csv]]))
 
@@ -21,7 +18,6 @@
                      :size (reduce (fn [a b] (if (and (not= a nil) (not= b nil)) (+ a b) nil)) (mapv (fn [file] (:size (read-file file :format "csv" :stat true))) files))
                      :output (fn [wtr seq] (write-csv wtr seq ","))})]
     (ck/dataframe func)
-    ;; (func)
     ))
 
 (defn cbind

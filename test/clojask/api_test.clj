@@ -3,7 +3,8 @@
    these run in well under a second."
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
-            [clojask.dataframe :as ck])
+            [clojask.dataframe :as ck]
+            [clojask.api.gb-aggregate :as gb])
   (:import [com.clojask.exception OperationException TypeException]))
 
 (def input "test/clojask/Employees-example.csv")
@@ -41,3 +42,12 @@
 (deftest if-header-false-generates-column-names
   (is (= ["Col_1" "Col_2" "Col_3" "Col_4" "Col_5"]
          (ck/get-col-names (ck/dataframe input :if-header false)))))
+
+(deftest gb-aggregate-statistics
+  (testing "mean and median return doubles, not ratios"
+    (is (= 1.5 (gb/mean [1 2])))
+    (is (= 2.5 (gb/median [1 2 3 4])))
+    (is (= 2 (gb/median [1 2 3]))))
+  (testing "skew is NaN instead of throwing when the standard deviation is zero"
+    (is (Double/isNaN (gb/skew [5])))
+    (is (Double/isNaN (gb/skew [2.0 2.0 2.0])))))

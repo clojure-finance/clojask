@@ -10,7 +10,7 @@
 
 - **[ ]** surrounding the argument indicates an optional operation.
 
-- Without further specification, the return of all these functions is the resultant Clojask dataframe with type `clojask.dataframe.classes.DataFrame` . Therefore, you can pipeline these functions with `->` macros.
+- Without further specification, the return of all these functions is the resultant Clojask dataframe with type `clojask.classes.DataFrame.DataFrame`. Therefore, you can pipeline these functions with `->` macros.
 
   ```clojure
   (-> (dataframe "xxx.csv")
@@ -24,7 +24,7 @@
 
 #### dataframe 
 
-Defines the dataframe and returns `clojask.dataframe.classes.DataFrame` 
+Defines the dataframe and returns a `clojask.classes.DataFrame.DataFrame` 
 
 
 | Argument                                        | Type                       | Function                                              | Remarks                                                      |
@@ -147,7 +147,7 @@ Set the data type of a column. As a result, the value will be parsed as the assi
 | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
 | `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |                                                              |
 | `column`    | String            | Target columns      | Should be existing columns within the dataframe.             |
-| `type`      | String            | Type of the column  | The natively supported types are: int, double, string, date. Note that by default all the column types are string. If you need a special parsing function, see `set-parser`. |
+| `type`      | String            | Type of the column  | The natively supported types are `int`, `double`, `string`, `date` and `datetime`. A date type can carry a `java.text.SimpleDateFormat` pattern, such as `date:yyyy/MM/dd`. An unknown type throws a `TypeException`. By default all the column types are string. If you need a special parsing function, see `set-parser`. |
 
 **Example**
 
@@ -185,16 +185,16 @@ A more flexible way to set type by specifying the customized formatter.
 | ----------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object                                          |                                                              |
 | `column`    | String            | Target columns                                               | Should be existing columns within the dataframe              |
-| `formatter` | function          | The formatter function that will format a data type (can be checked from the `print-df` function) to string for outputting | The function should take only one argument which is a string, and the parsed type should be serializable. |
+| `formatter` | function          | The formatter function that will format a data type (can be checked from the `print-df` function) to string for outputting | The function should take one argument, the value in its parsed type, and return a string. |
 
 **Example**
 
 ```clojure
-;; parse all the values in "Salary" with this function
-(set-parser x "Salary" #(Double/parseDouble %))
+;; append "!" to every value of "Salary" in the output
+(set-formatter x "Salary" #(str % "!"))
 ```
 
-#### 
+---
 
 #### operate (In-place modification)
 
@@ -204,7 +204,7 @@ A more flexible way to set type by specifying the customized formatter.
 | ------------- | ----------------- | ----------------------------- | ------------------------------------------------------------ |
 | `dataframe`   | clojask.classes.DataFrame.DataFrame | The operated object           |                                                              |
 | `operation`   | function          | Function to be applied lazily | The function should take only one argument which is the value of the below column. |
-| `column name` | Keyword           | Target columns                | Should be existing columns within the dataframe.             |
+| `column name` | String            | Target columns                | Should be existing columns within the dataframe.             |
 
 **Example**
 
@@ -347,7 +347,7 @@ The keys used in specifying the aggregate operation are identical to the [group-
 
 #### inner-join / left-join / right-join / outer-join
 
-Inner / left / right join two dataframes on specific columns
+Inner / left / right / outer join two dataframes on specific columns
 
 *Remarks:*
 
@@ -385,7 +385,7 @@ Inner / left / right join two dataframes on specific columns
 
 **Return**
 
-A `Clojask.JoinedDataFrame`
+A `clojask.classes.JoinedDataFrame.JoinedDataFrame`
 
 Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
@@ -427,7 +427,7 @@ Rolling join two dataframes on columns. Forward will find the largest of the sma
 
 **Return** (Same as inner-join)
 
-A `Clojask.JoinedDataFrame`
+A `clojask.classes.JoinedDataFrame.JoinedDataFrame`
 
 Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
@@ -446,16 +446,16 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 
 | Argument            | Type                                                         | Function                                                     | Remarks                                                      |
 | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `dataframe`         | clojask.classes.DataFrame.DataFrame / Clojask.JoinedDataFrame | The operated object                                          |                                                              |
-| `num of workers`    | int (max 8)                                                  | The number of worker instances (except the input and output nodes) | Uses [Onyx](https://github.com/clojure-finance/onyx) as the distributed platform |
+| `dataframe`         | clojask.classes.DataFrame.DataFrame / clojask.classes.JoinedDataFrame.JoinedDataFrame | The operated object                                          |                                                              |
+| `num of workers`    | int                                                          | The number of worker instances (except the input and output nodes) | Uses [Onyx](https://github.com/clojure-finance/onyx) as the distributed platform. Group-by and aggregate computes accept at most 8 workers. |
 | `output path`       | String / `nil`                                               | The path of the output csv file                              | If the path already exists, will overwrite the file.<br>If `nil`, will store the output in memory as a vector of vectors, which represent each row. See [example](https://github.com/clojure-finance/clojask-examples/blob/main/src/clojask_examples/in_memory.clj). |
 | [`exception`]       | Boolean                                                      | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
 | [`order`]           | Boolean                                                      | If enforce the order of rows in the output to be the same as input | By default `false`. If set to `true`, will sacrifice the performance. |
-| [`output-function`] | Function                                                     | Specify how to output a row vector to the output file        | Takes two arguments.<br />`writer` java.io.BufferedWriter<br />`rows` clojure.lang.PersistentVector (rows) of clojure.lang.PersistentVector (each row) |
+| [`output`]          | Function                                                     | Specify how to output a row vector to the output file        | Takes two arguments.<br />`writer` java.io.BufferedWriter<br />`rows` clojure.lang.PersistentVector (rows) of clojure.lang.PersistentVector (each row) |
 | [`select`]          | String / Collection of strings                               | Chooses columns to select for the operation                  | Can only specify either of select and exclude                |
 | [`exclude`]         | String / Collection of strings                               | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
-| [`header`]          | Collection of strings                                        | The column names in the output file that appears in the first row | Will replace the default column names. Should be equal to the number of columns. |
-| [`melt`]            | Function (one argument)                                      | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (This API is used in the `extensions.reshpae.melt`) |
+| [`header`]          | Boolean / collection of strings                              | The first row of the output file                             | By default `true`, the column names. `false` writes no header row. A collection replaces the column names and should have one name per output column. |
+| [`melt`]            | Function (one argument)                                      | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (used by `clojask.extensions.reshape/melt`) |
 | [`in-memory`]       | Boolean                                                      | Whether the computation should all be completed in memory    | If set to `true`, this affects the computation procedure of groupby-aggregation and joins. These operations originally will write to and read from intermediate group files in disk. Now it will stores these groups in memory only, **which will speed up the computation process**. **However, when the dataframe is larger than memory, this option should not be set to `false`.** Other operations are not affected because they natively do not require out-of-memory steps. |
 
 **Return**

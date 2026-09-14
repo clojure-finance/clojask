@@ -6,15 +6,31 @@ Below are full list of given functions for the two types.
 
 #### `clojask.api.aggregate`:
 
-`max`: Find the max value (use `clojure.core/compare` as the comparator)
+`max` / `min`: Find the max / min value (use `clojure.core/compare` as the comparator)
 
-`min`: Find the min value (use `clojure.core/compare` as the comparator)
+`sum` / `count`: Sum / count the values
+
+`smallest3` / `largest3`: The three smallest / largest values
+
+`smallestk` / `largestk`: The k smallest / largest values; they take k as a third argument, so wrap them, e.g. `#(agg/largestk %1 %2 5)`
 
 #### `clojask.api.gb-aggregate`:
 
-`max`: Find the max value (use `clojure.core/compare` as the comparator)
+`max` / `min`: Find the max / min value (use `clojure.core/compare` as the comparator)
 
-`min`: Find the min value (use `clojure.core/compare` as the comparator)
+`sum` / `count`: Sum / count the values
+
+`mean` / `median`: Arithmetic mean / median, as doubles
+
+`mode`: The most frequent values
+
+`sd`: Sample standard deviation
+
+`skew`: Pearson's second skewness coefficient; NaN when the standard deviation is zero
+
+`smallest3` / `largest3`: The three smallest / largest values
+
+`smallestk` / `largestk`: The k smallest / largest values; they take k as a second argument, so wrap them, e.g. `#(gb-agg/largestk % 5)`
 
 Besides these given functions, you are also welcomed to define your own.
 
@@ -32,7 +48,7 @@ This is the template:
 
 Basically, the function should take one argument only, which is the full aggregation column. ***Here we simply assume this column should be smaller than memory!***
 
-You may find many built-in function in Clojure also fulfilling this requirement, for example, `count`, `mean`, and countless function constructed from [`reduce`](https://clojuredocs.org/clojure.core/reduce).
+You may find many built-in functions in Clojure also fulfilling this requirement, for example `count`, and the many functions constructed from [`reduce`](https://clojuredocs.org/clojure.core/reduce).
 
 #### How to define simple aggregation functions?
 

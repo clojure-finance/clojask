@@ -5,14 +5,11 @@
             [clojask.clojask-join :as join]
             [clojask.clojask-output :as output]
             [clojask.join :refer [defn-join]]
-            ;; [clojask.utils :refer [u/eval-res u/eval-res-ne u/filter-check]]
             [clojask.utils :as u]
-            [onyx.api :refer :all]
-            [onyx.test-helper :refer [feedback-exception!]] ;; [tech.v3.dataset :as ds]
-            [taoensso.timbre.appenders.3rd-party.rotor :as rotor]
-)
-  (:import [com.clojask.exception ExecutionException]
-           [java.io FileReader]))
+            [onyx.api]
+            [onyx.test-helper :refer [feedback-exception!]]
+            [taoensso.timbre.appenders.3rd-party.rotor :as rotor])
+  (:import [com.clojask.exception ExecutionException]))
 
 ;; sample workflow
 ;;
@@ -40,7 +37,6 @@
           (def workflow (conj workflow [worker-name :output]
               ))))
 
-  ;; (println workflow) ; !!debugging
   )
 
 (def dataframe (atom nil))
@@ -53,7 +49,6 @@
         formats (.getFormatter (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
         indices index]
-    ;; (println indices)
     (if exception
       (defn worker-func
         [seg]
@@ -83,7 +78,6 @@
         formats (.getFormatter (:col-info (deref dataframe)))
         filters (.getFilters (:row-info df))
         indices index]
-    ;; (println indices)
     (if exception
       (defn worker-func
         [seg]
@@ -146,7 +140,6 @@
         :onyx/batch-size batch-size
         :output/doc "Writes segments to the file"}))
 
-    ;; (println catalog) ;; !! debugging
     )
 
 (defn catalog-aggre-gen
@@ -190,7 +183,6 @@
            :onyx/batch-size batch-size
            :output/doc "Writes segments to the file"}))
 
-    ;; (println catalog) ;; !! debugging
   )
 
 (defn catalog-groupby-gen
@@ -234,7 +226,6 @@
            :onyx/batch-size batch-size
            :output/doc "Writes segments to the file"}))
 
-    ;; (println catalog) ;; !! debugging
   )
 
 (defn catalog-join-gen
@@ -278,28 +269,10 @@
            :onyx/batch-size batch-size
            :output/doc "Writes segments to the file"}))
 
-    ;; (println catalog) ;; !! debugging
   )
 
 (defn inject-in-reader [event lifecycle]
-  (let [
-        ;; path (:buffered-reader/filename lifecycle)
-        ;; tmp (println path)
-        ;; rdr (if (= path nil) nil (FileReader. path))
-        ;; csv-data (csv/read-csv (BufferedReader. rdr))
-        ]
-    {
-    ;;  :seq/rdr rdr
-    ;;  :seq/seq (map zipmap ;; make the first row as headers and the following rows as values in a map structure e.g. {:tic AAPL} 
-    ;;                (->> (first csv-data) ;; take the first row of the csv-data
-    ;;                     (cons "clojask-id")
-    ;;                     (map keyword) ;; make the header be the "key" in the map 
-    ;;                     repeat)      ;; repeat the process for all the headers
-    ;;                (map cons (iterate inc 1) (rest csv-data)))
-    ;;  :seq/filters (:clojask/filters lifecycle)
-    ;;  :seq/types (:clojask/types lifecycle)
-     }
-    ))
+  {})
 
 (defn close-reader [event lifecycle]
   (if (not= (:seq/rdr event) nil)
@@ -314,8 +287,6 @@
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename nil
-      ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
-      ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
@@ -330,14 +301,11 @@
   (def lifecycles
     [{:lifecycle/task :in
       :buffered-reader/filename (if (fn? source) nil source)
-      ;; :clojask/filters (.getFilters (:row-info (deref dataframe)))
-      ;; :clojask/types (.getType (:col-info (deref dataframe)))
       :lifecycle/calls ::in-calls}
      {:lifecycle/task :in
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      ;; :order order
       :lifecycle/calls :clojask.clojask-aggre/writer-calls}]))
 
 (defn lifecycle-groupby-gen
@@ -350,7 +318,6 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      ;; :clojask/groupby-keys keys
       :clojask/key-index key-index
       :lifecycle/calls :clojask.clojask-groupby/writer-aggre-calls}]))
 
@@ -364,15 +331,12 @@
       :lifecycle/calls :clojask.clojask-input/reader-calls}
      {:lifecycle/task :output
       :buffered-wtr/filename dist
-      ;; :clojask/a-keys a-keys
-      ;; :clojask/b-keys b-keys 
       :clojask/a-roll a-roll
       :clojask/b-roll b-roll
       :clojask/a-map (.getKeyIndex (.col-info a)) 
       :clojask/b-map (.getKeyIndex (.col-info b))
       :clojask/join-type join-type
       :lifecycle/calls :clojask.clojask-join/writer-join-calls}]))
-
 
 (defn flow-cond-gen
   "Generate the flow conditions for running Onyx"
@@ -383,10 +347,7 @@
   (doseq [x (range 1 (+ num-work 1))]
     (let [worker-name (keyword (str "sample-worker" x))
           predicate-function (keyword "clojask.onyx-comps" (str "rem" (- x 1) "?"))
-          ;; predicate-function (fn [event old-segment new-segment all-new-segment]
-          ;;                      (= (mod (:id new-segment) num-work) (- x 1)))
           ]
-      ;; (def predicate-funcs (conj predicate-funcs predicate-function))
       (intern 'clojask.onyx-comps (symbol (str "rem" (- x 1) "?")) (fn [event old-segment new-segment all-new-segment]
                                                                      (= (mod (:id new-segment) num-work) (- x 1))))
       (def flow-conditions
@@ -396,7 +357,6 @@
                :flow/predicate predicate-function
                :worker/doc "This is a flow condition"}))))
 
-  ;; (println flow-conditions) ;; !! debugging
   )
 
 ;; Components started by config-env. Kept as top-level vars so shutdown can
@@ -422,10 +382,11 @@
   "timbre configuration handed to Onyx: warnings and errors go to the log
    file, rotated at 10 MB with one backup, and errors also to stdout.
    Onyx's own default logs at :info, which adds a few hundred KB per
-   compute and keeps up to 300 MB of files."
+   compute and keeps up to 300 MB of files. Only the appenders get levels:
+   the global level belongs to clojask.dataframe, so enable-debug stays in
+   effect across computes."
   []
-  {:min-level :warn
-   :appenders {:println {:min-level :error :enabled? true}
+  {:appenders {:println {:min-level :error :enabled? true}
                :rotor (assoc (rotor/rotor-appender {:path log-path
                                                     :max-size (* 10 1024 1024)
                                                     :backlog 1})

@@ -1,9 +1,8 @@
 (ns clojask.classes.ColInfo
   (:require [clojure.set :as set]
-            [clojask.utils :refer []]))
+            [clojask.utils]))
 
-(import '[com.clojask.exception TypeException]
-        '[com.clojask.exception OperationException])
+(import '[com.clojask.exception OperationException])
 
 (definterface ColIntf
   (init [colNames])
@@ -83,7 +82,6 @@
     (if (contains? key-index col)
       (do
         (set! col-dsp (assoc col-dsp (get key-index col) (conj (get col-dsp (get key-index col)) operation)))
-          ;; "success"
         nil)
       (throw (OperationException. "Column name passed to operate not found"))))
 
@@ -98,11 +96,9 @@
         (if (contains? key-index newCol)
           (str newCol " is already exist")
           (do
-            ;; (set! col-keys (conj col-keys newCol))
             (set! key-index (assoc key-index newCol (count key-index)))
             (set! index-key (assoc index-key (count index-key) newCol))
             (set! col-dsp (assoc col-dsp (get key-index newCol) (conj [(vec (map (fn [_] (get key-index _)) col))] operation)))
-            ;; "success"
             nil))
         (do
           (throw (OperationException. (str external " are not original column names")))))))
@@ -114,8 +110,6 @@
       ;; if this column has been assigned a type
       (do
         (set! col-type (assoc col-type (get key-index col)  operation))
-        ;; (set! col-dsp (assoc col-dsp col (vec (concat (conj [(first (col col-dsp))] operation) (rest (rest (col col-dsp)))))))
-        ;; "success"
         nil)
       (throw (OperationException. "Column name passed to setType not found"))))
 

@@ -4,10 +4,6 @@
 
 (def start)
 
-;; (defn aggre-func
-;;   "prev value could be start"
-;;   [prev new])
-
 ;; single row aggregation functions
 
 (defn max
@@ -51,15 +47,15 @@
     :else (take k (sort (conj a b)))))
 
 (defn largest3
-  [a b]
   "return the largest three entries"
+  [a b]
   (cond
     (= start a) [b]
     :else (take 3 (sort (fn [a b] (compare b a)) (conj a b)))))
 
 (defn largestk
+  "return the largest k entries (the performance is better with smaller k)"
   [a b k]
-  "return the largest three entries (the performance is better with smaller k)"
   (cond
     (= start a) [b]
     :else (take k (sort (fn [a b] (compare b a)) (conj a b)))))

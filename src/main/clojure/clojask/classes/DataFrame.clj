@@ -1,22 +1,18 @@
 (ns clojask.classes.DataFrame
   (:require [clojure.set :as set]
-            [clojask.classes.ColInfo :refer [->ColInfo]]
-            [clojask.classes.RowInfo :refer [->RowInfo]]
-            [clojask.classes.DataStat :refer [->DataStat]]
-            [clojask.classes.MGroup :refer [->MGroup]]
-            [clojure.data.csv :as csv]
+            [clojask.classes.ColInfo]
+            [clojask.classes.RowInfo]
+            [clojask.classes.DataStat]
+            [clojask.classes.MGroup]
             [clojure.java.io :as io]
             [clojask.utils :as u]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
+            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby]]
             [clojask.sort :as sort]
             [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
-            [clojask.join.outer-onyx-comps :refer [start-onyx-outer]]
+            [clojask.join.outer-onyx-comps]
             [clojure.string :as str]
             [clojask.preview :as preview]
-            [clojure.pprint :as pprint]
-            [clojask.classes.DataStat :refer [compute-stat]]
-            [clojask-io.input :refer [read-file]]
-            [clojask.join.outer-output :as output])
+            [clojask.join.outer-output])
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataStat DataStat]
@@ -49,13 +45,11 @@
   (getColIndex [] "get column indices, excluding deleted columns")
   (getAggreColNames [] "get column names if there is aggregate")
   (getStat [] "get the statistics of the dataframe")
-  (printCol [output-path selected-index out] "print column names to output file")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
   (reorderCol [new-col-order] "reorder columns in the dataframe")
   (renameCol [old-col new-col] "rename columns in the dataframe")
   (groupby [a] "group the dataframe by the key(s)")
   (aggregate [a c b] "aggregate the group-by result by the function")
-  (head [n] "return first n lines in dataframe")
   (filter [cols predicate])
   (computeTypeCheck [num-worker output-dir])
   (compute [^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out])
@@ -128,20 +122,15 @@
 
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out]
-    ;(assert (= java.lang.String (type output-dir)) "output path should be a string")
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
       (assert (or (= (count select) (count index)) (= select [nil])) (OperationException. "Must select existing columns. You may check it using"))
-      ;; (if (<= num-worker 8)
-      (if true
-        (do
-          (if (= ifheader true) (.printCol this output-dir index out))
-          (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
-            (if (= res "success")
-              "success"
-              "failed")))
-        (throw (OperationException. "Max number of worker nodes is 8.")))))
+      (if (= ifheader true) (.printCol this output-dir index out))
+      (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
+        (if (= res "success")
+          "success"
+          "failed"))))
 
   DFIntf
 
@@ -249,7 +238,6 @@
     (cond (not (= 0 (count (u/are-in col-to-del this))))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (.delCol (.col-info this) col-to-del)
-    ;; "success"
     this)
   ;; deprecated
   (reorderCol
@@ -258,25 +246,14 @@
           (throw (TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
     (.setColInfo (.col-info this) new-col-order)
     (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order)
-    ;; "success"  
     this)
 
   (renameCol
     [this old-col new-col]
     (cond (not (u/is-in old-col this))
           (throw (TypeException. "Input includes non-existent column name(s).")))
-    ;; (cond (not (= (count (.getKeys (.col-info this))) (count new-col)))
-    ;;       (throw (TypeException. "Number of new column names not equal to number of existing columns.")))
     (.renameColInfo (.col-info this) old-col new-col)
-    ;; "success"
     this)
-
-  ;; (head
-  ;;   [this n]
-  ;;   (cond (not (integer? n))
-  ;;         (throw (TypeException. "Argument passed to head should be an integer.")))
-  ;;   (with-open [reader (io/reader path)]
-  ;;     (doall (take n (csv/read-csv reader)))))
 
   (setType
     [this type colName]
@@ -345,36 +322,32 @@
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader out inmemory]
     (.computeTypeCheck this num-worker output-dir)
-    (if true
-      (let [groupby-keys (.getGroupbyKeys row-info)
-            aggre-keys (.getAggreFunc row-info)
-            select (if (coll? select) select [select])
-            select (if (= select [nil])
-                     (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
-                     (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
-              ;; pre-index (remove #(>= % (count groupby-keys)) select)
-            data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
-            groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
-            mgroup (MGroup. (transient {}))
-            res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
-        (if (= aggre-keys [])
-          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
-                        "the groupby keys.")))
-        (if (= ifheader true) (.printCol this output-dir select out))
-        (if (= res "success")
-          ;;  (if (= "success" (start-onyx-aggre num-worker batch-size this output-dir (.getGroupbyKeys (:row-info this)) exception))
-          (let [shift-func (fn [pair]
-                             [(first pair) (let [index (nth pair 1)]
-                                             (.indexOf groupby-index index))])
-                aggre-func (mapv shift-func (u/gets aggre-keys data-index))
-                formatter (.getFormatter (.col-info this))
-                formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
-            (.final mgroup)
-            (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
-              "success"
-              (throw (OperationException. "Error when aggregating."))))
-          (throw (OperationException. "Error when grouping by."))))
-      (throw (OperationException. "Max number of worker nodes is 8."))))
+    (let [groupby-keys (.getGroupbyKeys row-info)
+          aggre-keys (.getAggreFunc row-info)
+          select (if (coll? select) select [select])
+          select (if (= select [nil])
+                   (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
+                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+          data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
+          groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
+          mgroup (MGroup. (transient {}))
+          res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
+      (if (= aggre-keys [])
+        (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                      "the groupby keys.")))
+      (if (= ifheader true) (.printCol this output-dir select out))
+      (if (= res "success")
+        (let [shift-func (fn [pair]
+                           [(first pair) (let [index (nth pair 1)]
+                                           (.indexOf groupby-index index))])
+              aggre-func (mapv shift-func (u/gets aggre-keys data-index))
+              formatter (.getFormatter (.col-info this))
+              formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+          (.final mgroup)
+          (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
+            "success"
+            (throw (OperationException. "Error when aggregating."))))
+        (throw (OperationException. "Error when grouping by.")))))
 
   (sort
     [this list output-dir]

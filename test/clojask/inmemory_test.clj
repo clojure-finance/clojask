@@ -7,7 +7,8 @@
               [clojask.api.aggregate :as aggre]
               [clojask.sort :refer :all]
               [clojure.string :as str]
-              [clojure.java.io :as io]))
+              [clojure.java.io :as io])
+    (:refer-clojure :exclude [filter group-by sort]))
 
 ;; The output directory is gitignored, so create it before any test writes to it.
 (io/make-parents "test/clojask/test_outputs/.keep")
@@ -136,7 +137,7 @@
       ;;   (is (= "" (:out result)))
       ;;   (is (= "" (:err result))))
     (def z (inner-join x y ["Employee"] ["Employee"]))
-    (compute z 8 "test/clojask/test_outputs/1-6.csv" :exception false :select ["2_Employee" "2_EmployeeName" "2_DayOff" "2_UpdateDate" "1_Employee" "1_EmployeeName" "1_Department" "1_Salary" "1_UpdateDate"])
+    (compute z 8 "test/clojask/test_outputs/1-6.csv" :exception false :select ["2_Employee" "2_EmployeeName" "2_DayOff" "2_UpdateDate" "1_Employee" "1_EmployeeName" "1_Department" "1_Salary" "1_UpdateDate"] :in-memory true)
       ;; (let [result (sh "zsh" "-c" "diff <(sort test/clojask/test_outputs/1-6.csv) <(sort test/clojask/correct_outputs/1-6.csv)")]
       ;;   (is (= "" (:out result)))
       ;;   (is (= "" (:err result))))

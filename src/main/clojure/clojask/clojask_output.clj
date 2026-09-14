@@ -1,13 +1,8 @@
 (ns clojask.clojask-output
-  (:require [onyx.peer.function :as function]
-            [onyx.plugin.protocols :as p]
+  (:require [onyx.plugin.protocols :as p]
             [clojure.java.io :as io]
-            [taoensso.timbre :refer [debug info] :as timbre]
-            [clojure.string :as string]
             [clojure-heap.core :as heap]
-            [clojure.set :as set]
-            [clojask.join.outer-output :as output])
-  (:import (java.io BufferedReader FileReader BufferedWriter FileWriter)))
+            [clojask.join.outer-output]))
 
 (def df (atom nil))
 (def output-func (atom nil))
@@ -25,7 +20,6 @@
         indices (:indices lifecycle)
         formatter (.getFormatter (:col-info (deref df)))]
    {:clojask/wtr wtr :clojask/order order 
-    ;; :clojask/formatter (set/rename-keys formatter (zipmap indices (iterate inc 0)))
     }))
 
 (defn- close-writer [event lifecycle]
@@ -40,7 +34,6 @@
 (defn- order-write
   [wtr msg heap exp-id melt output-func]
   (let [id (:id msg)]
-    ;; (println (str msg " " (deref exp-id)))
     (if (= id (deref exp-id))
       (do
         (write-msg wtr msg melt output-func)
@@ -50,7 +43,6 @@
           (swap! exp-id inc)))
       (do
         (heap/add heap msg)
-        ;; (println (heap/get-size heap))
         )
       )))
 
@@ -77,7 +69,6 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-        ;; (println (heap/get-size heap))
         (if (not= (heap/get-size heap) 0) (throw (Exception. (str "The order enforcement failed. "  (heap/get-size heap) " rows have been shuffled or missing."))))
         this)
 
@@ -112,15 +103,11 @@
     true)
 
   (write-batch [this {:keys [onyx.core/write-batch  clojask/wtr clojask/order]} replica messenger]
-              ;;  keys [:Departement]
-    ;; Write the batch to your datasink.
-    ;; In this case we are conjoining elements onto a collection.
     (if order
       (doseq [msg write-batch]
         (order-write wtr msg heap exp-id melt output))
       (let []
         (doseq [msg write-batch]
-          ;; (println msg)
           (write-msg wtr msg melt output))))
     true))
 

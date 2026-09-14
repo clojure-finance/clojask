@@ -1,7 +1,5 @@
 (ns clojask.classes.MGroup
-  (:require [clojure.set :as set]
-            [clojask.utils :as u])
-  (:import [com.clojask.exception ExecutionException]))
+  (:require [clojask.utils :as u]))
 
 (definterface MGroupIntf
   (final [])
@@ -11,7 +9,6 @@
   (getKey [key]))
 
 (definterface MGroupJoinIntf
-  (getKeyBoth [key])
   (delete [key]))
 
 (deftype MGroup
@@ -25,7 +22,6 @@
   
   (getKeys
    [this]
-  ;;  (println (keys groups))
    (keys groups))
   
   (exists
@@ -115,9 +111,6 @@
     (persistent! (get groups key)))
 
   MGroupJoinIntf
-  ;; (getKeyBoth
-  ;;   [this key]
-  ;;   (if (.exists this key) (get unformat-groups key)))
 
   (delete
     [this key]

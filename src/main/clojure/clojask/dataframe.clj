@@ -1,25 +1,23 @@
 (ns clojask.dataframe
   (:require clojask-io.core
             [clojask-io.input :refer [read-file]]
-            [clojask-io.output :as output] ;; [clojask.join.outer-output :as output]
+            [clojask-io.output :as output]
             [clojask.classes.DataStat :refer [compute-stat]]
-            [clojask.classes.ColInfo :refer [->ColInfo]]
-            [clojask.classes.RowInfo :refer [->RowInfo]]
-            [clojask.classes.DataFrame :refer [->DataFrame]]
-            [clojask.classes.JoinedDataFrame :refer [->JoinedDataFrame]]
-            [clojask.utils :as u] ;; [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby start-onyx-join]]
+            [clojask.classes.ColInfo]
+            [clojask.classes.RowInfo]
+            [clojask.classes.DataFrame]
+            [clojask.classes.JoinedDataFrame]
+            [clojask.utils :as u]
             [clojure.pprint :as pprint]
-            [clojure.set :as set] ;; [clojure.string :as string]
-            [clojure.string :as str] ;; [clojask.preview :as preview]
+            [clojure.set :as set]
+            [clojure.string :as str]
             [clojure.java.io :as io]
-            [taoensso.timbre :as timbre]
-            )
+            [taoensso.timbre :as timbre])
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataFrame DataFrame]
            [clojask.classes.JoinedDataFrame JoinedDataFrame]
            [com.clojask.exception TypeException])
-
   (:refer-clojure :exclude [filter group-by sort]))
 
 ;; debug APIs
@@ -73,7 +71,6 @@
             types (conj [types] omit)
             ]
         (pprint/print-table header types))
-      ;; (println (str (str/join "," )))
       (println "The content of joined dataframe is not available for preview."))))
 
 (defn- generate-col
@@ -98,7 +95,6 @@
           (DataFrame. (:path (path)) func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows](.write wtr (str (str/join "," msg) "\n")))))) if-header))
         ;; if the is the lazy seq function
         (let [headers (first (path))
-            ;; headers (string/split (doall (first (path))) #",")
               colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
               col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
               row-info (RowInfo. [] [] [] [] {})
@@ -109,14 +105,9 @@
       ;; if the input is the path string
       (let [io-func (fn [] (read-file path :stat true :output true))
             read-func (fn [] (:data (io-func)))
-            ;; file (read-file path :stat true)
-            ;; reader (io/reader path)
-            ;; file (csv/read-csv reader)
-            ;; data (:data file)
             colNames (u/check-duplicate-col (if if-header (doall (first (read-func))) (generate-col (count (first (read-func))))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [] {})
-            ;; stat (compute-stat path)
             stat (compute-stat path io-func)
             func (if if-header (fn [] (rest (read-func))) read-func)]
         (.init col-info colNames)
@@ -125,7 +116,6 @@
     (catch Exception e
       (do
         (throw (TypeException. "Error in initializing the dataframe." e))
-        ;; (throw (OperationException. "no such file or directory"))
         nil))))
 
 (defn filter
@@ -202,7 +192,6 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame))) 
       (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
@@ -223,7 +212,6 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame))) 
       (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
@@ -242,7 +230,6 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame)))
           (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
@@ -259,7 +246,6 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame)))
           (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
@@ -286,7 +272,6 @@
     (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
       (do
@@ -306,7 +291,6 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame)))
           (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-          ;;(throw (TypeException. "Cannot join on a dataframe that has been grouped by or aggregated. Try to first compute, then use the new one to join."))
 (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
@@ -346,7 +330,6 @@
     (when custom-header
       (with-open [wrtr (io/writer output-dir)]
         (output-func wrtr [custom-header])))
-    ;; (if output (.setOutput this output))
     (if (= (type this) clojask.classes.DataFrame.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
         (do ;; simple compute

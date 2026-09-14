@@ -8,10 +8,10 @@ Contains functions that can help to bind several dataset files together on both 
 
 #### API Foundation
 
-When defining a clojask.classes.DataFrame.DataFrame using `dataframe` function, one can input a function instead of the path of the source file. This function should produce a sequence. If this sequence is lazy, the theoretical length of the sequence can be infinite. Otherwise, it must have a finite length that is smaller than the memory size.
+When defining a clojask.classes.DataFrame.DataFrame using `dataframe` function, one can input a function instead of the path of the source file. This function should produce a sequence of rows, each a collection of values, with the column names as the first row. If this sequence is lazy, the theoretical length of the sequence can be infinite. Otherwise, it must have a finite length that is smaller than the memory size.
 
-```
-(def x (dataframe #(["col1,col2" "1,2" "3,4"])))
+```clojure
+(def x (dataframe (fn [] [["col1" "col2"] ["1" "2"] ["3" "4"]])))
 ```
 
 Based on this API, we can define the `cbind` and `rbind` function for two csv files.
@@ -44,7 +44,7 @@ Joins some csv files into a new dataframe by columns.
 ;; 2010-01-24,102,2,9
 ;; 2010-01-25,101,2,9
 ;; 2010-01-26,101,1,10
-(def x (cbind "path/to/a" "path/to/b"))
+(def x (cbind-csv "path/to/a" "path/to/b"))
 ;; x
 ;; date1,item,price,date2,cust,Item,sold
 ;; 2010-01-20,1,18.3,2010-01-19,101,2,11
@@ -82,7 +82,7 @@ Joins some csv files into a new dataframe by rows.
 ;; 2010-01-24,102,2,9
 ;; 2010-01-25,101,2,9
 ;; 2010-01-26,101,1,10
-(def x (rbind "path/to/a" "path/to/b"))
+(def x (rbind-csv "path/to/a" "path/to/b"))
 (print-df x)
 |             date |             item |            price |
 |------------------+------------------+------------------|
@@ -107,7 +107,7 @@ Contains functions that can reshape a clojask dataframe from wide to long or fro
 
 #### API Foundation
 
-When defining a clojask.classes.DataFrame.DataFrame using `dataframe` function, you can specify the option `:melt`, which should be a function that will be applied to each resultant row vector in the end. The default is vector, which will not affect the results. However, if `:melt` is set to
+`compute` accepts the option `:melt`, which should be a function that will be applied to each resultant row vector in the end. The default is vector, which will not affect the results. However, if `:melt` is set to
 
 ```clojure
 (fn [x]
@@ -125,9 +125,9 @@ Reshape the dataframe from wide to long.
 | dataframe      | clojask.classes.DataFrame.DataFrame | Specify the dataframe                     |                                                              |
 | output-path    | String            | The path of the output                    | Can be absolute or relative path with respect to the `project.clj` file. |
 | id             | vector of strings | The fixed portion of the columns          | These columns must have a perfect correlation.               |
-| measurement    | vector of strings | The measurement columns                   | In the result, the measurement names will become one column and the values will become another. |
-| [measure_name] | String            | The name of the measurement in the result | By default "measure"                                         |
-| [value_name]   | String            | The name of the value in the result       | By default "value"                                           |
+| measure        | vector of strings | The measurement columns                   | In the result, the measurement names will become one column and the values will become another. |
+| [:measure-name] | String            | The name of the measurement in the result | By default "measure"                                         |
+| [:value-name]   | String            | The name of the value in the result       | By default "value"                                           |
 
 **Example**
 
@@ -144,17 +144,17 @@ Reshape the dataframe from wide to long.
 
 #### `dcast`
 
-Reshape the dataframe from long to wide. Reversible to `melt`.
+Reshape the dataframe from long to wide. Reversible to `melt`. `dcast` adds its group-by and aggregations to the dataframe it is given, so give each call a fresh dataframe.
 
 | Argument     | Type                                 | Function                                    | Remarks                                                      |
 | ------------ | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
 | dataframe    | clojask.classes.DataFrame.DataFrame                    | Specify the dataframe                       |                                                              |
 | output-path  | String                               | The path of the output                      | Can be absolute or relative path with respect to the `project.clj` file. |
 | id           | vector of strings                    | The fixed portion of the columns            | These columns must have a perfect correlation.               |
-| measure-name | String                               | The name of the measurement                 | By default "measure"                                         |
-| value-name   | String                               | The name of the value                       | By default "value"                                           |
+| measure-name | String | The column holding the measure names | |
+| value-name   | String | The column holding the values | |
 | values       | vector of string/int/double/datetime | The value choices of the measurement column | The order matters as in the result file.                     |
-| [vals-name]  | vector of string                     | The name of the value columns               | By default, same as `values`                                 |
+| [:vals-name] | vector of string                     | The name of the value columns               | By default, same as `values`                                 |
 
 **Example**
 

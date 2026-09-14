@@ -1,1 +1,0 @@
-This folder will be moved out as an independent repository in the future when Clojask has been deployed to Clojars.

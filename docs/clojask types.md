@@ -52,7 +52,7 @@ Class: `java.lang.Double`
 
 Transform a date string (no time field)
 
-Class: `java.time.LocalDate` (default format string: `yyyy-MM-dd`)
+Class: `java.util.Date` (default format string: `yyyy-MM-dd`)
 
 #### Examples
 
@@ -63,9 +63,9 @@ Class: `java.time.LocalDate` (default format string: `yyyy-MM-dd`)
 
 ### datetime
 
-Transform a date string (no time field)
+Transform a date-time string
 
-Class: `java.time.LocalDateTime` (default format string: `yyyy-MM-dd HH:mm:ss`)
+Class: `java.util.Date` (default format string: `yyyy-MM-dd`, so give a pattern that includes the time fields)
 
 #### Examples
 
@@ -73,5 +73,3 @@ Class: `java.time.LocalDateTime` (default format string: `yyyy-MM-dd HH:mm:ss`)
 ;; if the date looks like this 2020/11/12 12:12:36
 (set-type dataframe "col-name" "datetime:yyyy/MM/dd HH:mm:ss")
 ```
-
-### 

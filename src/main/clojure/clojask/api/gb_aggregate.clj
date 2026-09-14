@@ -3,10 +3,6 @@
   (:refer-clojure :exclude [max min sum count]))
 "Contains the implemented function for group-by aggregation functions"
 
-;; (defn aggre-func
-;;   "function that can be applied on a collection"
-;;   [list])
-
 ;; single row aggregation functions
 
 (defn max
@@ -30,7 +26,7 @@
   (let [sum (apply + list)
         count (count list)]
     (if (pos? count)
-      (/ sum count)
+      (double (/ sum count))
       0)))
 
 (defn mode
@@ -69,11 +65,15 @@
           (Math/sqrt)))))
 
 (defn skew
+  "Pearson's second skewness coefficient, 3 (mean - median) / sd. NaN when
+   the standard deviation is zero, for example in a group of one row."
   [list]
   (let [mean (mean list)
         median (median list)
         sd (sd list)]
-    (* 3 (/ (- mean median) sd))))
+    (if (zero? sd)
+      Double/NaN
+      (* 3 (/ (- mean median) sd)))))
 
 ;; multi-row aggregation functions
 
