@@ -23,9 +23,7 @@
       (.write dist output-filename msg write-index formatter))))
 
 (defn read-csv-seq
-  "takes file name and reads data"
+  "Read all rows of a group file (a path or a reader) and close it."
   [filename]
-  (let [file (io/reader filename)]
-    (->> file
-         (line-seq)
-         (map read-string))))
+  (with-open [file (io/reader filename)]
+    (mapv read-string (line-seq file))))

@@ -56,10 +56,11 @@
           key (keys tmp)
           types (zipmap key (map u/get-type-string-vec (map #(for [row data] (get row %)) key)))
           omit (zipmap key (repeat "..."))
-          data (vec (conj (apply list data) types))
-          data (if (= (count data) (+ 1 (or return-size 10)))
+          ;; preview fetched one row more than is shown, to know whether to print "..."
+          data (if (> (count data) (or return-size 10))
                  (conj (vec (take (or return-size 10) data)) omit)
-                 data)
+                 (vec data))
+          data (into [types] data)
           header (.getColNames dataframe)]
       (pprint/print-table header data))
     (do
@@ -195,7 +196,7 @@
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys))) 
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+    (cond (some nil? (map second (concat a-keys b-keys))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
@@ -217,7 +218,7 @@
       (throw (TypeException. "The length of left keys and right keys should be equal.")))
     (cond (not (= (count col-prefix) 2)) 
       (throw (TypeException. "The length of col-prefix should be equal to 2.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b))) 
+    (cond (some nil? (map second (concat a-keys b-keys))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
     (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix (atom (.getOutput a)))))
 
@@ -233,7 +234,7 @@
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+    (cond (some nil? (map second (concat a-keys b-keys)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))
 
@@ -249,7 +250,7 @@
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+    (cond (some nil? (map second (concat a-keys b-keys)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
@@ -269,7 +270,7 @@
           (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+    (cond (some nil? (map second (concat a-keys b-keys)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
           (println "The groupby and aggregation operations of the dataframes will be ignored."))
@@ -291,10 +292,10 @@
     (cond (not (and (= (type a) clojask.classes.DataFrame.DataFrame) (= (type b) clojask.classes.DataFrame.DataFrame)))
           (throw (TypeException. "First two arguments should be Clojask dataframes.")))
     (cond (or (not= (.getAggreFunc (:row-info a)) []) (not= (.getGroupbyKeys (:row-info a)) []) (not= (.getAggreFunc (:row-info b)) []) (not= (.getGroupbyKeys (:row-info b)) []))
-(println "The groupby and aggregation operations of the dataframes will be ignored."))
+          (println "The groupby and aggregation operations of the dataframes will be ignored."))
     (cond (not (= (count a-keys) (count b-keys)))
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
-    (cond (not (and (u/are-in a-keys a) (u/are-in b-keys b)))
+    (cond (some nil? (map second (concat a-keys b-keys)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
     (let [[a-roll b-roll] [(get (.getKeyIndex (:col-info a)) a-roll) (get (.getKeyIndex (:col-info b)) b-roll)]]
       (do
@@ -317,10 +318,10 @@
         custom-header (when (coll? header) header)
         header (if custom-header false header)
         ret (atom (transient []))
-        output-format (clojask-io.core/infer-format output-dir)
+        output-format (when output-dir (clojask-io.core/infer-format output-dir))
         output-func (if output-dir 
                       ;; every dataframe has an initial output function
-                      (if (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (clojask-io.core/infer-format output-dir) (clojask-io.core/infer-format (.getPath this))))
+                      (if (and (= (type this) clojask.classes.DataFrame.DataFrame) (.getPath this) (= output-format (clojask-io.core/infer-format (.getPath this))))
                         (or output (.getOutput this))
                         (or output (output/get-output-func output-format)))
                       (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
@@ -346,7 +347,7 @@
           )
         (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))
     (if (not= output-dir ".clojask/tmp.csv")
-      (dataframe output-dir)
+      (dataframe output-dir :if-header (boolean (or custom-header header)))
       (persistent! (deref ret)))))
 
 ;; ============== Below functions are deprecated ==============

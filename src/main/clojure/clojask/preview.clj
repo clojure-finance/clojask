@@ -28,9 +28,11 @@
                                 {}))) ;; the function body of operation (take over the work in worker nodes)
         preview-output-func (if (and formatting no-aggre no-groupby)
                               (fn [row]
-                                (mapv (fn [_] (if-let [formatter (get formatters _)]
-                                                (formatter (nth (:d row) _))
-                                                (nth (:d row) _))) index))
+                                ;; a row removed by a filter has no :d
+                                (when-let [d (:d row)]
+                                  (mapv (fn [_] (if-let [formatter (get formatters _)]
+                                                  (formatter (nth d _))
+                                                  (nth d _))) index)))
                               (fn [row]
                                 (:d row))) ;; the function body of output operation (take over the work in output node) without formatting
 
@@ -56,9 +58,9 @@
               aggre-res (for [[func index] aggre-funcs]
                           (let [res
                                 (reduce func aggre/start (mapv (fn [row] (nth row index)) compute-res))]
-                            (if (coll? res)
-                              res
-                              [res])))]
+                            (cond (identical? res aggre/start) [nil]
+                                  (coll? res) res
+                                  :else [res])))]
           (if (apply = (map count aggre-res))
             (mapv (fn [row-v] (zipmap keys row-v)) (apply map vector aggre-res))
             (throw (Exception. "aggregation result is not of the same length"))))

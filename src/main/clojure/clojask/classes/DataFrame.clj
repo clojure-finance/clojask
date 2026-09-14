@@ -1,6 +1,5 @@
 (ns clojask.classes.DataFrame
-  (:require [clojure.set :as set]
-            [clojask.classes.ColInfo]
+  (:require [clojask.classes.ColInfo]
             [clojask.classes.RowInfo]
             [clojask.classes.DataStat]
             [clojask.classes.MGroup]
@@ -124,8 +123,8 @@
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out]
     (let [key-index (.getKeyIndex (:col-info this))
           select (if (coll? select) select [select])
-          index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (vals (select-keys key-index select)))]
-      (assert (or (= (count select) (count index)) (= select [nil])) (OperationException. "Must select existing columns. You may check it using"))
+          index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (keep key-index select))]
+      (assert (or (= (count select) (count index)) (= select [nil])) "Must select existing columns; get-col-names lists them.")
       (if (= ifheader true) (.printCol this output-dir index out))
       (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
         (if (= res "success")
@@ -251,7 +250,9 @@
   (renameCol
     [this old-col new-col]
     (cond (not (u/is-in old-col this))
-          (throw (TypeException. "Input includes non-existent column name(s).")))
+          (throw (TypeException. "Input includes non-existent column name(s)."))
+          (and (not= old-col new-col) (u/is-in new-col this))
+          (throw (TypeException. (str "Column " new-col " already exists."))))
     (.renameColInfo (.col-info this) old-col new-col)
     this)
 
@@ -269,9 +270,9 @@
                                     ". You could instead write your parsing function with set-parser."))))
       ;; set-format-string installs the parser and formatter for this
       ;; type's format string; deref right away so the column keeps them.
+      ;; One ColInfo change, so a failed errorPredetect rolls back both.
       (u/set-format-string type)
-      (.setType col-info (deref (nth oprs 0)) colName)
-      (.addFormatter this (deref (nth oprs 1)) colName)
+      (.setTypeFormatter col-info (deref (nth oprs 0)) (deref (nth oprs 1)) colName)
       this))
 
   (setParser
@@ -342,7 +343,7 @@
                                            (.indexOf groupby-index index))])
               aggre-func (mapv shift-func (u/gets aggre-keys data-index))
               formatter (.getFormatter (.col-info this))
-              formatter (set/rename-keys formatter (zipmap groupby-index (iterate inc 0)))]
+              formatter (u/formatters-by-position formatter groupby-index)]
           (.final mgroup)
           (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
             "success"

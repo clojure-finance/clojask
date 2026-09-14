@@ -88,8 +88,8 @@
           b-index (if b-roll (vec (apply sorted-set (conj b-index b-roll))) b-index)
           b-roll (if b-roll (count (remove #(>= % b-roll) b-index)) nil)
           ;; b-write
-          a-format (set/rename-keys (.getFormatter (.col-info a)) (zipmap a-index (iterate inc 0)))
-          b-format (set/rename-keys (.getFormatter (.col-info b)) (zipmap b-index (iterate inc 0)))
+          a-format (clojask.utils/formatters-by-position (.getFormatter (.col-info a)) a-index)
+          b-format (clojask.utils/formatters-by-position (.getFormatter (.col-info b)) b-index)
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
           mgroup-a (MGroupJoinOuter. (transient {}) (transient {}) false)
           mgroup-b (if (not= type 3) (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type))) (MGroupJoinOuter. (transient {}) (transient {}) (or (= 4 type) (= 5 type))))

@@ -118,8 +118,7 @@
                                             (def res (volatile! nil))
                                             (doseq [row (read-csv-seq filename)]
                                               (let [val (nth row index)]
-      ;;        todo does here need to be =?
-                                                (if (and (>= (compare val bench) 0) (or (= @memo nil) (< (compare val @memo) 0)))
+                                                (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
                                                   (do (vreset! memo val)
                                                       (vreset! res row)))))
                                             @res)
@@ -129,7 +128,7 @@
                                                (doseq [row (.getKey source filename)]
                                                  (let [unformat (nth row 1)
                                                        val (nth unformat index)]
-                                                   (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (> (compare val @memo) 0)))
+                                                   (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
                                                      (do (vreset! memo val)
                                                          (vreset! res (first row))))))
                                                @res)]

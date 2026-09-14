@@ -26,7 +26,7 @@
   
   (exists
    [this key]
-   (nil? (get groups key)))
+   (contains? groups key))
   
   (write
    [this key msg write-index formatter]

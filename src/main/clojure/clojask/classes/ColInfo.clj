@@ -16,6 +16,7 @@
   (getIndexKey [] "get map with key = index, value = column name")
   (getDeletedCol [] "get indices of deleted columns")
   (setFormatter [format col])
+  (setTypeFormatter [parser format col] "set parser and formatter as one change for rollback")
   (getFormatter [])
   (delCol [col-to-del])
   (setColInfo [new-col-set])
@@ -118,6 +119,11 @@
     (.copy this)
     (set! col-format (assoc col-format (get key-index col) format)))
 
+  (setTypeFormatter
+    [this parser format col]
+    (.setType this parser col)
+    (set! col-format (assoc col-format (get key-index col) format)))
+
   (delCol
     [this col-to-delete]
     (.copy this)
@@ -128,7 +134,7 @@
     [this new-col-set]
     (.copy this)
     (let [original-key-index (.getKeyIndex this)
-          new-col-dsp-vals (vals (select-keys original-key-index new-col-set))
+          new-col-dsp-vals (map original-key-index new-col-set)
           original-type (.getType this)
           original-format (.getFormatter this)]
       (set! col-keys (vec new-col-set))

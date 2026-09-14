@@ -24,7 +24,7 @@ Joins some csv files into a new dataframe by columns.
 | ---------- | ------ | ------------------------------- | ----------------------------------------------------------- |
 | path-a     | String | The path of the first csv file  | Can be absolute or relative path                            |
 | path-b     | String | The path of the second csv file | Can be absolute or relative path                            |
-| [path-c's] | String | Target columns                  | Can be absolute or relative path; the number is not limited |
+| [path-c's] | String | Paths of further csv files      | Can be absolute or relative path; the number is not limited |
 
 **Example**
 
@@ -62,7 +62,7 @@ Joins some csv files into a new dataframe by rows.
 | ---------- | ------ | ------------------------------- | --------------------------------------------------------- |
 | path-a     | String | The path of the first csv file  | Can be absolute or relative path                          |
 | path-b     | String | The path of the second csv file | Can be absolute or relative path                          |
-| [path-c's] | String | Target columns                  | Can be absolute or relative path; the number is not fixed |
+| [path-c's] | String | Paths of further csv files      | Can be absolute or relative path; the number is not fixed |
 
 **Example**
 
@@ -97,7 +97,10 @@ Joins some csv files into a new dataframe by rows.
 |       2010-01-22 |              102 |                1 |
 |       2010-01-24 |              102 |                2 |
 |       2010-01-25 |              101 |                2 |
+|       2010-01-26 |              101 |                1 |
 ```
+
+`cbind` and `rbind` take the same arguments and infer each file's format from its extension instead of assuming csv.
 
 #### **It is also possible and encouraged to create more binding functions for other file types.**
 
@@ -123,7 +126,7 @@ Reshape the dataframe from wide to long.
 | Argument       | Type              | Function                                  | Remarks                                                      |
 | -------------- | ----------------- | ----------------------------------------- | ------------------------------------------------------------ |
 | dataframe      | clojask.classes.DataFrame.DataFrame | Specify the dataframe                     |                                                              |
-| output-path    | String            | The path of the output                    | Can be absolute or relative path with respect to the `project.clj` file. |
+| output-path    | String            | The path of the output                    | Can be absolute or relative path with respect to the working directory. |
 | id             | vector of strings | The fixed portion of the columns          | These columns must have a perfect correlation.               |
 | measure        | vector of strings | The measurement columns                   | In the result, the measurement names will become one column and the values will become another. |
 | [:measure-name] | String            | The name of the measurement in the result | By default "measure"                                         |
@@ -149,7 +152,7 @@ Reshape the dataframe from long to wide. Reversible to `melt`. `dcast` adds its 
 | Argument     | Type                                 | Function                                    | Remarks                                                      |
 | ------------ | ------------------------------------ | ------------------------------------------- | ------------------------------------------------------------ |
 | dataframe    | clojask.classes.DataFrame.DataFrame                    | Specify the dataframe                       |                                                              |
-| output-path  | String                               | The path of the output                      | Can be absolute or relative path with respect to the `project.clj` file. |
+| output-path  | String                               | The path of the output                      | Can be absolute or relative path with respect to the working directory. |
 | id           | vector of strings                    | The fixed portion of the columns            | These columns must have a perfect correlation.               |
 | measure-name | String | The column holding the measure names | |
 | value-name   | String | The column holding the values | |

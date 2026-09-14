@@ -25,7 +25,7 @@
 
 - **Parallel**
 
-  Most operations could be executed into multiple threads or even machines. See the principle in [Onyx](https://github.com/clojure-finance/onyx), a maintained fork of the original project.
+  Most operations could be executed in multiple threads. See the principle in [Onyx](https://github.com/clojure-finance/onyx), a maintained fork of the original project.
 
 - **Lazy Operations**
 
@@ -42,24 +42,27 @@ Available on [Clojars](https://clojars.org/com.github.clojure-finance/clojask) !
 Insert this line into your `project.clj` if using Leiningen.
 
 ```
-[com.github.clojure-finance/clojask "2.0.4"]
+[com.github.clojure-finance/clojask "2.0.5"]
 ```
 
 Insert this line into your `deps.edn` if using CLI.
 
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "2.0.4"}
+com.github.clojure-finance/clojask {:mvn/version "2.0.5"}
 ```
 
 **Requirements:**
 
 - MacOS or Linux
-- JDK 17 or newer (tested on JDK 17 and 21)
+- JDK 17 or newer (tested on JDK 17, 21 and 25)
 - The JVM flag `--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED`.
   Leiningen and deps.edn users put it in `:jvm-opts`; when running from
   plain `java`, pass it on the command line. Without it the first `compute`
   fails while starting the embedded media driver with
   `IllegalAccessError: class org.agrona.UnsafeApi ... cannot access class jdk.internal.misc.Unsafe`.
+- The JVM flag `--enable-native-access=ALL-UNNAMED`, passed the same way.
+  The lz4 compression library loads native code; JDK 24 and newer print a
+  warning without the flag, and a future JDK will block the load.
 - Each `compute` starts an embedded ZooKeeper on port 2188 and Aeron on
   port 40200, with Aeron's files in the default media-driver directory
   (`/dev/shm` on Linux). Two clojask processes on one machine need
@@ -84,7 +87,7 @@ com.github.clojure-finance/clojask {:mvn/version "2.0.4"}
    (def df (ck/dataframe "Employees-example.csv"))
    ```
 
-   The source file can be found [here](https://github.com/clojure-finance/clojask/blob/1.x.x/test/clojask/Employees-example.csv).
+   The source file can be found [here](https://github.com/clojure-finance/clojask/blob/2.x.x/test/clojask/Employees-example.csv).
 
    See [`dataframe`](https://clojure-finance.github.io/clojask-website/posts-output/API/#dataframe)
 

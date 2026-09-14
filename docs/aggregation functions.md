@@ -24,9 +24,9 @@ Below are full list of given functions for the two types.
 
 `mode`: The most frequent values
 
-`sd`: Sample standard deviation
+`sd`: Sample standard deviation, as a double
 
-`skew`: Pearson's second skewness coefficient; NaN when the standard deviation is zero
+`skew`: Pearson's second skewness coefficient; NaN when all values are equal
 
 `smallest3` / `largest3`: The three smallest / largest values
 
@@ -56,12 +56,11 @@ This is the template:
 
 ```clojure
 (defn aggre-template
-  ;; [new-value old-result]
   [old-result new-value]
-  ;; old-result: the value of the result for the previous gb-aggre-template
+  ;; old-result: the value of the result for the previous aggre-template
   ;; new-value: the value for the column on the current row
   ;; ... your implementation
-  new-result   ;; return the new result, and this will be passed as old-result for the next gb-aggre-template
+  new-result   ;; return the new result, and this will be passed as old-result for the next aggre-template
   )
 ```
 
@@ -69,5 +68,6 @@ This is the template:
 
 1. The old-result for the first `aggre-template` is `clojask.api.aggregate/start`. So your function must be able to deal with cases when the first argument is `clojask.api.aggregate/start`.
 2. Your function should be self-sustainable, meaning that the result of `aggre-template` should be safe as the input for `aggre-template`.
-   1. To better understand the this template, you may refer to the documentation of [`reduce`](https://clojuredocs.org/clojure.core/reduce), the `aggre-func` should be able to use in `reduce`.
+   1. To better understand this template, you may refer to the documentation of [`reduce`](https://clojuredocs.org/clojure.core/reduce), the `aggre-template` should be able to use in `reduce`.
+3. If the dataframe has no rows, the result is an empty cell.
 

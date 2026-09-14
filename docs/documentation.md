@@ -4,7 +4,7 @@
 
 - The APIs below are defined in namespace `clojask.dataframe`.
 
-- Most dataframe manipulation operations are performed lazily (except for `sort` and `join`). They will be executed all at once when `compute` is called. 
+- Most dataframe manipulation operations are performed lazily (except for `sort`, which is deprecated). They will be executed all at once when `compute` is called. 
 
 - By default (except for Excel input), all columns are assigned with the data type `string` when the dataframe is initialized.
 
@@ -29,11 +29,11 @@ Defines the dataframe and returns a `clojask.classes.DataFrame.DataFrame`
 
 | Argument                                        | Type                       | Function                                              | Remarks                                                      |
 | ----------------------------------------------- | -------------------------- | ----------------------------------------------------- | ------------------------------------------------------------ |
-| `input-directory`<br />or<br />`input-function` | String<br /><br />Function | Path of dataset file<br /><br />Source of the dataset | If `input-directory`, the output format is automatically set to correspond to the input format (can be modified by `:output` option during `compute`) and (coming soon) progress indication is available during `compute`.<br />If `input-function` comes from `(fn [] (clojask-io.input.read-file ... :size true :output true))`, the above functions are also supported.<br />If `input-function` is user-defined, the above functions are not available, but you can still change the output format by `:output` option of `compute` later<br />**How to define input-function?**<br />The `input-function` should be a function that returns **lazy** sequence of vectors that represents each row. "Lazy" here is necessary if the dataset is larger than memory. |
-| [`if-header`]                                   | Boolean                    | If the dataset has column names as the first row      | If `false`, the default column names will be $Col\_i$, where $1\leq i\leq number \space of \space columns$. |
+| `input-directory`<br />or<br />`input-function` | String<br /><br />Function | Path of dataset file<br /><br />Source of the dataset | If `input-directory`, the output format is automatically set to correspond to the input format (can be modified by `:output` option during `compute`).<br />If `input-function` comes from `(fn [] (clojask-io.input.read-file ... :stat true :output true))`, the above functions are also supported.<br />If `input-function` is user-defined, the above functions are not available, but you can still change the output format by `:output` option of `compute` later<br />**How to define input-function?**<br />The `input-function` should be a function that returns **lazy** sequence of vectors that represents each row. "Lazy" here is necessary if the dataset is larger than memory. |
+| [`:if-header`]                                  | Boolean                    | If the dataset has column names as the first row      | By default `true`. If `false`, the default column names will be $Col\_i$, where $1\leq i\leq number \space of \space columns$. |
 
 ```clojure
-;; defines df as a dataframe from dataframe.csv file
+;; defines df as a dataframe from the Employee.csv file
 (def df (dataframe "resources/Employee.csv"))
 
 ;; define df to be a dataframe with customized seperator
@@ -70,9 +70,9 @@ Provides a preview of the resulting data (column headings, datatype, and data) b
 | Argument       | Type              | Function                                                     | Remarks                                                      |
 | -------------- | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `dataframe`    | clojask.classes.DataFrame.DataFrame | The operated object                                          |                                                              |
-| `sample size`  | Integer           | Specify the sample size taken from the beginning of the dataframe | Default of 1000 elements                                     |
-| `return size`  | Integer           | Specify the returning size of the dataframe elements         | Default of 10 elements                                       |
-| [`formatting`] | Boolean           | Whether to format the results to string using the *formatters* defined by `set-type` and `set-formatter` | By default, false, i.e. values are kept as their last data type before formatting |
+| `sample size`  | Integer           | Specify the sample size taken from the beginning of the dataframe | Required                                                     |
+| `return size`  | Integer           | Specify the returning size of the dataframe elements         | Required                                                     |
+| [`:format`]    | Boolean           | Whether to format the results to string using the *formatters* defined by `set-type` and `set-formatter` | By default, false, i.e. values are kept as their last data type before formatting |
 
 ```clojure 
 (preview x 1000 10)
@@ -109,7 +109,7 @@ Rename the column names in the dataframe
 | ------------ | ----------------- | ------------------- | ----------------------------------------------------- |
 | `dataframe`  | clojask.classes.DataFrame.DataFrame | The operated object |                                                       |
 | `old column` | String            | The old column name | Should be an existing column name in dataframe        |
-| `new column` | String            | The new column name | Should be a unique column name from the existing ones |
+| `new column` | String            | The new column name | Should be a unique column name from the existing ones; an existing name throws a `TypeException` |
 
 ```clojure
 ;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
@@ -147,7 +147,7 @@ Set the data type of a column. As a result, the value will be parsed as the assi
 | ----------- | ----------------- | ------------------- | ------------------------------------------------------------ |
 | `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |                                                              |
 | `column`    | String            | Target columns      | Should be existing columns within the dataframe.             |
-| `type`      | String            | Type of the column  | The natively supported types are `int`, `double`, `string`, `date` and `datetime`. A date type can carry a `java.text.SimpleDateFormat` pattern, such as `date:yyyy/MM/dd`. An unknown type throws a `TypeException`. By default all the column types are string. If you need a special parsing function, see `set-parser`. |
+| `type`      | String            | Type of the column  | The natively supported types are `int`, `double`, `string`, `date` and `datetime`. A date type can carry a `java.text.SimpleDateFormat` pattern, such as `date:yyyy/MM/dd`. An unknown type throws a `TypeException`. By default all the column types are string. If you need a special parsing function, see `set-parser`. See also [Clojask Types](clojask%20types.md). |
 
 **Example**
 
@@ -226,7 +226,7 @@ Calculate the result and store in a new column
 | `dataframe`      | clojask.classes.DataFrame.DataFrame               | The operated object                   |                                                              |
 | `operation`      | function                        | Function that is to be applied lazily | Argument number should align with the number of column names below, ie *if operation functions takes two arguments, the length of column names should also be two, and in the same order that is passed to the function*. |
 | `column name(s)` | String or collection of Strings | Target columns                        | Should be existing columns within the dataframe.             |
-| `new column`     | String                          | Resultant column                      | Should be new column(s) other than those existing in the dataframe. |
+| `new column`     | String                          | Resultant column                      | Should be a new column name (a String) other than those existing in the dataframe. |
 
 **Example**
 
@@ -303,7 +303,7 @@ Aggregate the dataframe(s) by applying some functions. The aggregation function 
 | Argument               | Type                           | Function                              | Remarks                                                      |
 | ---------------------- | ------------------------------ | ------------------------------------- | ------------------------------------------------------------ |
 | `dataframe`            | clojask.classes.DataFrame.DataFrame              | The operated object                   |                                                              |
-| `aggregation function` | function                       | Function to be applied to each column | Should take a collection as argument. And return one or a collection of predefined type*. |
+| `aggregation function` | function                       | Function to be applied to each column | After `group-by`, a function of one argument, the whole column as a collection (see `clojask.api.gb-aggregate`). Without `group-by`, a reducer `[old-result new-value]` (see `clojask.api.aggregate`). |
 | `column name(s)`       | String or collection of String | Aggregate columns                     | Should be existing columns within the dataframe              |
 | [`new column`]         | String or collection of string | Resultant column                      | Should be new columns not in the dataframe                   |
 
@@ -320,9 +320,7 @@ Aggregate the dataframe(s) by applying some functions. The aggregation function 
 (aggregate x gb-agg/min ["Employee" "EmployeeName"] ["Employee-min" "EmployeeName-min"])
 ```
 
-Custom functions can be made for aggregation. Please refer to [Aggregation Function API](/posts-output/aggregate-function) for additional details  
-
-The keys used in specifying the aggregate operation are identical to the [group-by](#group-by) function 
+Custom functions can be made for aggregation. Please refer to [Aggregation Functions](aggregation%20functions.md) for additional details.
 
 ---
 
@@ -333,7 +331,7 @@ The keys used in specifying the aggregate operation are identical to the [group-
 | Argument           | Type                    | Function                 | Remarks                                                      |
 | ------------------ | ----------------------- | ------------------------ | ------------------------------------------------------------ |
 | `dataframe`        | clojask.classes.DataFrame.DataFrame       | The operated object      |                                                              |
-| `trending list`    | Collection (seq vector) | Indicates the sort order | Example: ["Salary" "+" "Employee" "-"] means that sort the Salary in ascending order, if equal sort then by Employee in descending order |
+| `trending list`    | Collection (seq vector) | Indicates the sort order | Example: ["+" "Salary" "-" "Employee"] means that sort the Salary in ascending order, if equal sort then by Employee in descending order. Sorts the input file itself, so earlier lazy operations are ignored and the dataframe must have been read from a file. |
 | `output-directory` | String                  | The output path          |                                                              |
 
 **Example**
@@ -360,9 +358,9 @@ Inner / left / right / outer join two dataframes on specific columns
 | ----------------- | --------------------- | ---------------------------------------- | ------------------------------------------------------------ |
 | `dataframe a`     | clojask.classes.DataFrame.DataFrame     | The operated object                      |                                                              |
 | `dataframe b`     | clojask.classes.DataFrame.DataFrame     | The operated object                      |                                                              |
-| `a join keys`     | String / Collection   | The keys of a to be aligned              | Find the specification [here](#groupby-keys)                 |
-| `b join keys`     | String / Collection   | The keys of b to be aligned              | Find the specification [here](#groupby-keys)                 |
-| [`column prefix`] | Collection of strings | Add to the front of the two column names | For example, ["a" "b"], and the resultant dataframe will have headers "a_xxx" and "b_xxx" respectively |
+| `a join keys`     | String / Collection   | The keys of a to be aligned              | Find the specification [here](#groupby-keys). A column that does not exist throws a `TypeException` |
+| `b join keys`     | String / Collection   | The keys of b to be aligned              | Find the specification [here](#groupby-keys). A column that does not exist throws a `TypeException` |
+| [`:col-prefix`]   | Collection of strings | Add to the front of the two column names | By default ["1" "2"]. For example, ["a" "b"], and the resultant dataframe will have headers "a_xxx" and "b_xxx" respectively |
 
 **Example**
 
@@ -381,6 +379,10 @@ Inner / left / right / outer join two dataframes on specific columns
 (def z (right-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"]))
 (compute z 8 "path/to/output")
 ;; right join x and y
+
+(def z (outer-join x y ["col a 1" "col a 2"] ["col b 1" "col b 2"] :col-prefix ["a" "b"]))
+(compute z 8 "path/to/output")
+;; outer join x and y, with headers "a_xxx" and "b_xxx"
 ```
 
 **Return**
@@ -389,7 +391,7 @@ A `clojask.classes.JoinedDataFrame.JoinedDataFrame`
 
 Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
-  - `print-df`
+  - `print-df` (shows the column names and types only)
   - `get-col-names`
   - `compute`
 
@@ -399,7 +401,7 @@ This means you cannot further apply complicated operations to a joined dataframe
 
 #### rolling-join-forward / rolling-join-backward
 
-Rolling join two dataframes on columns. Forward will find the largest of the smaller in b while backward, while backward find the smallest of the larger in b.
+Rolling join two dataframes on columns. For each row of a, forward finds the largest b roll value not greater than a's; backward finds the smallest b roll value not smaller than a's.
 
 *You can refer to [here](https://www.r-bloggers.com/2016/06/understanding-data-table-rolling-joins/) for more details about rolling joins.*
 
@@ -411,8 +413,8 @@ Rolling join two dataframes on columns. Forward will find the largest of the sma
 | `b join keys`     | String / Collection      | The column names of b to be aligned                          | Find the specification [here](#groupby-keys)                 |
 | `a roll key`      | String                   | The column name of a to be aligned                           | Will be compared with `b roll key` using function `compare`  |
 | `b roll key`      | String                   | The column name of b to be aligned                           | Will be compared with `a roll key` using function `compare`  |
-| [`column prefix`] | Collection of strings    | Add to the front of the two column names                     | For example, ["a" "b"], and the resultant dataframe will have headers "a_xxx" and "b_xxx" respectively |
-| [`limit`]         | Function (two arguments) | Another a condition checking before actually joining the two rows | For example, sometimes we want to discard the join when the time gap between two rows are too large. So we can let this compare function return false to stop joining. |
+| [`:col-prefix`]   | Collection of strings    | Add to the front of the two column names                     | By default ["1" "2"]. For example, ["a" "b"], and the resultant dataframe will have headers "a_xxx" and "b_xxx" respectively |
+| [`:limit`]        | Function (two arguments) | Another condition checked before actually joining the two rows | Called as `(limit a-value b-value)` on the two roll values, in both directions; return false to skip that b row. For example, sometimes we want to discard the join when the time gap between two rows are too large. So we can let this compare function return false to stop joining. |
 
 **Example**
 
@@ -431,7 +433,7 @@ A `clojask.classes.JoinedDataFrame.JoinedDataFrame`
 
 Unlike `clojask.classes.DataFrame.DataFrame`, it only supports three operations:
 
-  - `print-df`
+  - `print-df` (shows the column names and types only)
   - `get-col-names`
   - `compute`
 
@@ -439,6 +441,17 @@ This means you cannot further apply complicated operations to a joined dataframe
 
 ---
 
+
+#### enable-debug / disable-debug
+
+Turn debug mode on or off. With debug mode on, operations are no longer checked against a preview when they are added, and logging is raised to `:debug`. Both take no arguments and print the new mode.
+
+```clojure
+(enable-debug)
+(disable-debug)
+```
+
+---
 
 #### compute
 
@@ -448,7 +461,7 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `dataframe`         | clojask.classes.DataFrame.DataFrame / clojask.classes.JoinedDataFrame.JoinedDataFrame | The operated object                                          |                                                              |
 | `num of workers`    | int                                                          | The number of worker instances (except the input and output nodes) | Uses [Onyx](https://github.com/clojure-finance/onyx) as the distributed platform. Group-by and aggregate computes accept at most 8 workers. |
-| `output path`       | String / `nil`                                               | The path of the output csv file                              | If the path already exists, will overwrite the file.<br>If `nil`, will store the output in memory as a vector of vectors, which represent each row. See [example](https://github.com/clojure-finance/clojask-examples/blob/main/src/clojask_examples/in_memory.clj). |
+| `output path`       | String / `nil`                                               | The path of the output csv file                              | If the path already exists, will overwrite the file.<br>If `nil`, will store the output in memory as a vector of vectors, which represent each row, with the header row first unless `:header false`. See [example](https://github.com/clojure-finance/clojask-examples/blob/main/src/clojask_examples/in_memory.clj). |
 | [`exception`]       | Boolean                                                      | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
 | [`order`]           | Boolean                                                      | If enforce the order of rows in the output to be the same as input | By default `false`. If set to `true`, will sacrifice the performance. |
 | [`output`]          | Function                                                     | Specify how to output a row vector to the output file        | Takes two arguments.<br />`writer` java.io.BufferedWriter<br />`rows` clojure.lang.PersistentVector (rows) of clojure.lang.PersistentVector (each row) |
@@ -456,11 +469,11 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 | [`exclude`]         | String / Collection of strings                               | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
 | [`header`]          | Boolean / collection of strings                              | The first row of the output file                             | By default `true`, the column names. `false` writes no header row. A collection replaces the column names and should have one name per output column. |
 | [`melt`]            | Function (one argument)                                      | Reorganize each resultant row                                | Should take each row as a collection and return a collection of collections (used by `clojask.extensions.reshape/melt`) |
-| [`in-memory`]       | Boolean                                                      | Whether the computation should all be completed in memory    | If set to `true`, this affects the computation procedure of groupby-aggregation and joins. These operations originally will write to and read from intermediate group files in disk. Now it will stores these groups in memory only, **which will speed up the computation process**. **However, when the dataframe is larger than memory, this option should not be set to `false`.** Other operations are not affected because they natively do not require out-of-memory steps. |
+| [`in-memory`]       | Boolean                                                      | Whether the computation should all be completed in memory    | If set to `true`, this affects the computation procedure of groupby-aggregation and joins. These operations originally will write to and read from intermediate group files in disk. Now it will stores these groups in memory only, **which will speed up the computation process**. **However, when the dataframe is larger than memory, this option should not be set to `true`.** Other operations are not affected because they natively do not require out-of-memory steps. |
 
 **Return**
 
-A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe. / A vector of vectors, which represent each row, if `output path` = `nil`.
+A `clojask.classes.DataFrame.DataFrame` read from the output file (read without a header if `:header false`). / A vector of vectors, which represent each row (header row first unless `:header false`), if `output path` = `nil`.
 
 **Example**
 
@@ -486,7 +499,7 @@ A `clojask.classes.DataFrame.DataFrame`, which is the resultant dataframe. / A v
 (compute x 3 "output.csv" :output (fn [wtr rows] (doseq [row rows] (.write wtr (str (str/join ", " row) "\n")))))
 ;; seperate each value in the row with ", "; seperate each row by "\n"
 
-(compute x 8 "output.csv" :melt (fn [row] (map concat (repeat (take 2 x)) (take-last 2 x))))
+(compute x 8 "output.csv" :melt (fn [row] (map #(conj (vec (take 2 row)) %) (take-last 2 row))))
 ;; each result row becomes two rows
 ;; [a b c d] => [[a b c] [a b d]]
 ```

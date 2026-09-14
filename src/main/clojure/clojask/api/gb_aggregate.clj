@@ -45,7 +45,7 @@
         cnt (count sorted)
         halfway (quot cnt 2)]
     (if (odd? cnt)
-      (nth sorted halfway)
+      (double (nth sorted halfway))
       (let [bottom (dec halfway)
             bottom-val (nth sorted bottom)
             top-val (nth sorted halfway)]
@@ -59,19 +59,20 @@
                     (* x-avg x-avg)))
         total (count list)]
     (if (= 1 total)
-      0
+      0.0
       (-> (/ (apply + squares)
              (- total 1))
           (Math/sqrt)))))
 
 (defn skew
   "Pearson's second skewness coefficient, 3 (mean - median) / sd. NaN when
-   the standard deviation is zero, for example in a group of one row."
+   all values are equal (sd is zero, or only rounding noise for doubles),
+   for example in a group of one row."
   [list]
   (let [mean (mean list)
         median (median list)
         sd (sd list)]
-    (if (zero? sd)
+    (if (or (zero? sd) (apply = list))
       Double/NaN
       (* 3 (/ (- mean median) sd)))))
 

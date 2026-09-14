@@ -56,7 +56,8 @@
     ;; Nothing is required here. However, most plugins have resources
     ;; (e.g. a connection) to clean up.
     ;; Mind that such cleanup is also achievable with lifecycles.
-        (let [data (mapv (fn [_] (if (coll? _) _ [_])) (deref memo))
+        ;; a memo still holding the start sentinel saw no rows: write an empty cell
+        (let [data (mapv (fn [_] (cond (identical? _ start) [nil] (coll? _) _ :else [_])) (deref memo))
               wtr (:clojask/wtr event)]
           (if (apply = (map count data))
             (do

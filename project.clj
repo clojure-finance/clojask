@@ -1,4 +1,4 @@
-(defproject com.github.clojure-finance/clojask "2.0.4"
+(defproject com.github.clojure-finance/clojask "2.0.5"
   :description "Data analysis and manipulation library with parallel computing for larger-than-memory datasets"
   :url "https://github.com/clojure-finance/clojask"
   :license {:name "MIT"
@@ -22,7 +22,10 @@
   :java-source-paths ["src/main/java"]
   :javac-options ["--release" "17"]
   ;; Onyx's Aeron messaging (via Agrona) reads jdk.internal.misc.Unsafe.
-  :jvm-opts ["-XX:+UseG1GC" "-server" "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"]
+  ;; lz4 (via Onyx's nippy serialization) calls System.load; JDK 24+ warns without
+  ;; native access enabled.
+  :jvm-opts ["-XX:+UseG1GC" "-server" "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"
+             "--enable-native-access=ALL-UNNAMED"]
   :test-paths        ["test/clojask"]
   ;:java-test-paths   ["test/java"]
   ;;:injections [(.. System (setProperty "clojure.core.async.pool-size" "8"))]
