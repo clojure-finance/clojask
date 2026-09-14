@@ -9,7 +9,6 @@
   (initWithIO [io-func])
   (getSize []))
 
-
 (deftype DataStat
   ;; the column description about whether a change is made to this column
          [^:unsynchronized-mutable file-size

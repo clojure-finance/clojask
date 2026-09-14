@@ -108,8 +108,6 @@
     ;; In this case we are conjoining elements onto a collection.
     (let []
       (doseq [msg write-batch]
-      ;; (if-let [msg (first batch)]
-        ;; (do
         (doseq [data (:d msg)]
           ;; (swap! example-datasink conj msg)
           (if (not= data nil)

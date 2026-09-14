@@ -44,11 +44,6 @@
 
 (defn eval-res
   [row types formats operations index]
-  ;; (spit "resources/debug.txt" (str row "\n") :append true)
-  ;; (spit "resources/debug.txt" (str types) :append true)
-  ;; (spit "resources/debug.txt" operations :append true)
-  ;; (spit "resources/debug.txt" (str index "\n") :append true)
-  ;; (println opr-vec)
   (let [opr-vec (get operations index)
         vals (get-val row types (first opr-vec))]
     ;; (println [vals])
@@ -61,11 +56,6 @@
 
 (defn eval-res-ne
   [row types formats operations index]
-  ;; (spit "resources/debug.txt" (str row "\n") :append true)
-  ;; (spit "resources/debug.txt" (str types) :append true)
-  ;; (spit "resources/debug.txt" operations :append true)
-  ;; (spit "resources/debug.txt" (str index "\n") :append true)
-  ;; (println opr-vec)
   (try
     (let [opr-vec (get operations index)
           vals (get-val row types (first opr-vec))]
@@ -81,13 +71,6 @@
 (defn filter-check
   [filters types row]
   ;; (loop [filters filters]
-  ;;   (let [filter (first filters)
-  ;;         rem (rest filters)]
-  ;;     (if (= filter nil)
-  ;;       true
-  ;;       (if (not= (filter row) true)
-  ;;         false
-  ;;         (recur rem)))))
   (if (= filters [])
     true
     (loop [filters filters]
@@ -173,10 +156,6 @@
    "date" [toDate fromDate]
    "datetime" [toDate fromDate]})
 
-(defn type-detection
-  [file]
-  (let [sample (take 5 file)]))
-
 (defn is-in
   [col dataframe]
   (if (contains? (.getKeyIndex (:col-info dataframe)) col)
@@ -215,9 +194,6 @@
   (io/make-parents "./.clojask/join/a/a.txt")
   (io/make-parents "./.clojask/join/b/a.txt")
   (io/make-parents "./.clojask/sort/a.txt")
-  ;; (if (not= header nil)
-  ;;   (with-open [wrtr (io/writer out-dir)]
-  ;;     (.write wrtr (str (str/join "," header) "\n"))))
   )
 
 (defn get-type-string
@@ -296,68 +272,14 @@
   [s]
   (String. (.decode decoder s)))
 
-;; (def toDate
-;;   (atom (fn [string]
-;;           (try
-;;             (LocalDate/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
-;;             (catch Exception e (throw e))))))
-
-;; (def fromDate
-;;   (atom (fn [date]
-;;           (if (= (type date) java.time.LocalDate)
-;;             (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd"))
-;;             date))))
-
-;; (def toDateTime
-;;   (atom (fn [string]
-;;           (try
-;;             (LocalDateTime/parse string (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
-;;             (catch Exception e (throw e))))))
-
-;; (def fromDateTime
-;;   (atom (fn [date]
-;;           (if (= (type date) java.time.LocalDateTime)
-;;             (.format date (DateTimeFormatter/ofPattern "yyyy-MM-dd HH:mm:ss"))
-;;             date))))
-
-;; (defn set-format-string
-;;   [string]
-;;   (if (or (str/starts-with? string "date:") (str/starts-with? string "datetime:"))
-;;     (let [format-string (subs string (inc (str/index-of string ":")))]
-;;       (reset! toDate
-;;               (fn [string]
-;;                 (try
-;;                   (LocalDate/parse string (DateTimeFormatter/ofPattern format-string))
-;;                   (catch Exception e (throw e)))))
-
 ;;       (reset! fromDate
-;;               (fn [date]
-;;                 (if (= (type date) java.time.LocalDate)
-;;                   (.format date (DateTimeFormatter/ofPattern format-string))
-;;                   date)))
 
 ;;       (reset! toDateTime
-;;               (fn [string]
-;;                 (try
-;;                   (LocalDateTime/parse string (DateTimeFormatter/ofPattern format-string))
-;;                   (catch Exception e (throw e)))))
 
 ;;       (reset! fromDateTime
-;;               (fn [date]
-;;                 (if (= (type date) java.time.LocalDateTime)
-;;                   (.format date (DateTimeFormatter/ofPattern format-string))
-;;                   date))))
-;;     ))
 
 ;; ;; (def operation-type-map
 ;; ;;   {toInt "int"
 ;; ;;    toDouble "double"
 ;; ;;    toString "string"
 ;; ;;    toDate "date"})
-
-;; (def type-operation-map
-;;   {"int" [toInt fromString]
-;;    "double" [toDouble fromString]
-;;    "string" [toString fromString]
-;;    "date" [toDate fromDate]
-;;    "datetime" [toDateTime fromDateTime]})

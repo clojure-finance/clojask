@@ -25,9 +25,6 @@
     (let [csv-data (reader)
           ;; csv-data (if (fn? reader)
           ;;            (reader)
-          ;;            (if have-col
-          ;;              (rest (line-seq (BufferedReader. reader)))
-          ;;              (line-seq (BufferedReader. reader))))
           data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) (partition batch-size batch-size [] csv-data)))]
       (if (nil? checkpoint)
         (do

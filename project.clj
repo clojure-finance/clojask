@@ -17,9 +17,7 @@
                                     :username :env/clojars_username
                                     :password :env/clojars_password
                                     :sign-releases false}]]
-  :repl-options {:init-ns clojask.debug
-                 :timeout 180000}
-  :main ^:skip-aot clojask.debug/-main
+  :repl-options {:timeout 180000}
   :source-paths      ["src/main/clojure"]
   :java-source-paths ["src/main/java"]
   :javac-options ["--release" "17"]

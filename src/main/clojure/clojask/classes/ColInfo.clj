@@ -26,7 +26,6 @@
   (commit [])
   )
 
-
 (deftype ColInfo
   ;; the column description about whether a change is made to this column
          [^:unsynchronized-mutable col-keys

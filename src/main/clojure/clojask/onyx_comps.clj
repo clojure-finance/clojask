@@ -13,7 +13,6 @@
   (:import [com.clojask.exception ExecutionException]
            [java.io FileReader]))
 
-
 ;; sample workflow
 ;;
 ;; [[:in :sample-worker1]
@@ -43,16 +42,7 @@
   ;; (println workflow) ; !!debugging
   )
 
-
-;; (defn sample-worker
-;;   [segment]
-;;   ;; (println segment)
-;;   (:id segment)
-;;   ;; (update-in segment [:map] (fn [n] (assoc n :first (:id segment))))
-;;   )
-
 (def dataframe (atom nil))
-
 
 (defn worker-func-gen
   [df exception index]
@@ -72,17 +62,11 @@
                        (if (u/filter-check filters types row)
                          (mapv (fn [_] (u/eval-res row types formats operations _)) indices)
                          nil))}
-          ;; (if (u/filter-check filters types data)
-          ;;   {:id id :d (mapv (fn [_] (u/eval-res data types formats operations _)) indices)}
-          ;;   {:id id})
           ))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          ;; (if (u/filter-check filters types data)
-          ;;   {:id id :d (mapv (fn [_] (u/eval-res-ne data types formats operations _)) indices)}
-          ;;   {:id id})
           {:id id :d (for [row data]
                        (if (u/filter-check filters types row)
                          (mapv (fn [_] (u/eval-res-ne row types formats operations _)) indices)
@@ -108,17 +92,11 @@
                        (if (u/filter-check filters types row)
                          (mapv (fn [_] ((or (get formats _) str) (u/eval-res row types formats operations _))) indices)
                          nil))}
-          ;; (if (u/filter-check filters types data)
-          ;;   {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res data types formats operations _))) indices)}
-          ;;   {:id id})
           ))
       (defn worker-func
         [seg]
         (let [id (:id seg)
               data (:d seg)]
-          ;; (if (u/filter-check filters types data)
-          ;;   {:id id :d (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne data types formats operations _))) indices)}
-          ;;   {:id id})
           {:id id :d (for [row data]
                        (if (u/filter-check filters types row)
                          (mapv (fn [_] ((or (get formats _) str) (u/eval-res-ne row types formats operations _))) indices)
@@ -302,7 +280,6 @@
     ;; (println catalog) ;; !! debugging
   )
 
-
 (defn inject-in-reader [event lifecycle]
   (let [
         ;; path (:buffered-reader/filename lifecycle)
@@ -327,21 +304,9 @@
   (if (not= (:seq/rdr event) nil)
    (.close (:seq/rdr event))))
 
-;; (defn inject-out-writer [event lifecycle]
-;;   (let [wrt (BufferedWriter. (FileWriter. (:buffered-writer/filename lifecycle)))]
-;;     {:seq/wrt wrt}))
-
-;; (defn close-writer [event lifecycle]
-;;   (.close (:clojask/wtr event)))
-
-;; (def writer-calls
-;;   {:lifecycle/before-task-start inject-out-writer
-;;    :lifecycle/after-task-stop close-writer})
-
 (def in-calls
   {:lifecycle/before-task-start inject-in-reader
    :lifecycle/after-task-stop close-reader})
-
 
 (defn lifecycle-gen
   [source dist order select]
@@ -407,63 +372,10 @@
       :clojask/join-type join-type
       :lifecycle/calls :clojask.clojask-join/writer-join-calls}]))
 
-;; (def num-workers (atom 1))
-
-;; (defn rem0?
-;;   [event old-segment new-segment all-new-segment]
-;;   ;; (spit "resources/debug.txt" (str new-segment "\n") :append true)
-;;   (= (mod (:id new-segment) (deref num-workers)) 0))
-
-;; (defn rem1?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 1))
-
-;; (defn rem2?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 2))
-
-;; (defn rem3?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 3))
-
-;; (defn rem4?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 4))
-
-;; (defn rem5?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 5))
-
-;; (defn rem6?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 6))
-
-;; (defn rem7?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 7))
-
-;; (defn rem8?
-;;   [event old-segment new-segment all-new-segment]
-;;   (= (mod (:id new-segment) (deref num-workers)) 8))
-
-
-;; [{:flow/from :in
-;;   :flow/to [:sample-worker1]
-;;   :flow/predicate :clojask.onyx-comps/rem0?
-;;   :flow/doc ""}
-;;  {:flow/from :in
-;;   :flow/to [:sample-worker2]
-;;   :flow/predicate :clojask.onyx-comps/rem1?
-;;   :flow/doc ""}]
-
-;; (defn predicate-function
-;;   [event old-segment new-segment all-new-segment id]
-;;   (= (mod (:id new-segment) (deref num-workers)) id))
 
 (defn flow-cond-gen
   "Generate the flow conditions for running Onyx"
   [num-work]
-  ;; (reset! num-workers num-work)
   (def flow-conditions []) ;; initialisation
   (def predicate-funcs [])
   ;; for loop for sample workers
@@ -676,13 +588,3 @@
                  (join/inject-dataframe dataframe b a-keys b-keys a-index b-index write-index b-format out)
                  (defn-join join-type (or limit (fn [a b] true)) source)
                  (job-spec))))))
-
-
-;; !! debugging
-(defn- -main
-  [& args]
-  ;; (catalog-gen 2 10)
-  ;; (workflow-gen 2)
-  ;; (flow-cond-gen 2)
-  ;; (start-onyx 2 10 )
-  )

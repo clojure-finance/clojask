@@ -51,18 +51,11 @@
   (final
     [this]
     (let [tmp-keys (persistent! _keys)]
-      ;; (if rolling
-      ;;   (doseq [key (keys tmp-keys)]
-      ;;     (set! groups (assoc! groups key (persistent! (get groups key))))
-      ;;     (set! unformat-groups (assoc! unformat-groups key (persistent! (get unformat-groups key)))))
       (doseq [key (keys tmp-keys)]
         (set! groups (assoc! groups key (persistent! (get groups key)))))
       ;; )
       (set! _keys (transient tmp-keys)))
     (set! groups (persistent! groups))
-  ;;  (println rolling)
-  ;;  (println groups)
-    ;; (set! unformat-groups (persistent! unformat-groups))
     )
 
   (getKeys
@@ -91,7 +84,6 @@
     (get groups key))
 )
 
-
 (deftype MGroupJoinOuter
          [^:unsynchronized-mutable groups
           ;; ^:unsynchronized-mutable unformat-groups
@@ -101,19 +93,6 @@
   (final
     [this]
     (set! _keys (persistent! _keys))
-  ;;  (let [tmp-keys (persistent! _keys)]
-  ;;     ;; (if rolling
-  ;;     ;;   (doseq [key (keys tmp-keys)]
-  ;;     ;;     (set! groups (assoc! groups key (persistent! (get groups key))))
-  ;;     ;;     (set! unformat-groups (assoc! unformat-groups key (persistent! (get unformat-groups key)))))
-  ;;    (doseq [key (keys tmp-keys)]
-  ;;      (set! groups (assoc! groups key (persistent! (get groups key)))))
-  ;;     ;; )
-  ;;    (set! _keys (transient tmp-keys)))
-  ;;  (set! groups (persistent! groups))
-  ;;  (println rolling)
-  ;;  (println groups)
-    ;; (set! unformat-groups (persistent! unformat-groups))
     )
 
   (getKeys

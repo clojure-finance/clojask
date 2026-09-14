@@ -80,9 +80,6 @@
         (if (not= (:d msg) nil)
           (do
             (write-func wtr (:d msg))
-            ;; (doseq [data (:d msg)]
-            ;;   (.write wtr (str (string/join "," data) "\n")))
-                ;; !! define argument (debug)
             ))))
     (.flush wtr)
     true))

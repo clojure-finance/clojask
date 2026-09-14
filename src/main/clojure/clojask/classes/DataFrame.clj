@@ -158,7 +158,6 @@
     (cond (not (= java.lang.String (type output-path)))
           (throw (TypeException. "Output path should be a string."))))
 
-
   (operate ;; has assert
     [this operation colName]
     (if (nil? (.operate col-info operation colName))
@@ -346,8 +345,6 @@
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader out inmemory]
     (.computeTypeCheck this num-worker output-dir)
-    ;; (if (<= num-worker 8)
-  ;;  (def mgroup (MGroup. (transient {})))
     (if true
       (let [groupby-keys (.getGroupbyKeys row-info)
             aggre-keys (.getAggreFunc row-info)

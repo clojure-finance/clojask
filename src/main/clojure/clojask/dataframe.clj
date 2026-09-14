@@ -293,7 +293,6 @@
               (throw (TypeException. "Rolling keys include non-existent column name(s).")))
         (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix (atom (.getOutput a)))))))
 
-
 ;; all of the code is the same as above except for the last line
 (defn rolling-join-backward
   [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
