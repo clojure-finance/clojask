@@ -8,8 +8,6 @@
               [clojask.sort :refer :all]
               [clojure.string :as str]
               [clojure.java.io :as io]))
-        
-(use '[clojure.java.shell :only [sh]])
 
 ;; The output directory is gitignored, so create it before any test writes to it.
 (io/make-parents "test/clojask/test_outputs/.keep")

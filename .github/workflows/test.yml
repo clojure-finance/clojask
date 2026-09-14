@@ -1,0 +1,31 @@
+name: test
+
+on:
+  push:
+    branches: ["2.x.x"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ["17", "21"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+      - uses: DeLaGuardo/setup-clojure@13.7.0
+        with:
+          lein: 2.12.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ hashFiles('project.clj') }}
+          restore-keys: m2-${{ runner.os }}-
+      # Embedded ZooKeeper binds port 2188 and Aeron uses /dev/shm, so the
+      # suite must run in a single JVM; lein test already does that.
+      - run: lein test
