@@ -356,7 +356,7 @@
           )
         (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))
     (if (not= output-dir ".clojask/tmp.csv")
-      (dataframe output-dir :have-col true)
+      (dataframe output-dir)
       (persistent! (deref ret)))))
 
 ;; ============== Below functions are deprecated ==============

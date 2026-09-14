@@ -83,13 +83,16 @@
 
   (checkInputPathClash
     [this path]
-    (try
-      (let [path1 (.getPath this)
-            path1 (.getAbsolutePath (io/file path1))
-            path2 (.getAbsolutePath (io/file path))]
-        (if (= path1 path2)
-          (throw (OperationException. "Output path should be different from input path of dataframe argument."))))
-      (catch Exception e nil)))
+    ;; A dataframe read from a function has no path, and an in-memory
+    ;; compute has no output path; neither can clash.
+    (let [same? (try
+                  (and (.getPath this)
+                       path
+                       (= (.getCanonicalPath (io/file (.getPath this)))
+                          (.getCanonicalPath (io/file path))))
+                  (catch Exception e false))]
+      (when same?
+        (throw (OperationException. "Output path should be different from input path of dataframe argument.")))))
 
   (getOutput
     [this]
@@ -278,18 +281,22 @@
 
   (setType
     [this type colName]
-    (u/set-format-string type)
-    (let [type (subs type 0 (if-let [tmp (str/index-of type ":")] tmp (count type)))
-          oprs (get u/type-operation-map type)
-          parser (deref (nth oprs 0))
-          format (deref (nth oprs 1))]
-      (if (= oprs nil)
-        "No such type. You could instead write your parsing function as the first operation to this column."
-        (do
-          (.setType col-info parser colName)
-          (.addFormatter this format colName)
-          ;; "success"
-          this))))
+    (cond (not (u/is-in colName this))
+          (throw (TypeException. "Input includes non-existent column name(s)."))
+          (not (string? type))
+          (throw (TypeException. "Type should be a string.")))
+    (let [base (subs type 0 (or (str/index-of type ":") (count type)))
+          oprs (get u/type-operation-map base)]
+      (when (nil? oprs)
+        (throw (TypeException. (str "No such type: " type ". Supported types are "
+                                    (str/join ", " (clojure.core/sort (keys u/type-operation-map)))
+                                    ". You could instead write your parsing function with set-parser."))))
+      ;; set-format-string installs the parser and formatter for this
+      ;; type's format string; deref right away so the column keeps them.
+      (u/set-format-string type)
+      (.setType col-info (deref (nth oprs 0)) colName)
+      (.addFormatter this (deref (nth oprs 1)) colName)
+      this))
 
   (setParser
     [this parser colName]

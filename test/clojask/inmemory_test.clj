@@ -40,7 +40,7 @@
 
 (deftest df-api-test
   (testing "Single dataframe manipulation APIs"
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (is (= clojask.classes.DataFrame.DataFrame (type y)))
     (is (= clojask.classes.DataFrame.DataFrame (type (set-type y "Salary" "double"))))
     (is (= clojask.classes.DataFrame.DataFrame (type (set-parser y "Department" #(Double/parseDouble %)))))
@@ -53,7 +53,7 @@
 
 (deftest df-api-output-test
   (testing "Single dataframe manipulation APIs"
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     ;; element-operation
     (set-type y "Salary" "double")
     (operate y - "Salary")
@@ -63,7 +63,7 @@
     ;;     (is (= "" (:out result))) 
     ;;     (is (= "" (:err result))))
     ;; filter and row-operation
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (set-type y "Salary" "double")
     (filter y "Salary" (fn [salary] (<= salary 800)))
     (operate y str ["Employee" "Salary"] "new-col")
@@ -72,7 +72,7 @@
     ;;     (is (= "" (:out result))) 
     ;;     (is (= "" (:err result))))
     ;; groupby and aggregate
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (set-type y "Salary" "double")
     (group-by y ["Department"])
     (aggregate y gb-aggre/max ["Salary"] ["new-Salary"])
@@ -81,7 +81,7 @@
     ;;     (is (= "" (:out result))) 
     ;;     (is (= "" (:err result))))
     ;; aggregate only
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (set-type y "Salary" "double")
     (aggregate y aggre/max ["Salary"] ["new-Salary"])
     (compute y 8 "test/clojask/test_outputs/1-10.csv" :exception false :in-memory true)
@@ -89,7 +89,7 @@
     ;;     (is (= "" (:out result))) 
     ;;     (is (= "" (:err result))))
     ;; groupby only
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (group-by y ["Department"])
     (compute y 8 "test/clojask/test_outputs/1-11.csv" :exception false :in-memory true)
     ;; (let [result (get-diff "test/clojask/test_outputs/1-11.csv" "test/clojask/correct_outputs/1-11.csv")]
@@ -99,7 +99,7 @@
 
 (deftest col-api-test
   (testing "Column manipulation APIs"
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (reorder-col y ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"])
     (is (= (get-col-names y) ["Employee" "Department" "EmployeeName" "Salary" "UpdateDate"]))
     (rename-col y "Department" "new-Department")
@@ -108,7 +108,7 @@
 
 (deftest col-select-output-test
   (testing "Select column(s) argument"
-    (def y (dataframe "test/clojask/Employees-example.csv" :have-col true))
+    (def y (dataframe "test/clojask/Employees-example.csv" :if-header true))
     (compute y 8 "test/clojask/test_outputs/1-9.csv" :select ["Employee", "EmployeeName"] :exception false :in-memory true)
     ;; (let [result (get-diff "test/clojask/test_outputs/1-9.csv" "test/clojask/correct_outputs/1-9.csv")]
     ;;     (is (= "" (:out result))) 
