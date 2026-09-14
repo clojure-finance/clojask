@@ -11,6 +11,7 @@
             [clojure.pprint :as pprint]
             [clojure.set :as set] ;; [clojure.string :as string]
             [clojure.string :as str] ;; [clojask.preview :as preview]
+            [clojure.java.io :as io]
             [taoensso.timbre :as timbre]
             )
   (:import [clojask.classes.ColInfo ColInfo]
@@ -328,6 +329,10 @@
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))
+        ;; :header is true (the dataframe's own column names), false (no
+        ;; header row) or a collection of names that replaces them.
+        custom-header (when (coll? header) header)
+        header (if custom-header false header)
         ret (atom (transient []))
         output-format (clojask-io.core/infer-format output-dir)
         output-func (if output-dir 
@@ -339,6 +344,9 @@
         output-dir (or output-dir ".clojask/tmp.csv")] ;; fake one 
     (assert (not= select []) "Must select at least 1 column")
     (assert (or (= melt vector) (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
+    (when custom-header
+      (with-open [wrtr (io/writer output-dir)]
+        (output-func wrtr [custom-header])))
     ;; (if output (.setOutput this output))
     (if (= (type this) clojask.classes.DataFrame.DataFrame)
       (if (and (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))
