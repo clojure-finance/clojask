@@ -17,7 +17,7 @@
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataFrame DataFrame]
            [clojask.classes.JoinedDataFrame JoinedDataFrame]
-           [com.clojask.exception TypeException])
+           [com.clojask.exception TypeException OperationException])
   (:refer-clojure :exclude [filter group-by sort]))
 
 ;; debug APIs
@@ -156,6 +156,8 @@
                           col-func-str (subs func-str bgn-idx end-idx)]
                           (mapv (fn [_] (str col-func-str "(" _ ")")) old-key))
                     ))]
+    (cond (not= (count old-key) (count new-key))
+          (throw (TypeException. "The number of new keys should equal the number of columns to aggregate.")))
     (let [result (.aggregate this func old-key new-key)]
       (.errorPredetect this "invalid arguments passed to aggregate function")
       result)))
@@ -306,10 +308,14 @@
 (defn compute
   [this num-worker output-dir & {:keys [exception order output select exclude melt header in-memory] :or {exception false order false output nil select nil exclude nil melt vector header true in-memory false}}]
   (assert (or (nil? select) (nil? exclude)) "Can only specify either of select or exclude")
+  (cond (not (integer? num-worker))
+        (throw (TypeException. "Number of workers should be an integer.")))
+  (cond (< num-worker 1)
+        (throw (OperationException. "Number of workers should be at least 1.")))
+  (cond (> num-worker 8)
+        (throw (OperationException. "Max number of worker nodes is 8.")))
   ;; check if output-dir clashes with input file path
   (.checkInputPathClash this output-dir)
-  ;; initialise file
-  (u/init-file output-dir nil)
   ;; check which type of dataframe this is
   (let [exclude (if (coll? exclude) exclude [exclude])
         select (if select select (if (not= [nil] exclude) (doall (remove (fn [item] (.contains exclude item)) (.getColNames this))) nil))
@@ -325,9 +331,16 @@
                         (or output (.getOutput this))
                         (or output (output/get-output-func output-format)))
                       (fn [wtr seq] (doseq [row seq] (reset! ret (conj! (deref ret) row)))))
+        ;; all validation must pass before init-file deletes the output file
+        _ (assert (not= select []) "Must select at least 1 column")
+        _ (assert (or (= melt vector) (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
+        _ (when select
+            (let [known (set (.getColNames this))
+                  missing (vec (remove known (if (coll? select) select [select])))]
+              (when (not= missing [])
+                (throw (TypeException. (str "Selected columns do not exist: " (str/join ", " missing) ". get-col-names lists the valid names."))))))
+        _ (u/init-file output-dir nil)
         output-dir (or output-dir ".clojask/tmp.csv")] ;; fake one 
-    (assert (not= select []) "Must select at least 1 column")
-    (assert (or (= melt vector) (and (= (type this) clojask.classes.DataFrame.DataFrame) (= (.getGroupbyKeys (:row-info this)) []) (= (.getAggreFunc (:row-info this)) []))) "melt is not applicable to this dataframe")
     (when custom-header
       (with-open [wrtr (io/writer output-dir)]
         (output-func wrtr [custom-header])))
