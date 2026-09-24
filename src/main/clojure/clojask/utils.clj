@@ -164,18 +164,22 @@
   [cols dataframe]
   (filter (fn [col] (is-in col dataframe)) cols))
 
+(defn clean-group-files
+  "Delete the temporary group files under .clojask/grouped and .clojask/join.
+   The computes that write them call this in a finally; init-file also runs
+   it at the start of every compute as a safety net for crashed runs."
+  []
+  (doseq [dir ["./.clojask/grouped/" "./.clojask/join/"]
+          file (rest (file-seq (io/file dir)))]
+    (try
+      (io/delete-file file)
+      (catch Exception e nil))))
+
 (defn init-file
   [out-dir header]
   (if (not= out-dir nil)
    (io/delete-file out-dir true))
-  (doseq [file (rest (file-seq (io/file "./.clojask/grouped/")))]
-    (try
-      (io/delete-file file)
-      (catch Exception e nil)))
-  (doseq [file (rest (file-seq (io/file "./.clojask/join/")))]
-    (try
-      (io/delete-file file)
-      (catch Exception e nil)))
+  (clean-group-files)
   (io/make-parents "./.clojask/grouped/a.txt")
   (io/make-parents "./.clojask/join/a/a.txt")
   (io/make-parents "./.clojask/join/b/a.txt")

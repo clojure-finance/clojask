@@ -323,32 +323,36 @@
   (computeGroupAggre
     [this ^int num-worker ^String output-dir ^boolean exception select ifheader out inmemory]
     (.computeTypeCheck this num-worker output-dir)
-    (let [groupby-keys (.getGroupbyKeys row-info)
-          aggre-keys (.getAggreFunc row-info)
-          select (if (coll? select) select [select])
-          select (if (= select [nil])
-                   (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
-                   (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
-          data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
-          groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
-          mgroup (MGroup. (transient {}))
-          res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
-      (if (= aggre-keys [])
-        (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
-                      "the groupby keys.")))
-      (if (= ifheader true) (.printCol this output-dir select out))
-      (if (= res "success")
-        (let [shift-func (fn [pair]
-                           [(first pair) (let [index (nth pair 1)]
-                                           (.indexOf groupby-index index))])
-              aggre-func (mapv shift-func (u/gets aggre-keys data-index))
-              formatter (.getFormatter (.col-info this))
-              formatter (u/formatters-by-position formatter groupby-index)]
-          (.final mgroup)
-          (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
-            "success"
-            (throw (OperationException. "Error when aggregating."))))
-        (throw (OperationException. "Error when grouping by.")))))
+    (try
+     (let [groupby-keys (.getGroupbyKeys row-info)
+           aggre-keys (.getAggreFunc row-info)
+           select (if (coll? select) select [select])
+           select (if (= select [nil])
+                    (vec (take (+ (count groupby-keys) (count aggre-keys)) (iterate inc 0)))
+                    (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
+           data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
+           groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
+           mgroup (MGroup. (transient {}))
+           res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
+       (if (= aggre-keys [])
+         (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
+                       "the groupby keys.")))
+       (if (= ifheader true) (.printCol this output-dir select out))
+       (if (= res "success")
+         (let [shift-func (fn [pair]
+                            [(first pair) (let [index (nth pair 1)]
+                                            (.indexOf groupby-index index))])
+               aggre-func (mapv shift-func (u/gets aggre-keys data-index))
+               formatter (.getFormatter (.col-info this))
+               formatter (u/formatters-by-position formatter groupby-index)]
+           (.final mgroup)
+           (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
+             "success"
+             (throw (OperationException. "Error when aggregating."))))
+         (throw (OperationException. "Error when grouping by."))))
+      (finally
+        ;; the group files only serve this compute
+        (if (not inmemory) (u/clean-group-files)))))
 
   (sort
     [this list output-dir]
