@@ -26,6 +26,7 @@
             type
             limit
             prefix
+            swapped
             output-func]
 
   GenDFIntf
@@ -43,7 +44,11 @@
           b-col-set (.getColNames b)
           a-col-header (mapv #(str a-col-prefix "_" %) a-col-set)
           b-col-header (mapv #(str b-col-prefix "_" %) b-col-set)]
-      (concat a-col-header b-col-header)))
+      ;; a swapped join presents the original argument order: record b is
+      ;; the caller's first dataframe
+      (if swapped
+        (concat b-col-header a-col-header)
+        (concat a-col-header b-col-header))))
 
   (setOutput
     [this output]
@@ -67,8 +72,8 @@
           data-b (.preview b sample-size output-size format)
           old-a (.getColNames a)
           old-b (.getColNames b)
-          rep-key-a (zipmap old-a (take (count old-a) (.getColNames this)))
-          rep-key-b (zipmap old-b (take-last (count old-b) (.getColNames this)))
+          rep-key-a (zipmap old-a (if swapped (take-last (count old-a) (.getColNames this)) (take (count old-a) (.getColNames this))))
+          rep-key-b (zipmap old-b (if swapped (take (count old-b) (.getColNames this)) (take-last (count old-b) (.getColNames this))))
           data-a (map #(set/rename-keys % rep-key-a) data-a)
           data-b (map #(set/rename-keys % rep-key-b) data-b)
           data (map (fn [row-a row-b] (merge row-a row-b)) data-a data-b)]
@@ -79,18 +84,25 @@
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader out inmemory]
     (let [select (if (coll? select) select [select])
+          na (count (.getKeyIndex (.col-info a)))
+          nb (count (.getKeyIndex (.col-info b)))
           select (if (= select [nil])
-                   (vec (take (+ (count (.getKeyIndex (.col-info a))) (count (.getKeyIndex (.col-info b)))) (iterate inc 0)))
+                   (vec (take (+ na nb) (iterate inc 0)))
                    (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
-          a-index (vec (apply sorted-set (remove (fn [num] (>= num (count (.getKeyIndex (.col-info a))))) select)))
+          ;; select follows the user-facing getColNames order; internal rows
+          ;; are always record-a columns then record-b columns
+          internal (if swapped
+                     (mapv (fn [i] (if (< i nb) (+ i na) (- i nb))) select)
+                     select)
+          a-index (vec (apply sorted-set (remove (fn [num] (>= num na)) internal)))
           ;; a-write 
-          b-index (mapv #(- % (count (.getKeyIndex (.col-info a)))) (apply sorted-set (remove (fn [num] (< num (count (.getKeyIndex (.col-info a))))) select)))
+          b-index (mapv #(- % na) (apply sorted-set (remove (fn [num] (< num na)) internal)))
           b-index (if b-roll (vec (apply sorted-set (conj b-index b-roll))) b-index)
           b-roll (if b-roll (count (remove #(>= % b-roll) b-index)) nil)
           ;; b-write
           a-format (clojask.utils/formatters-by-position (.getFormatter (.col-info a)) a-index)
           b-format (clojask.utils/formatters-by-position (.getFormatter (.col-info b)) b-index)
-          write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % (count (.getKeyIndex (.col-info a)))) b-index))))) select)
+          write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % na) b-index))))) internal)
           mgroup-a (MGroupJoinOuter. (transient {}) (transient {}) false)
           mgroup-b (if (not= type 3) (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type))) (MGroupJoinOuter. (transient {}) (transient {}) (or (= 4 type) (= 5 type))))
           ]

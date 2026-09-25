@@ -154,3 +154,16 @@
           (is (thrown? OperationException
                        (ck/filter df "Salary" (fn [_] (throw (Exception. "boom"))))))
           (is (= @opened @closed) "a failing errorPredetect closes its reader"))))))
+
+(deftest swapped-join-presents-original-column-order
+  (testing "inner/outer joins keep argument column order even when the sides swap internally"
+    (let [small (ck/dataframe input-b)
+          large (ck/dataframe input)
+          expected ["1_Employee" "1_EmployeeName" "1_DayOff" "1_UpdateDate"
+                    "2_Employee" "2_EmployeeName" "2_Department" "2_Salary" "2_UpdateDate"]
+          inner (ck/inner-join small large ["Employee"] ["Employee"])]
+      (is (= expected (ck/get-col-names inner)))
+      (is (= expected (ck/get-col-names (ck/outer-join small large ["Employee"] ["Employee"]))))
+      (let [row (first (ck/preview inner 3 3))]
+        (is (= "20" (get row "1_DayOff")))
+        (is (= "300" (get row "2_Salary")))))))

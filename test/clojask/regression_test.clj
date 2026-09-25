@@ -94,3 +94,24 @@
     (ck/compute (ck/inner-join a b ["Employee"] ["Employee"]) 2 path)
     (is (< 1 (count (lines path))))
     (is (= [] (stray-tmp-files ".clojask/join")))))
+
+(deftest join-swaps-larger-side-but-keeps-column-order
+  (let [a-path (out "order-a.csv")
+        b-path (out "order-b.csv")]
+    (spit a-path "k,av\nx,a1\n")
+    (spit b-path (str "k,bv,bw\nx,b1,b2\n" (str/join "" (repeat 20 "y,f1,f2\n"))))
+    (doseq [in-memory [false true]]
+      (testing (str "in-memory " in-memory)
+        (let [a (ck/dataframe a-path)
+              b (ck/dataframe b-path)
+              inner (out "order-inner.csv")
+              outer (out "order-outer.csv")
+              selected (out "order-selected.csv")]
+          (ck/compute (ck/inner-join a b ["k"] ["k"]) 1 inner :in-memory in-memory)
+          (is (= ["1_k,1_av,2_k,2_bv,2_bw" "x,a1,x,b1,b2"] (lines inner)))
+          (ck/compute (ck/outer-join a b ["k"] ["k"]) 1 outer :in-memory in-memory)
+          (is (= "1_k,1_av,2_k,2_bv,2_bw" (first (lines outer))))
+          (is (contains? (set (lines outer)) "x,a1,x,b1,b2"))
+          (is (= 22 (count (lines outer))) "header, one match, twenty unmatched b rows")
+          (ck/compute (ck/inner-join a b ["k"] ["k"]) 1 selected :select ["2_bv" "1_av"] :in-memory in-memory)
+          (is (= ["2_bv,1_av" "b1,a1"] (lines selected))))))))
