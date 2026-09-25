@@ -10,7 +10,7 @@
                  [com.taoensso/timbre "5.2.1"]
                 ;;  [techascent/tech.ml.dataset "5.17" :exclusions [[ch.qos.logback/logback-classic][org.slf4j/slf4j-api]]]
                  [com.google.code.externalsortinginjava/externalsortinginjava "0.6.0"]
-                 [com.github.clojure-finance/clojask-io "1.0.6"]
+                 [com.github.clojure-finance/clojask-io "1.0.7"]
                  [com.github.clojure-finance/clojure-heap "1.0.3"]]
   ;; lein deploy clojars, credentials from CLOJARS_USERNAME / CLOJARS_PASSWORD
   :deploy-repositories [["clojars" {:url "https://clojars.org/repo"

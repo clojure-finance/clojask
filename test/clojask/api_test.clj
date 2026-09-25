@@ -6,7 +6,8 @@
             [clojure.string :as str]
             [clojask.dataframe :as ck]
             [clojask.api.aggregate :as agg]
-            [clojask.api.gb-aggregate :as gb])
+            [clojask.api.gb-aggregate :as gb]
+            [clojask-io.input :as cio])
   (:import [com.clojask.exception OperationException TypeException]))
 
 (def input "test/clojask/Employees-example.csv")
@@ -134,3 +135,22 @@
   (is (= [1 2] (gb/mode [1 2 1 2 3])))
   (is (= [1.0 2.0] (gb/mode [2.0 1.0 2.0 1.0 3.0])) "used to come back in hash order")
   (is (= ["a" "b"] (gb/mode ["b" "a" "b" "a"]))))
+
+(deftest dataframe-and-preview-close-abandoned-readers
+  (testing "construction, preview and a failing errorPredetect close every reader they open"
+    (let [opened (atom 0)
+          closed (atom 0)
+          orig cio/read-file]
+      (with-redefs [cio/read-file
+                    (fn [& args]
+                      (let [res (apply orig args)]
+                        (swap! opened inc)
+                        (update res :close (fn [close] (fn [] (swap! closed inc) (when close (close)))))))]
+        (let [df (ck/dataframe input)]
+          (is (pos? @opened) "construction reads the input")
+          (is (= @opened @closed) "construction closes its readers")
+          (ck/preview df 5 5)
+          (is (= @opened @closed) "preview closes its reader")
+          (is (thrown? OperationException
+                       (ck/filter df "Salary" (fn [_] (throw (Exception. "boom"))))))
+          (is (= @opened @closed) "a failing errorPredetect closes its reader"))))))
