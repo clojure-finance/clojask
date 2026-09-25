@@ -10,7 +10,8 @@
         formatters (.getFormatter (:col-info dataframe))
         index (.getColIndex dataframe)
         header (.getColNames dataframe)
-        csv-data ((.getFunc dataframe))
+        src ((.getFunc dataframe) :map)
+        csv-data (:data src)
         data (map zipmap (repeat [:id :d]) (map vector (iterate inc 0) csv-data))
         sample (take sample-size data)    ;; lazy source data (take sample size)
         ;; define the variables needed in the following functions
@@ -37,17 +38,21 @@
                                 (:d row))) ;; the function body of output operation (take over the work in output node) without formatting
 
         ;; ========== no need to change ===========
-        compute-res (loop [rows sample res (transient [])]     ;; the result of normal compute
-                      (if (= rows []) ;; exceed sample size
-                        (persistent! res)
-                        (let [row (first rows)
-                              rest (rest rows)
-                              row (preview-work-func row)
-                              row-res (preview-output-func row)
-                              res (if row-res (conj! res row-res) res)]
-                          (if (>= (count res) return-size)
-                            (persistent! res)
-                            (recur rest res)))))]
+        compute-res (try
+                      (loop [rows sample res (transient [])]     ;; the result of normal compute
+                        (if (= rows []) ;; exceed sample size
+                          (persistent! res)
+                          (let [row (first rows)
+                                rest (rest rows)
+                                row (preview-work-func row)
+                                row-res (preview-output-func row)
+                                res (if row-res (conj! res row-res) res)]
+                            (if (>= (count res) return-size)
+                              (persistent! res)
+                              (recur rest res)))))
+                      ;; the reader behind :data stops mid-file whenever
+                      ;; sample-size or return-size is hit before the end
+                      (finally (when-let [close (:close src)] (close))))]
     (if (and no-groupby no-aggre)
       (mapv (fn [row-v] (zipmap header row-v)) compute-res)
       ;; need to do aggregate

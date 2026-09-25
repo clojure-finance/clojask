@@ -83,37 +83,57 @@
   [path & {:keys [if-header] :or {if-header true}}]
   (try
     (if (fn? path)
-      ;; if the input is the clojask-io.input
-      (if (:clojask-io (path))
-        (let [io-func path
-              read-func (fn [] (:data (io-func)))
-              colNames (u/check-duplicate-col (if if-header (doall (first (read-func))) (generate-col (count (first (read-func))))))
-              col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
-              row-info (RowInfo. [] [] [] [] {})
-              stat (compute-stat path io-func)
-              func (if if-header (fn [] (rest (read-func))) read-func)]
-          (.init col-info colNames)
-          (DataFrame. (:path (path)) func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows](.write wtr (str (str/join "," msg) "\n")))))) if-header))
-        ;; if the is the lazy seq function
-        (let [headers (first (path))
-              colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
-              col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
-              row-info (RowInfo. [] [] [] [] {})
-              stat (compute-stat path)
-              func (if if-header (fn [] (rest (path))) path)]
-          (.init col-info colNames)
-          (DataFrame. nil func 300 col-info row-info stat (atom (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n"))))) if-header)))
+      ;; probe is realized once: header row, :path, :output, then closed
+      (let [probe (path)]
+        ;; if the input is the clojask-io.input
+        (if (:clojask-io probe)
+          (let [io-func path
+                read-func (fn [] (:data (io-func)))
+                colNames (u/check-duplicate-col (if if-header (doall (first (:data probe))) (generate-col (count (first (:data probe))))))
+                col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
+                row-info (RowInfo. [] [] [] [] {})
+                stat (compute-stat path (fn [] probe))
+                ;; arity 1 exposes {:data ... :close ...} so partial consumers
+                ;; (preview / errorPredetect) can close the reader they abandon
+                func (if if-header
+                       (fn ([] (rest (read-func)))
+                         ([_] (let [res (io-func)] {:data (rest (:data res)) :close (:close res)})))
+                       (fn ([] (read-func))
+                         ([_] (let [res (io-func)] {:data (:data res) :close (:close res)}))))
+                output-func (or (:output probe) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))]
+            (.init col-info colNames)
+            (when-let [close (:close probe)] (close))
+            (DataFrame. (:path probe) func 300 col-info row-info stat (atom output-func) if-header))
+          ;; if the is the lazy seq function
+          (let [headers (first probe)
+                colNames (u/check-duplicate-col (if if-header headers (generate-col (count headers))))
+                col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
+                row-info (RowInfo. [] [] [] [] {})
+                stat (compute-stat path)
+                func (if if-header
+                       (fn ([] (rest (path)))
+                         ([_] {:data (rest (path))}))
+                       (fn ([] (path))
+                         ([_] {:data (path)})))]
+            (.init col-info colNames)
+            (DataFrame. nil func 300 col-info row-info stat (atom (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n"))))) if-header))))
       ;; if the input is the path string
       (let [io-func (fn [] (read-file path :stat true :output true))
+            probe (io-func)
             read-func (fn [] (:data (io-func)))
-            colNames (u/check-duplicate-col (if if-header (doall (first (read-func))) (generate-col (count (first (read-func))))))
+            colNames (u/check-duplicate-col (if if-header (doall (first (:data probe))) (generate-col (count (first (:data probe))))))
             col-info (ColInfo. (doall (map keyword colNames)) {} {} {} {} {} {} {})
             row-info (RowInfo. [] [] [] [] {})
-            stat (compute-stat path io-func)
-            func (if if-header (fn [] (rest (read-func))) read-func)]
+            stat (compute-stat path (fn [] probe))
+            func (if if-header
+                   (fn ([] (rest (read-func)))
+                     ([_] (let [res (io-func)] {:data (rest (:data res)) :close (:close res)})))
+                   (fn ([] (read-func))
+                     ([_] (let [res (io-func)] {:data (:data res) :close (:close res)}))))
+            output-func (or (:output probe) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))]
         (.init col-info colNames)
-        (DataFrame. path func 300 col-info row-info stat (atom (or (:output (io-func)) (fn [wtr rows] (doseq [msg rows] (.write wtr (str (str/join "," msg) "\n")))))) if-header)
-        ))
+        (when-let [close (:close probe)] (close))
+        (DataFrame. path func 300 col-info row-info stat (atom output-func) if-header)))
     (catch Exception e
       (do
         (throw (TypeException. "Error in initializing the dataframe." e))
