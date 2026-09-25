@@ -223,8 +223,8 @@
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
       (if (>= (compare size-a size-b) 0)
-        (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix (atom (.getOutput a)))
-        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
+        (JoinedDataFrame. a b a-keys b-keys nil nil 1 nil col-prefix false (atom (.getOutput a)))
+        (JoinedDataFrame. b a b-keys a-keys nil nil 1 nil [(nth col-prefix 1) (nth col-prefix 0)] true (atom (.getOutput a)))))))
 
 (defn left-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -242,7 +242,7 @@
       (throw (TypeException. "The length of col-prefix should be equal to 2.")))
     (cond (some nil? (map second (concat a-keys b-keys))) 
       (throw (TypeException. "Input includes non-existent column name(s).")))
-    (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix (atom (.getOutput a)))))
+    (JoinedDataFrame. a b a-keys b-keys nil nil 2 nil col-prefix false (atom (.getOutput a)))))
 
 (defn right-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -258,7 +258,7 @@
           (throw (TypeException. "The length of left keys and right keys should be equal.")))
     (cond (some nil? (map second (concat a-keys b-keys)))
           (throw (TypeException. "Input includes non-existent column name(s).")))
-    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))
+    (JoinedDataFrame. b a b-keys a-keys nil nil 2 nil [(nth col-prefix 1) (nth col-prefix 0)] false (atom (.getOutput a)))))
 
 (defn outer-join
   [a b a-keys b-keys & {:keys [col-prefix] :or {col-prefix ["1" "2"]}}]
@@ -277,8 +277,8 @@
     (let [size-a (.getSize (:stat a))
           size-b (.getSize (:stat b))]
       (if (>= (compare size-a size-b) 0)
-        (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix (atom (.getOutput a)))
-        (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)] (atom (.getOutput a)))))))
+        (JoinedDataFrame. a b a-keys b-keys nil nil 3 nil col-prefix false (atom (.getOutput a)))
+        (JoinedDataFrame. b a b-keys a-keys nil nil 3 nil [(nth col-prefix 1) (nth col-prefix 0)] true (atom (.getOutput a)))))))
 
 (defn rolling-join-forward
   [a b a-keys b-keys a-roll b-roll & {:keys [col-prefix limit] :or {col-prefix ["1" "2"] limit nil}}]
@@ -300,7 +300,7 @@
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
               (throw (TypeException. "Rolling keys include non-existent column name(s).")))
-        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix (atom (.getOutput a)))))))
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 4 limit col-prefix false (atom (.getOutput a)))))))
 
 ;; all of the code is the same as above except for the last line
 (defn rolling-join-backward
@@ -323,7 +323,7 @@
       (do
         (cond (not (and (not= a-roll nil) (not= b-roll nil)))
               (throw (TypeException. "Rolling keys include non-existent column name(s).")))
-        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix (atom (.getOutput a)))))))
+        (JoinedDataFrame. a b a-keys b-keys a-roll b-roll 5 limit col-prefix false (atom (.getOutput a)))))))
 
 (defn compute
   [this num-worker output-dir & {:keys [exception order output select exclude melt header in-memory] :or {exception false order false output nil select nil exclude nil melt vector header true in-memory false}}]
