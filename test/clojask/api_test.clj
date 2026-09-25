@@ -5,6 +5,7 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojask.dataframe :as ck]
+            [clojask.api.aggregate :as agg]
             [clojask.api.gb-aggregate :as gb])
   (:import [com.clojask.exception OperationException TypeException]))
 
@@ -84,3 +85,52 @@
     (ck/set-type df "Salary" "double")
     (ck/filter df "Salary" (fn [salary] (<= salary 800)))
     (is (= 4 (count (ck/preview df 100 100 :format true))))))
+
+(deftest compute-validates-num-worker
+  (testing "checked for every dataframe type, not only group-by/aggregate"
+    (let [df (ck/dataframe input)]
+      (is (thrown-with-msg? TypeException #"should be an integer" (ck/compute df "4" nil)))
+      (is (thrown-with-msg? OperationException #"at least 1" (ck/compute df 0 nil)))
+      (is (thrown-with-msg? OperationException #"Max number of worker nodes" (ck/compute df 9 nil))))))
+
+(deftest compute-rejects-unknown-select-names
+  (let [a (ck/dataframe input)
+        b (ck/dataframe input-b)]
+    (testing "simple dataframe"
+      (is (thrown-with-msg? TypeException #"NoSuchColumn" (ck/compute a 1 nil :select ["NoSuchColumn"]))))
+    (testing "a single name not wrapped in a collection"
+      (is (thrown-with-msg? TypeException #"NoSuchColumn" (ck/compute a 1 nil :select "NoSuchColumn"))))
+    (testing "aggregated dataframe used to hit nth with index -1"
+      (let [d (ck/dataframe input)]
+        (ck/aggregate d agg/max ["Salary"])
+        (is (= ["max(Salary)"] (ck/get-col-names d)))
+        (is (thrown-with-msg? TypeException #"NoSuchColumn" (ck/compute d 1 nil :select ["NoSuchColumn"])))))
+    (testing "joined dataframe used to hit an IndexOutOfBoundsException"
+      (let [j (ck/inner-join a b ["Employee"] ["Employee"])]
+        (is (thrown-with-msg? TypeException #"NoSuchColumn" (ck/compute j 1 nil :select ["NoSuchColumn"])))))))
+
+(deftest failed-compute-validation-leaves-output-file-alone
+  (let [df (ck/dataframe input)
+        out "test/clojask/test_outputs/precious.csv"]
+    (io/make-parents out)
+    (spit out "precious\n")
+    (is (thrown? AssertionError (ck/compute df 1 out :select [])))
+    (is (thrown? TypeException (ck/compute df 1 out :select ["NoSuchColumn"])))
+    (is (thrown? OperationException (ck/compute df 9 out)))
+    (is (= "precious\n" (slurp out)) "failed validation must not delete the output file")
+    (io/delete-file out true)))
+
+(deftest aggregate-checks-key-counts
+  (let [df (ck/dataframe input)]
+    (is (thrown-with-msg? TypeException #"number of new keys"
+                          (ck/aggregate df agg/max ["Salary" "Salary"] "just-one-name")))
+    (is (thrown-with-msg? TypeException #"number of new keys"
+                          (ck/aggregate df agg/max ["Salary"] ["a" "b"])))
+    (is (= ["Employee" "EmployeeName" "Department" "Salary" "UpdateDate"] (ck/get-col-names df))
+        "failed aggregate leaves the dataframe unchanged")))
+
+(deftest mode-ties-are-deterministic
+  (is (= [5] (gb/mode [5 5 1])))
+  (is (= [1 2] (gb/mode [1 2 1 2 3])))
+  (is (= [1.0 2.0] (gb/mode [2.0 1.0 2.0 1.0 3.0])) "used to come back in hash order")
+  (is (= ["a" "b"] (gb/mode ["b" "a" "b" "a"]))))

@@ -36,7 +36,8 @@
         modes (last (sort occurrences))
         modes (->> modes
                    val
-                   (map key))]
+                   (map key)
+                   sort)]
     modes))
 
 (defn median
