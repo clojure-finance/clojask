@@ -71,3 +71,26 @@
     (ck/compute df 1 path)
     (is (= 5 (count (lines path))) "header and four departments")
     (is (not-any? #(str/includes? % "!") (lines path)))))
+
+(defn- stray-tmp-files [dir]
+  (->> (file-seq (io/file dir))
+       (remove #(.isDirectory %))
+       (mapv str)))
+
+(deftest group-files-deleted-when-compute-finishes
+  (let [df (ck/dataframe input)
+        path (out "group-clean.csv")]
+    (ck/set-type df "Salary" "double")
+    (ck/group-by df ["Department"])
+    (ck/aggregate df gb/mean ["Salary"] ["mean-salary"])
+    (ck/compute df 2 path)
+    (is (< 1 (count (lines path))))
+    (is (= [] (stray-tmp-files ".clojask/grouped")))))
+
+(deftest join-files-deleted-when-compute-finishes
+  (let [a (ck/dataframe input)
+        b (ck/dataframe input)
+        path (out "join-clean.csv")]
+    (ck/compute (ck/inner-join a b ["Employee"] ["Employee"]) 2 path)
+    (is (< 1 (count (lines path))))
+    (is (= [] (stray-tmp-files ".clojask/join")))))
