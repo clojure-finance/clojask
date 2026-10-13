@@ -5,6 +5,8 @@
    environment variable CLOJASK_ENGINE, chooses the engine: \"onyx\" (the
    default) or \"local\". Drivers not ported yet always run on Onyx."
   (:require [clojure.java.io :as io]
+            [clojask.api.aggregate :refer [start]]
+            [clojask.groupby :as groupby]
             [clojask.utils :as u])
   (:import [com.clojask.exception ExecutionException]
            [java.util.concurrent ArrayBlockingQueue Callable ExecutorService
@@ -87,44 +89,151 @@
   [stage ^Throwable e]
   (ExecutionException. (format "[%s] (original error: %s)" stage (.getMessage e)) e))
 
-(defn- compute-worker
-  "The work on one batch of a plain compute: the selected columns of every
-   row that passes the filters, evaluated and formatted. Rows that fail a
-   filter are dropped. Same rows as onyx-comps/worker-func-gen-format."
-  [df exception index]
+(defn- row-worker
+  "The work on one batch of rows: the columns at index of every row that
+   passes the filters, evaluated and, if format? is true, formatted. Rows
+   that fail a filter are dropped. Same rows as onyx-comps/worker-func-gen
+   and worker-func-gen-format."
+  [df exception index format?]
   (let [col-info (:col-info df)
         operations (.getDesc col-info)
         types (.getType col-info)
         formats (.getFormatter col-info)
         filters (.getFilters (:row-info df))
         index (vec index)
-        eval-res (if exception u/eval-res u/eval-res-ne)]
+        eval-res (if exception u/eval-res u/eval-res-ne)
+        value (if format?
+                (fn [row i] ((or (get formats i) str) (eval-res row types formats operations i)))
+                (fn [row i] (eval-res row types formats operations i)))]
     (fn [batch]
       (into []
             (keep (fn [row]
                     (when (u/filter-check filters types row)
-                      (mapv (fn [i] ((or (get formats i) str) (eval-res row types formats operations i))) index))))
+                      (mapv (fn [i] (value row i)) index))))
             batch))))
+
+(defn- row-batches
+  "An open for run: the rows of df in batches of batch-size."
+  [df batch-size]
+  (fn []
+    (let [{:keys [data close]} ((.getFunc df) :map)]
+      {:data (partition-all batch-size data) :close close})))
+
+(defn- prepare
+  "(f), with a failure tagged as the preparing stage of stage."
+  [stage f]
+  (try
+    (f)
+    (catch Throwable e
+      (throw (stage-error (str "preparing stage (" stage ")") e)))))
+
+(defn- run-stage
+  "(f), with a failure tagged as the run stage of stage."
+  [stage f]
+  (try
+    (f)
+    (catch Throwable e
+      (throw (stage-error (str "run stage (" stage ")") e)))))
 
 (defn start-compute
   "The local engine's start-onyx: compute df into dist, appending after
    the header that DataFrame.compute may have written. Output is always in
    input order."
   [num-work batch-size df dist exception index melt out]
-  (let [work (try
-               (compute-worker df exception index)
-               (catch Throwable e
-                 (throw (stage-error "preparing stage (compute)" e))))]
-    (try
-      (with-open [wtr (io/writer dist :append true)]
-        (run num-work
-             (fn []
-               (let [{:keys [data close]} ((.getFunc df) :map)]
-                 {:data (partition-all batch-size data) :close close}))
-             work
-             (fn [rows]
-               (doseq [row rows]
-                 (out wtr (melt row))))))
-      (catch Throwable e
-        (throw (stage-error "run stage (compute)" e))))
+  (let [work (prepare "compute" #(row-worker df exception index true))]
+    (run-stage "compute"
+               #(with-open [wtr (io/writer dist :append true)]
+                  (run num-work (row-batches df batch-size) work
+                       (fn [rows]
+                         (doseq [row rows]
+                           (out wtr (melt row)))))))
+    "success"))
+
+(defn start-aggre-only
+  "The local engine's start-onyx-aggre-only: fold the rows that pass the
+   filters through aggre-func, pairs of a function and a position in
+   index, then append the result rows to dist. Rows are folded in input
+   order. Same output as clojask-aggre."
+  [num-work batch-size df dist exception aggre-func index select out]
+  (let [work (prepare "aggregate" #(row-worker df exception index false))
+        memo (volatile! (vec (repeat (count aggre-func) start)))]
+    (run-stage "aggregate"
+               (fn []
+                 (run num-work (row-batches df batch-size) work
+                      (fn [rows]
+                        (doseq [row rows]
+                          (vreset! memo (mapv (fn [[f i] prev] (f prev (nth row i))) aggre-func @memo)))))
+                 ;; a memo still holding the start sentinel saw no rows: write an empty cell
+                 (let [data (mapv (fn [m] (cond (identical? m start) [nil] (coll? m) m :else [m])) @memo)]
+                   (when-not (apply = (map count data))
+                     (throw (ExecutionException. "aggregation result is not of the same length")))
+                   (with-open [wtr (io/writer dist :append true)]
+                     (doseq [row (apply map vector data)]
+                       (out wtr [(u/gets row select)]))))))
+    "success"))
+
+(defn start-groupby
+  "The local engine's start-onyx-groupby: add every row that passes the
+   filters to its group, a file under dist when dist is a directory path,
+   otherwise the in-memory MGroup dist. Same groups as clojask-groupby."
+  [num-work batch-size df dist groupby-keys groupby-index exception & {:keys [format] :or {format false}}]
+  (let [col-info (:col-info df)
+        key-index (.getKeyIndex col-info)
+        formatter (.getFormatter col-info)
+        work (prepare "groupby" #(row-worker df exception (range (count key-index)) false))]
+    (run-stage "groupby"
+               #(run num-work (row-batches df batch-size) work
+                     (fn [rows]
+                       (doseq [row rows]
+                         (groupby/output-groupby dist row groupby-keys key-index formatter groupby-index format)))))
+    "success"))
+
+(defn- group-worker
+  "The work on one group of a group-aggregate, {:file f :d key}: the
+   group's result rows, the formatted key followed by the aggregates and
+   reordered by index. f is a group file, or the key in source when the
+   groups are in memory. Same rows as aggre-onyx-comps/worker-func-gen."
+  [df aggre-funcs index formatters source]
+  (let [groupby-index (mapv #(nth % 1) (.getGroupbyKeys (:row-info df)))
+        key-format (u/formatters-by-position (.getFormatter (:col-info df)) groupby-index)
+        key-index (range (count groupby-index))]
+    (fn [{:keys [file d]}]
+      (let [data (if (nil? source) (groupby/read-csv-seq file) (.getKey source file))
+            pre (u/gets-format d key-index key-format)
+            cols (zipmap (range) (apply map vector data))
+            res (reduce (fn [res [func i]]
+                          (let [new (func (get cols i))
+                                new (if (coll? new) new [new])
+                                new (mapv (fn [v] (if-let [formatter (get formatters i)] (formatter v) (str v))) new)]
+                            (if (or (= res []) (= (count new) (count (peek res))))
+                              (conj res new)
+                              (throw (Exception. "aggregation result is not of the same length")))))
+                        []
+                        aggre-funcs)]
+        (if (= res [])
+          [pre]
+          (mapv (fn [row] (u/gets (concat pre row) index)) (apply map vector res)))))))
+
+(defn- groups
+  "An open for run: one {:file f :d key} per group, from source when the
+   groups are in memory, else from the group files."
+  [source]
+  (fn []
+    {:data (if (nil? source)
+             (map (fn [file] {:file file :d (read-string (u/decode-str (.getName file)))})
+                  (rest (file-seq (io/file "./.clojask/grouped"))))
+             (map (fn [key] {:file key :d (read-string key)})
+                  (.getKeys source)))}))
+
+(defn start-aggre
+  "The local engine's start-onyx-aggre: aggregate every group on the pool
+   and append the result rows to dist, in the order the groups are listed.
+   Same output as aggre-output."
+  [num-work batch-size df source dist exception aggre-func index formatter out]
+  (let [work (prepare "groupby aggregate" #(group-worker df aggre-func index formatter source))]
+    (run-stage "groupby aggregate"
+               #(with-open [wtr (io/writer dist :append true)]
+                  (run num-work (groups source) work
+                       (fn [rows]
+                         (out wtr rows)))))
     "success"))

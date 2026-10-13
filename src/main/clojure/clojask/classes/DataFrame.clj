@@ -318,7 +318,9 @@
                                        (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
           tmp (if (= ifheader true) (.printCol this output-dir select out))
-          res (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)]
+          res (if (= (engine/engine) :local)
+                (engine/start-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)
+                (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select out))]
       (if (= res "success")
         "success"
         "failed")))
@@ -336,7 +338,9 @@
            data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
            groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
            mgroup (MGroup. (transient {}))
-           res (start-onyx-groupby num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
+           local? (= (engine/engine) :local)
+           res ((if local? engine/start-groupby start-onyx-groupby)
+                num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
        (if (= aggre-keys [])
          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
                        "the groupby keys.")))
@@ -349,7 +353,8 @@
                formatter (.getFormatter (.col-info this))
                formatter (u/formatters-by-position formatter groupby-index)]
            (.final mgroup)
-           (if (= "success" (start-onyx-aggre num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
+           (if (= "success" ((if local? engine/start-aggre start-onyx-aggre)
+                             num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
              "success"
              (throw (OperationException. "Error when aggregating."))))
          (throw (OperationException. "Error when grouping by."))))
