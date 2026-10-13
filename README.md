@@ -20,12 +20,12 @@ A Clojure dataframe library for **larger-than-memory** datasets. Process million
 
 **Add to project.clj:**
 ```clojure
-[com.github.clojure-finance/clojask "2.0.5"]
+[com.github.clojure-finance/clojask "2.0.6"]
 ```
 
 **Or deps.edn:**
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "2.0.5"}
+com.github.clojure-finance/clojask {:mvn/version "2.0.6"}
 ```
 
 Both also need two JVM flags, see [Requirements](#requirements).
