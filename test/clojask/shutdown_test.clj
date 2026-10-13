@@ -10,6 +10,21 @@
 
 (def input "test/clojask/Employees-example.csv")
 
+(defn- on-onyx
+  "These tests exercise the Onyx environment, whichever engine the rest of
+   the suite runs on."
+  [t]
+  (let [old (System/getProperty "clojask.engine")]
+    (System/setProperty "clojask.engine" "onyx")
+    (try
+      (t)
+      (finally
+        (if old
+          (System/setProperty "clojask.engine" old)
+          (System/clearProperty "clojask.engine"))))))
+
+(use-fixtures :each on-onyx)
+
 (defn- env-is-down []
   (is (nil? oc/env))
   (is (nil? oc/peer-group))

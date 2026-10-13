@@ -5,6 +5,7 @@
             [clojask.classes.MGroup]
             [clojure.java.io :as io]
             [clojask.utils :as u]
+            [clojask.engine :as engine]
             [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby]]
             [clojask.sort :as sort]
             [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
@@ -126,7 +127,9 @@
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (keep key-index select))]
       (assert (or (= (count select) (count index)) (= select [nil])) "Must select existing columns; get-col-names lists them.")
       (if (= ifheader true) (.printCol this output-dir index out))
-      (let [res (start-onyx num-worker batch-size this output-dir exception order index melt out)]
+      (let [res (if (= (engine/engine) :local)
+                  (engine/start-compute num-worker batch-size this output-dir exception index melt out)
+                  (start-onyx num-worker batch-size this output-dir exception order index melt out))]
         (if (= res "success")
           "success"
           "failed"))))
