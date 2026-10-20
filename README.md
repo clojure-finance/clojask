@@ -20,12 +20,12 @@ A Clojure dataframe library for **larger-than-memory** datasets. Process million
 
 **Add to project.clj:**
 ```clojure
-[com.github.clojure-finance/clojask "2.1.1"]
+[com.github.clojure-finance/clojask "2.1.2"]
 ```
 
 **Or deps.edn:**
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "2.1.1"}
+com.github.clojure-finance/clojask {:mvn/version "2.1.2"}
 ```
 
 **Basic example** (using [Employees-example.csv](test/clojask/Employees-example.csv)):
