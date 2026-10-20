@@ -9,7 +9,6 @@
             [clojask.classes.JoinedDataFrame]
             [clojask.utils :as u]
             [clojure.pprint :as pprint]
-            [clojure.set :as set]
             [clojure.string :as str]
             [clojure.java.io :as io])
   (:import [clojask.classes.ColInfo ColInfo]
@@ -378,12 +377,16 @@
       (dataframe output-dir :if-header (boolean (or custom-header header)))
       (persistent! (deref ret)))))
 
-;; ============== Below functions are deprecated ==============
-
 (defn select-col
+  "Keep only the columns in col-to-keep, in their current order."
   [this col-to-keep]
-  (let [col-to-del (set/difference (set (.getColNames this)) (set col-to-keep))]
-    (.delCol this (vec col-to-del))))
+  (let [col-to-keep (if (coll? col-to-keep) col-to-keep [col-to-keep])
+        names (.getColNames this)]
+    (cond (not= [] (remove (set names) col-to-keep))
+          (throw (TypeException. "Input includes non-existent column name(s).")))
+    (let [result (.delCol this (vec (remove (set col-to-keep) names)))]
+      (.errorPredetect this "invalid arguments passed to select-col function")
+      result)))
 
 (defn delete-col
   [this col-to-del]

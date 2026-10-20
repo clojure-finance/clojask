@@ -14,12 +14,11 @@
   (getKeys [] "get collection of keys")
   (getKeyIndex [] "get map with key = column name, value = index")
   (getIndexKey [] "get map with key = index, value = column name")
-  (getDeletedCol [] "get indices of deleted columns")
+  (getView [] "get the indices of the output columns, in order")
   (setFormatter [format col])
   (setTypeFormatter [parser format col] "set parser and formatter as one change for rollback")
   (getFormatter [])
-  (delCol [col-to-del])
-  (setColInfo [new-col-set])
+  (setView [indices] "set the output columns and their order")
   (renameColInfo [old-col new-col])
   (copy [] "copy all the information for rollback purpose")
   (rollback [] "undo the change making use of the copied")
@@ -34,7 +33,7 @@
           ^:unsynchronized-mutable col-dsp
           ^:unsynchronized-mutable col-type
           ^:unsynchronized-mutable col-format
-          ^:unsynchronized-mutable col-deleted
+          ^:unsynchronized-mutable col-view ;; nil, or the indices of the output columns in order
           ^:unsynchronized-mutable hist]
 
   ;; method
@@ -46,7 +45,7 @@
     (set! key-index (zipmap col-keys (iterate inc 0)))
     (set! index-key (zipmap (iterate inc 0) col-keys))
     (set! col-dsp (zipmap (take (count colNames) (iterate inc 0)) (map vector (map vector (iterate inc 0)))))
-    (set! col-deleted (set nil)))
+    (set! col-view nil))
 
   (getFormatter
     [this]
@@ -73,9 +72,10 @@
     [this]
     index-key)
 
-  (getDeletedCol
+  (getView
     [this]
-    col-deleted)
+    ;; nil until a column is deleted or moved: every column, in index order
+    (or col-view (vec (range (count index-key)))))
 
   (operate
     [this operation col]
@@ -100,6 +100,7 @@
             (set! key-index (assoc key-index newCol (count key-index)))
             (set! index-key (assoc index-key (count index-key) newCol))
             (set! col-dsp (assoc col-dsp (get key-index newCol) (conj [(vec (map (fn [_] (get key-index _)) col))] operation)))
+            (when col-view (set! col-view (conj col-view (get key-index newCol))))
             nil))
         (do
           (throw (OperationException. (str external " are not original column names")))))))
@@ -124,27 +125,10 @@
     (.setType this parser col)
     (set! col-format (assoc col-format (get key-index col) format)))
 
-  (delCol
-    [this col-to-delete]
+  (setView
+    [this indices]
     (.copy this)
-    (let [col-indices (set (map key-index col-to-delete))]
-      (set! col-deleted (set/union col-deleted col-indices))))
-
-  (setColInfo
-    [this new-col-set]
-    (.copy this)
-    (let [original-key-index (.getKeyIndex this)
-          new-col-dsp-vals (map original-key-index new-col-set)
-          original-type (.getType this)
-          original-format (.getFormatter this)]
-      (set! col-keys (vec new-col-set))
-      (set! key-index (zipmap new-col-set (iterate inc 0)))
-      (set! index-key (zipmap (iterate inc 0) new-col-set))
-      (set! col-dsp (zipmap (take (count col-keys) (iterate inc 0)) (map vector (map vector new-col-dsp-vals))))
-      (if (not (empty? (.getType this)))
-        (set! col-type (zipmap (map #(first (first (get col-dsp (first %)))) original-type) (map last original-type))))
-      (if (not (empty? (.getFormatter this)))
-        (set! col-format (zipmap (map #(first (first (get col-dsp (first %)))) original-format) (map last original-format))))))
+    (set! col-view (vec indices)))
 
   (renameColInfo
     [this old-col new-col]
@@ -162,7 +146,7 @@
                 :col-dsp col-dsp
                 :col-type col-type
                 :col-format col-format
-                :col-deleted col-deleted}))
+                :col-view col-view}))
 
   (rollback
    [this]
@@ -173,7 +157,7 @@
          (set! col-type (:col-type hist))
          (set! col-format (:col-format hist))
          (set! col-dsp (:col-dsp hist))
-         (set! col-deleted (:col-deleted hist)))))
+         (set! col-view (:col-view hist)))))
   
   (commit
    [this]
