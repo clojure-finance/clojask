@@ -444,7 +444,7 @@ This means you cannot further apply complicated operations to a joined dataframe
 
 #### enable-debug / disable-debug
 
-Turn debug mode on or off. With debug mode on, operations are no longer checked against a preview when they are added, and logging is raised to `:debug`. Both take no arguments and print the new mode.
+Turn debug mode on or off. With debug mode on, operations are no longer checked against a preview when they are added. Both take no arguments and print the new mode.
 
 ```clojure
 (enable-debug)
@@ -460,10 +460,10 @@ Compute the result. The pre-defined lazy operations will be executed in pipeline
 | Argument            | Type                                                         | Function                                                     | Remarks                                                      |
 | ------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | `dataframe`         | clojask.classes.DataFrame.DataFrame / clojask.classes.JoinedDataFrame.JoinedDataFrame | The operated object                                          |                                                              |
-| `num of workers`    | int                                                          | The number of worker instances (except the input and output nodes) | Uses [Onyx](https://github.com/clojure-finance/onyx) as the distributed platform. Group-by and aggregate computes accept at most 8 workers. |
+| `num of workers`    | int                                                          | The number of worker threads (besides the thread that reads the input and the calling thread, which writes the output) | An integer from 1 to 8, for every kind of compute. |
 | `output path`       | String / `nil`                                               | The path of the output csv file                              | If the path already exists, will overwrite the file.<br>If `nil`, will store the output in memory as a vector of vectors, which represent each row, with the header row first unless `:header false`. See [example](https://github.com/clojure-finance/clojask-examples/blob/main/src/clojask_examples/in_memory.clj). |
 | [`exception`]       | Boolean                                                      | Whether an exception during calculation will cause termination | By default `false`. Is useful for debugging or detecting empty fields |
-| [`order`]           | Boolean                                                      | If enforce the order of rows in the output to be the same as input | By default `false`. If set to `true`, will sacrifice the performance. |
+| [`order`]           | Boolean                                                      | Has no effect since 2.1                                      | Accepted so that existing calls keep working. Output rows are always in input order, except that group-by and outer joins write theirs in group order. |
 | [`output`]          | Function                                                     | Specify how to output a row vector to the output file        | Takes two arguments.<br />`writer` java.io.BufferedWriter<br />`rows` clojure.lang.PersistentVector (rows) of clojure.lang.PersistentVector (each row) |
 | [`select`]          | String / Collection of strings                               | Chooses columns to select for the operation                  | Can only specify either of select and exclude                |
 | [`exclude`]         | String / Collection of strings                               | Chooses columns to be excluded for the operation             | Can only specify either of select and exclude                |
@@ -483,9 +483,6 @@ A `clojask.classes.DataFrame.DataFrame` read from the output file (read without 
 
 (compute x 8 "output.csv" :select "col a")
 ;; only select column a
-
-(compute x 8 "output.csv" :order true)
-;; make sure the order of the output is the same of the input
 
 (compute x 8 nil :in-memory true)
 ;; compute the dataframe in memory and store the dataframe also in memory

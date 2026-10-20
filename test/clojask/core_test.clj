@@ -15,8 +15,9 @@
 
 (defn get-diff
   "Compare an output file with the expected one. The header line must match
-   exactly; data rows are compared sorted (Onyx writes them in any order)
-   unless order is false."
+   exactly; data rows are compared sorted (group-by and outer-join output
+   comes in group order, which depends on the file system) unless order
+   is false."
   [a b & [order]]
   (try
     (let [order (if (nil? order) true order)

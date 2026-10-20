@@ -11,8 +11,7 @@
             [clojure.pprint :as pprint]
             [clojure.set :as set]
             [clojure.string :as str]
-            [clojure.java.io :as io]
-            [taoensso.timbre :as timbre])
+            [clojure.java.io :as io])
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataFrame DataFrame]
@@ -22,18 +21,14 @@
 
 ;; debug APIs
 
-(timbre/merge-config! {:min-level :warn})
-
 (defn enable-debug
   []
   (reset! clojask.classes.DataFrame/debug true)
-  (timbre/merge-config! {:min-level :debug})
   (println "Debug mode is on."))
 
 (defn disable-debug
   []
   (reset! clojask.classes.DataFrame/debug false)
-  (timbre/merge-config! {:min-level :warn})
   (println "Debug mode is off."))
 
 ;; public APIs of the dataframe

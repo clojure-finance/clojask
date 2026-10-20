@@ -1,9 +1,7 @@
 (ns clojask.engine
-  "A thread-pool engine for the jobs clojask runs: one input, num-work
-   identical workers and one output, all in this JVM. It replaces Onyx one
-   driver at a time. The system property clojask.engine, else the
-   environment variable CLOJASK_ENGINE, chooses the engine: \"onyx\" (the
-   default) or \"local\". Drivers not ported yet always run on Onyx."
+  "The thread-pool engine that runs every compute: one input, num-work
+   identical workers and one output, all in this JVM. It replaced Onyx in
+   clojask 2.1."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clojask.api.aggregate :refer [start]]
@@ -13,15 +11,6 @@
   (:import [com.clojask.exception ExecutionException]
            [java.util.concurrent ArrayBlockingQueue Callable ExecutorService
             Executors Future ThreadFactory TimeUnit]))
-
-(defn engine
-  "The engine for the next compute, :onyx or :local."
-  []
-  (let [v (or (System/getProperty "clojask.engine") (System/getenv "CLOJASK_ENGINE") "onyx")]
-    (case v
-      "onyx" :onyx
-      "local" :local
-      (throw (IllegalArgumentException. (str "Unknown clojask engine \"" v "\"; use \"onyx\" or \"local\"."))))))
 
 (defn- thread-factory
   "Daemon threads named prefix-1, prefix-2, ..., so a job that is never
@@ -94,8 +83,7 @@
 (defn- row-worker
   "The work on one batch of rows: the columns at index of every row that
    passes the filters, evaluated and, if format? is true, formatted. Rows
-   that fail a filter are dropped. Same rows as onyx-comps/worker-func-gen
-   and worker-func-gen-format."
+   that fail a filter are dropped."
   [df exception index format?]
   (let [col-info (:col-info df)
         operations (.getDesc col-info)
@@ -138,7 +126,7 @@
       (throw (stage-error (str "run stage (" stage ")") e)))))
 
 (defn start-compute
-  "The local engine's start-onyx: compute df into dist, appending after
+  "Compute df into dist, appending after
    the header that DataFrame.compute may have written. Output is always in
    input order."
   [num-work batch-size df dist exception index melt out]
@@ -152,10 +140,10 @@
     "success"))
 
 (defn start-aggre-only
-  "The local engine's start-onyx-aggre-only: fold the rows that pass the
+  "Fold the rows that pass the
    filters through aggre-func, pairs of a function and a position in
    index, then append the result rows to dist. Rows are folded in input
-   order. Same output as clojask-aggre."
+   order."
   [num-work batch-size df dist exception aggre-func index select out]
   (let [work (prepare "aggregate" #(row-worker df exception index false))
         memo (volatile! (vec (repeat (count aggre-func) start)))]
@@ -175,9 +163,9 @@
     "success"))
 
 (defn start-groupby
-  "The local engine's start-onyx-groupby: add every row that passes the
+  "Add every row that passes the
    filters to its group, a file under dist when dist is a directory path,
-   otherwise the in-memory MGroup dist. Same groups as clojask-groupby."
+   otherwise the in-memory MGroup dist."
   [num-work batch-size df dist groupby-keys groupby-index exception & {:keys [format] :or {format false}}]
   (let [col-info (:col-info df)
         key-index (.getKeyIndex col-info)
@@ -194,7 +182,7 @@
   "The work on one group of a group-aggregate, {:file f :d key}: the
    group's result rows, the formatted key followed by the aggregates and
    reordered by index. f is a group file, or the key in source when the
-   groups are in memory. Same rows as aggre-onyx-comps/worker-func-gen."
+   groups are in memory."
   [df aggre-funcs index formatters source]
   (let [groupby-index (mapv #(nth % 1) (.getGroupbyKeys (:row-info df)))
         key-format (u/formatters-by-position (.getFormatter (:col-info df)) groupby-index)
@@ -228,9 +216,8 @@
                   (.getKeys source)))}))
 
 (defn start-aggre
-  "The local engine's start-onyx-aggre: aggregate every group on the pool
-   and append the result rows to dist, in the order the groups are listed.
-   Same output as aggre-output."
+  "Aggregate every group on the pool and append the result rows to dist,
+   in the order the groups are listed."
   [num-work batch-size df source dist exception aggre-func index formatter out]
   (let [work (prepare "groupby aggregate" #(group-worker df aggre-func index formatter source))]
     (run-stage "groupby aggregate"
@@ -241,10 +228,10 @@
     "success"))
 
 (defn start-join
-  "The local engine's start-onyx-join: join every row of a that passes the
+  "Join every row of a that passes the
    filters to its matches in b, whose groups are in source when they are in
    memory, else in the group files under .clojask/join/b/, and append the
-   result rows to dist in a's order. Same rows as clojask-join."
+   result rows to dist in a's order."
   [num-work batch-size a b source dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
   (let [a-map (.getKeyIndex (:col-info a))
         work (prepare "join" #(row-worker a exception (range (count a-map)) false))
@@ -264,8 +251,7 @@
    rows of b's group with the same key, or followed by empty cells when b
    has none, reordered by write-index. A group is a key of mgroup-a when
    the groups are in memory, else a file under .clojask/join/a/; a b group
-   file that matched is deleted, so only b's unmatched groups remain. Same
-   rows as outer-onyx-comps/worker-func-gen."
+   file that matched is deleted, so only b's unmatched groups remain."
   [mgroup-a mgroup-b a-index b-index write-index]
   (let [a-new (range (count a-index))
         b-new (range (count b-index))
@@ -284,8 +270,7 @@
 
 (defn- outer-b-worker
   "The work on one group of b that matched no group of a in an outer join:
-   its rows after empty cells for a, reordered by write-index. Same rows as
-   outer-onyx-comps/worker-func-gen2."
+   its rows after empty cells for a, reordered by write-index."
   [mgroup-b a-index b-index write-index]
   (let [b-new (range (count b-index))
         a-nil (repeat (count a-index) nil)]
@@ -299,11 +284,10 @@
   (map str (rest (file-seq (io/file dir)))))
 
 (defn start-outer
-  "The local engine's start-onyx-outer: append to dist every group of a
+  "Append to dist every group of a
    joined to b's group with the same key, then every group of b that had
    none. The groups are in mgroup-a and mgroup-b when they are in memory,
-   else in the group files under .clojask/join/. Same rows as
-   outer-output."
+   else in the group files under .clojask/join/."
   [num-work batch-size a b mgroup-a mgroup-b dist exception a-index b-index a-format b-format write-index out]
   (run-stage "outer join"
              #(with-open [wtr (io/writer dist :append true)]

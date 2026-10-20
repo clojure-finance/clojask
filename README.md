@@ -20,15 +20,13 @@ A Clojure dataframe library for **larger-than-memory** datasets. Process million
 
 **Add to project.clj:**
 ```clojure
-[com.github.clojure-finance/clojask "2.0.6"]
+[com.github.clojure-finance/clojask "2.1.0"]
 ```
 
 **Or deps.edn:**
 ```clojure
-com.github.clojure-finance/clojask {:mvn/version "2.0.6"}
+com.github.clojure-finance/clojask {:mvn/version "2.1.0"}
 ```
-
-Both also need two JVM flags, see [Requirements](#requirements).
 
 **Basic example** (using [Employees-example.csv](test/clojask/Employees-example.csv)):
 ```clojure
@@ -90,44 +88,7 @@ Both also need two JVM flags, see [Requirements](#requirements).
 - **OS:** macOS or Linux
 - **JDK:** 17 or newer (tested on 17, 21, and 25)
 
-**Required JVM flags:**
-```clojure
-;; project.clj
-:jvm-opts ["--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"
-           "--enable-native-access=ALL-UNNAMED"]
-
-;; deps.edn, inside an alias (e.g. :aliases {:dev {...}}, run with -A:dev)
-:jvm-opts ["--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED"
-           "--enable-native-access=ALL-UNNAMED"]
-```
-
-When running plain `java`, pass both flags on the command line.
-
-The first flag is required for Agrona (used by Onyx's messaging). Without it the first `compute` fails with `IllegalAccessError: class org.agrona.UnsafeApi ... cannot access class jdk.internal.misc.Unsafe`. The second is for lz4's native code: JDK 24+ prints a warning without it, and a future JDK will block the load.
-
-<details>
-<summary><strong>Running multiple Clojask processes</strong></summary>
-
-Each `compute` starts embedded ZooKeeper (port 2188) and Aeron (port 40200), with Aeron's files in the default media-driver directory (`/dev/shm` on Linux). To run multiple processes on one machine, give each different settings:
-
-**System properties:**
-- `clojask.zookeeper.port`
-- `clojask.aeron.port`
-- `clojask.aeron.dir`
-
-**Or environment variables:**
-- `CLOJASK_ZOOKEEPER_PORT`
-- `CLOJASK_AERON_PORT`
-- `CLOJASK_AERON_DIR`
-
-</details>
-
-<details>
-<summary><strong>Logging</strong></summary>
-
-Onyx writes warnings and errors to `.clojask/clojask.log` in the working directory, rotated at 10 MB with one backup.
-
-</details>
+Upgrading from 2.0.x: clojask no longer uses Onyx, so the JVM flags it needed (`--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED`, `--enable-native-access=ALL-UNNAMED`) and the `clojask.zookeeper.*` / `clojask.aeron.*` / `CLOJASK_*` port and directory settings can be removed.
 
 ## Documentation
 
@@ -138,7 +99,7 @@ Onyx writes warnings and errors to `.clojask/clojask.log` in the working directo
 
 ## How It Works
 
-Clojask uses [Onyx](https://github.com/clojure-finance/onyx) (a maintained fork) as a single-machine thread pool. Operations are collected lazily and executed together when you call `compute`, streaming data through your transformation pipeline without loading the full dataset into memory.
+Operations are collected lazily and executed together when you call `compute`, streaming data through your transformation pipeline without loading the full dataset into memory. Each `compute` runs in your JVM: one thread reads the input in batches, a pool of worker threads (the number you pass to `compute`) applies the operations and filters, and the calling thread writes the results in input order. Group-by and joins first sort the rows into groups by key, kept in temporary files under `.clojask/` (or in memory with `:in-memory true`); group-by and outer joins write their results in group order.
 
 ## Issues & Feedback
 

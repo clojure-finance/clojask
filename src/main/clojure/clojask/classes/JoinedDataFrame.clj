@@ -6,8 +6,6 @@
             [clojask.classes.MGroup]
             [clojask.classes.DataFrame]
             [clojask.engine :as engine]
-            [clojask.onyx-comps :refer [start-onyx-groupby start-onyx-join]]
-            [clojask.join.outer-onyx-comps :refer [start-onyx-outer]]
             [clojure.java.io :as io]
             [clojask.utils])
   (:import [clojask.classes.MGroup MGroupJoin MGroupJoinOuter]
@@ -106,11 +104,9 @@
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % na) b-index))))) internal)
           mgroup-a (MGroupJoinOuter. (transient {}) (transient {}) false)
           mgroup-b (if (not= type 3) (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type))) (MGroupJoinOuter. (transient {}) (transient {}) (or (= 4 type) (= 5 type))))
-          local? (= (engine/engine) :local)
-          ;; Onyx takes segments per batch, the local engine rows per batch
-          group (fn [df & args] (apply (if local? engine/start-groupby start-onyx-groupby) num-worker (if local? (:batch-size df) 10) df args))
-          join (fn [& args] (apply (if local? engine/start-join start-onyx-join) num-worker (if local? (:batch-size a) 10) a args))
-          outer (fn [& args] (apply (if local? engine/start-outer start-onyx-outer) num-worker 10 a args))]
+          group (fn [df & args] (apply engine/start-groupby num-worker (:batch-size df) df args))
+          join (fn [& args] (apply engine/start-join num-worker (:batch-size a) a args))
+          outer (fn [& args] (apply engine/start-outer num-worker (:batch-size a) a args))]
       (if (= ifheader true) (.printCol this output-dir select out))
       (try
        (cond

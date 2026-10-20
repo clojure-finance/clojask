@@ -157,8 +157,3 @@
                   (let [a-row (u/gets-format a-row a-index a-format)]
                     (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))))))
       nil))
-
-(defn defn-join
-  "Define output-join, the join function of the Onyx join sink."
-  [type limit source]
-  (def output-join (join-func type limit source)))
