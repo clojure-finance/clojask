@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [clojask.dataframe :as ck]
             [clojask.api.aggregate :as agg]
-            [clojask.api.gb-aggregate :as gb])
+            [clojask.api.gb-aggregate :as gb]
+            [clojask-io.input :refer [read-excel]])
   (:import [com.clojask.exception TypeException OperationException]))
 
 (def input "test/clojask/Employees-example.csv")
@@ -220,3 +221,33 @@
     (ck/group-by df ["Department"])
     (is (thrown? OperationException (ck/delete-col df ["Employee"])))
     (is (thrown? OperationException (ck/reorder-col df ["Department"])))))
+
+(defn- excel-rows [path]
+  (mapv vec (:data (read-excel path "Sheet1"))))
+
+(deftest compute-writes-xlsx
+  (testing "a simple compute"
+    (let [df (ck/dataframe input)
+          path (out "employees.xlsx")
+          result (ck/compute df 1 path)]
+      (is (= (ck/compute df 1 nil) (excel-rows path)))
+      (is (= (ck/get-col-names df) (ck/get-col-names result)) "returns a dataframe read from the file")))
+  (testing "a group-by aggregate, without header"
+    (let [df (ck/dataframe input)
+          path (out "groups.xlsx")]
+      (ck/group-by df "Department")
+      (ck/aggregate df gb/max "Salary")
+      (ck/compute df 1 path :header false)
+      (is (= (set (rest (ck/compute df 1 nil))) (set (excel-rows path))))))
+  (testing "an Excel input written back to xlsx, which used the input's csv writer"
+    (let [src (out "employees.xlsx")
+          path (out "employees-copy.xlsx")]
+      (ck/compute (ck/dataframe input) 1 src)
+      (ck/compute (ck/dataframe (fn [] (read-excel src "Sheet1" :stat true))) 1 path)
+      (is (= (excel-rows src) (excel-rows path))))))
+
+(deftest compute-rejects-xls-output
+  (let [path (out "employees.xls")]
+    (spit path "keep me")
+    (is (thrown-with-msg? TypeException #"\.xlsx only" (ck/compute (ck/dataframe input) 1 path)))
+    (is (= "keep me" (slurp path)) "the existing file is not deleted")))

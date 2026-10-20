@@ -1,6 +1,6 @@
 (ns clojask.dataframe
   (:require clojask-io.core
-            [clojask-io.input :refer [read-file]]
+            [clojask-io.input :refer [read-file read-excel]]
             [clojask-io.output :as output]
             [clojask.classes.DataStat :refer [compute-stat]]
             [clojask.classes.ColInfo]
@@ -339,7 +339,10 @@
         header (if custom-header false header)
         ret (atom (transient []))
         output-format (when output-dir (clojask-io.core/infer-format output-dir))
-        output-func (if output-dir 
+        ;; Excel output is collected in memory and written with write-excel
+        ;; at the end; a custom :output function still gets a file writer
+        excel-path (when (and output-dir (nil? output) (clojask-io.core/is-excel output-dir)) output-dir)
+        output-func (if (and output-dir (not excel-path))
                       ;; every dataframe has an initial output function
                       (if (and (= (type this) clojask.classes.DataFrame.DataFrame) (.getPath this) (= output-format (clojask-io.core/infer-format (.getPath this))))
                         (or output (.getOutput this))
@@ -353,8 +356,10 @@
                   missing (vec (remove known (if (coll? select) select [select])))]
               (when (not= missing [])
                 (throw (TypeException. (str "Selected columns do not exist: " (str/join ", " missing) ". get-col-names lists the valid names."))))))
+        _ (when (and excel-path (not= output-format "xlsx"))
+            (throw (TypeException. (str "Excel output is written as .xlsx only, so " output-dir " cannot be written. Use a .xlsx path."))))
         _ (u/init-file output-dir nil)
-        output-dir (or output-dir ".clojask/tmp.csv")] ;; fake one 
+        output-dir (if excel-path ".clojask/tmp.csv" (or output-dir ".clojask/tmp.csv"))] ;; fake one 
     (when custom-header
       (with-open [wrtr (io/writer output-dir)]
         (output-func wrtr [custom-header])))
@@ -373,8 +378,13 @@
           (.compute this num-worker output-dir exception order select header output-func in-memory)
           )
         (throw (TypeException. "Must compute on a clojask dataframe or joined dataframe"))))
-    (if (not= output-dir ".clojask/tmp.csv")
+    (cond
+      excel-path
+      (do (output/write-excel excel-path "Sheet1" (persistent! (deref ret)))
+          (dataframe (fn [] (read-excel excel-path "Sheet1" :stat true)) :if-header (boolean (or custom-header header))))
+      (not= output-dir ".clojask/tmp.csv")
       (dataframe output-dir :if-header (boolean (or custom-header header)))
+      :else
       (persistent! (deref ret)))))
 
 (defn select-col
