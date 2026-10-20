@@ -118,6 +118,53 @@ Rename the column names in the dataframe
 
 ---
 
+#### select-col / delete-col
+
+Choose which columns `compute` writes: `select-col` keeps the given columns, `delete-col` drops them. Either way, the remaining columns keep their current order. (Since 2.1.1; in earlier versions both had no effect.)
+
+| Argument    | Type                           | Function                                                        | Remarks                                                      |
+| ----------- | ------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object                                        |                                                              |
+| `columns`   | String / collection of strings | The columns to keep (`select-col`) or to delete (`delete-col`) | Should be existing columns, as listed by `get-col-names`; an unknown name throws a `TypeException`. `delete-col` cannot delete every column. |
+
+- Only the output changes. Filters, operations, types, group-by keys and join keys can still use a deleted column.
+- `get-col-names`, `print-df`, `preview` and `compute` follow the chosen columns, and `compute`'s `:select` / `:exclude` pick from them.
+- A column created by `operate` afterwards is added at the end.
+- Neither can follow `group-by` or `aggregate`; use `compute`'s `:select` there.
+
+```clojure
+;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
+(select-col x ["Salary" "Employee"])
+;; columns: ["Employee" "Salary"]
+
+;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
+(delete-col y "Department")
+(filter y "Department" (fn [dept] (= dept "11")))
+;; columns: ["Employee" "EmployeeName" "Salary"]
+;; only the rows of department 11, although the column itself is not written
+```
+
+---
+
+#### reorder-col
+
+Change the order of the columns that `compute` writes. (Since 2.1.1; in earlier versions it could drop earlier operations and apply filters and types to the wrong columns.)
+
+| Argument    | Type                  | Function                         | Remarks                                                      |
+| ----------- | --------------------- | -------------------------------- | ------------------------------------------------------------ |
+| `dataframe` | clojask.classes.DataFrame.DataFrame | The operated object |                                                              |
+| `new order` | Collection of strings | All the columns in their new order | Should list every column from `get-col-names` exactly once; otherwise throws a `TypeException` |
+
+Operations, filters and types stay with their columns. Like `select-col` and `delete-col`, it cannot follow `group-by` or `aggregate`. To pick and order the columns of a single `compute`, you can also use its `:select` option.
+
+```clojure
+;; columns: ["Employee" "EmployeeName" "Department" "Salary"]
+(reorder-col x ["Salary" "Department" "EmployeeName" "Employee"])
+;; columns: ["Salary" "Department" "EmployeeName" "Employee"]
+```
+
+---
+
 #### filter
 
 Filter the dataframe by rows.
