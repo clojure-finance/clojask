@@ -3,8 +3,6 @@
             [clojask.groupby :refer [read-csv-seq]]
             [clojask.utils :as u]))
 
-(def source nil)
-
 (defn gen-join-filenames
   [dist a-row a-keys]
   (let [a-val (mapv (fn [_] ((or (nth _ 0) identity) (nth a-row (nth _ 1)))) a-keys)]
@@ -22,7 +20,7 @@
         (.close filename)))))
 
 (defn output-join-inner-mem
-  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  [source writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
   (let [filename (gen-join-filenames nil a-row a-keys)]
     (if (.exists source filename)
       (let [a-row (u/gets-format a-row a-index a-format)]
@@ -47,7 +45,7 @@
 
 (defn output-join-loo-mem
   "used for left join right join or outter join"
-  [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
+  [source writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
   (let [filename (gen-join-filenames nil a-row a-keys)]
     (if (.exists source filename)
       (let [b-rows (.getKey source filename)]
@@ -58,34 +56,36 @@
       (let [a-row (u/gets-format a-row a-index a-format)]
         (write-func writer (vector (u/gets (concat a-row (repeat count "")) join-index)))))))
 
-(defn defn-join
-  [type limit _source]
-  (def source _source)
-  (def output-join
+(defn join-func
+  "The function that writes the joined rows of one row of a, for join type
+   1 (inner), 2 (left or right), 4 (rolling forward) or 5 (rolling
+   backward). source holds b's groups when they are in memory, else nil and
+   they are files under .clojask/join/b/."
+  [type limit source]
     (case type
-      1 (if (nil? _source) output-join-inner output-join-inner-mem)
-      2 (if (nil? _source) output-join-loo output-join-loo-mem)
+      1 (if (nil? source) output-join-inner (partial output-join-inner-mem source))
+      2 (if (nil? source) output-join-loo (partial output-join-loo-mem source))
       ;; 4 output-join-forward
       4 (let [roll-join-get-line-forward (fn [bench filename index]
-                                           (def memo (volatile! nil))
-                                           (def res (volatile! nil))
-                                           (doseq [row (read-csv-seq filename)]
-                                             (let [val (nth row index)]
-                                               (if (and (<= (compare val bench) 0) (limit bench val) (or (= @memo nil) (> (compare val @memo) 0)))
-                                                 (do (vreset! memo val)
-                                                     (vreset! res row)))))
-                                           @res)
+                                           (let [memo (volatile! nil)
+                                                 res (volatile! nil)]
+                                             (doseq [row (read-csv-seq filename)]
+                                               (let [val (nth row index)]
+                                                 (if (and (<= (compare val bench) 0) (limit bench val) (or (= @memo nil) (> (compare val @memo) 0)))
+                                                   (do (vreset! memo val)
+                                                       (vreset! res row)))))
+                                             @res))
               roll-join-get-line-forward-mem (fn [bench filename index]
-                                               (def memo (volatile! nil))
-                                               (def res (volatile! nil))
-                                               (doseq [row (.getKey source filename)]
-                                                 (let [unformat (nth row 1)
-                                                       val (nth unformat index)]
-                                                   (if (and (<= (compare val bench) 0) (limit bench val) (or (= @memo nil) (> (compare val @memo) 0)))
-                                                     (do (vreset! memo val)
-                                                         (vreset! res (first row))))))
-                                               @res)]
-          (if (nil? _source)
+                                               (let [memo (volatile! nil)
+                                                     res (volatile! nil)]
+                                                 (doseq [row (.getKey source filename)]
+                                                   (let [unformat (nth row 1)
+                                                         val (nth unformat index)]
+                                                     (if (and (<= (compare val bench) 0) (limit bench val) (or (= @memo nil) (> (compare val @memo) 0)))
+                                                       (do (vreset! memo val)
+                                                           (vreset! res (first row))))))
+                                                 @res))]
+          (if (nil? source)
             (fn [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
               (let [filename (gen-join-filenames ".clojask/join/b/" a-row a-keys)]
                 (if (.exists (io/file filename))
@@ -114,24 +114,24 @@
                     (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))))))
       ;; 5 output-join-backward
       5 (let [roll-join-get-line-backward (fn [bench filename index]
-                                            (def memo (volatile! nil))
-                                            (def res (volatile! nil))
-                                            (doseq [row (read-csv-seq filename)]
-                                              (let [val (nth row index)]
-                                                (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
-                                                  (do (vreset! memo val)
-                                                      (vreset! res row)))))
-                                            @res)
+                                            (let [memo (volatile! nil)
+                                                  res (volatile! nil)]
+                                              (doseq [row (read-csv-seq filename)]
+                                                (let [val (nth row index)]
+                                                  (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
+                                                    (do (vreset! memo val)
+                                                        (vreset! res row)))))
+                                              @res))
               roll-join-get-line-backward-mem (fn [bench filename index]
-                                               (def memo (volatile! nil))
-                                               (def res (volatile! nil))
-                                               (doseq [row (.getKey source filename)]
-                                                 (let [unformat (nth row 1)
-                                                       val (nth unformat index)]
-                                                   (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
-                                                     (do (vreset! memo val)
-                                                         (vreset! res (first row))))))
-                                               @res)]
+                                               (let [memo (volatile! nil)
+                                                     res (volatile! nil)]
+                                                 (doseq [row (.getKey source filename)]
+                                                   (let [unformat (nth row 1)
+                                                         val (nth unformat index)]
+                                                     (if (and (>= (compare val bench) 0) (limit bench val) (or (= @memo nil) (< (compare val @memo) 0)))
+                                                       (do (vreset! memo val)
+                                                           (vreset! res (first row))))))
+                                                 @res))]
           (if (nil? source)
            (fn
             [writer a-row a-keys a-map b-keys count a-roll b-roll a-format b-format a-index b-index join-index write-func]
@@ -156,4 +156,9 @@
                       (write-func writer [(u/gets (concat (u/gets-format a-row a-index a-format) (repeat count "")) join-index)])))
                   (let [a-row (u/gets-format a-row a-index a-format)]
                     (write-func writer [(u/gets (concat a-row (repeat count "")) join-index)])))))))
-      nil)))
+      nil))
+
+(defn defn-join
+  "Define output-join, the join function of the Onyx join sink."
+  [type limit source]
+  (def output-join (join-func type limit source)))

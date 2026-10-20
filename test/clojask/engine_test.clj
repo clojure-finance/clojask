@@ -104,3 +104,59 @@
             (reset! boom? false))))
       (is (empty? (rest (file-seq (io/file ".clojask/grouped"))))
           "the group files are deleted"))))
+
+(def info "test/clojask/Employees-info-example.csv")
+
+(defn- employees
+  "The employees with a filter, an operation and a formatter, so the join
+   workers have work to do."
+  []
+  (doto (salaries)
+    (ck/filter "Salary" (fn [s] (<= s 1000)))
+    (ck/operate - "Salary")
+    (ck/set-formatter "Salary" #(str % "!"))))
+
+(defn- infos []
+  (doto (ck/dataframe info)
+    (ck/set-formatter "DayOff" #(str "d" %))))
+
+(def ^:private joins
+  "Label and join of each kind. employees is the larger side, so inner and
+   outer joins swap when it comes second."
+  [["inner" #(ck/inner-join (employees) (infos) ["Employee"] ["Employee"])]
+   ["inner swapped" #(ck/inner-join (infos) (employees) ["Employee"] ["Employee"])]
+   ["left" #(ck/left-join (employees) (infos) ["Employee"] ["Employee"])]
+   ["right" #(ck/right-join (employees) (infos) ["Employee"] ["Employee"])]
+   ["outer" #(ck/outer-join (employees) (infos) ["Employee"] ["Employee"])]
+   ["outer swapped" #(ck/outer-join (infos) (employees) ["Employee"] ["Employee"])]
+   ["rolling forward" #(ck/rolling-join-forward (employees) (infos) ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate")]
+   ["rolling backward" #(ck/rolling-join-backward (employees) (infos) ["EmployeeName"] ["EmployeeName"] "UpdateDate" "UpdateDate")]
+   ["rolling backward with limit" #(ck/rolling-join-backward (employees) (infos) ["Employee"] ["Employee"] "UpdateDate" "UpdateDate"
+                                                            :limit (fn [_ b-val] (not= b-val "2020/12/05")))]])
+
+(deftest join
+  (doseq [[label make-df] joins
+          in-memory [false true]]
+    (testing (str label ", in-memory " in-memory)
+      (same-on-both make-df :in-memory in-memory))))
+
+(deftest join-select
+  (doseq [[label make-df] joins
+          in-memory [false true]]
+    (testing (str label ", in-memory " in-memory)
+      (same-on-both make-df :select ["2_UpdateDate" "1_UpdateDate" "1_Employee"] :in-memory in-memory))))
+
+(deftest join-failure-is-staged
+  (doseq [engine ["onyx" "local"]
+          [label make-df] [["inner" ck/inner-join] ["outer" ck/outer-join]]
+          in-memory [false true]]
+    (testing (str engine " " label ", in-memory " in-memory)
+      (let [df (make-df (doto (salaries) (ck/operate (boom -) "Salary")) (infos) ["Employee"] ["Employee"])]
+        (reset! boom? true)
+        (try
+          (is (thrown-with-msg? ExecutionException #"boom"
+                                (on-engine engine #(ck/compute df 2 (str dir "failed.csv") :exception true :in-memory in-memory))))
+          (finally
+            (reset! boom? false))))
+      (is (empty? (remove #(.isDirectory %) (file-seq (io/file ".clojask/join"))))
+          "the join files are deleted"))))
