@@ -5,6 +5,7 @@
             [clojask.classes.DataStat]
             [clojask.classes.MGroup]
             [clojask.classes.DataFrame]
+            [clojask.engine :as engine]
             [clojask.onyx-comps :refer [start-onyx-groupby start-onyx-join]]
             [clojask.join.outer-onyx-comps :refer [start-onyx-outer]]
             [clojure.java.io :as io]
@@ -105,36 +106,40 @@
           write-index (mapv (fn [num] (count (remove #(>= % num) (concat a-index (mapv #(+ % na) b-index))))) internal)
           mgroup-a (MGroupJoinOuter. (transient {}) (transient {}) false)
           mgroup-b (if (not= type 3) (MGroupJoin. (transient {}) (transient {}) (or (= 4 type) (= 5 type))) (MGroupJoinOuter. (transient {}) (transient {}) (or (= 4 type) (= 5 type))))
-          ]
+          local? (= (engine/engine) :local)
+          ;; Onyx takes segments per batch, the local engine rows per batch
+          group (fn [df & args] (apply (if local? engine/start-groupby start-onyx-groupby) num-worker (if local? (:batch-size df) 10) df args))
+          join (fn [& args] (apply (if local? engine/start-join start-onyx-join) num-worker (if local? (:batch-size a) 10) a args))
+          outer (fn [& args] (apply (if local? engine/start-outer start-onyx-outer) num-worker 10 a args))]
       (if (= ifheader true) (.printCol this output-dir select out))
       (try
        (cond
          (or (= type 0) (= type 1) (= type 2)) ;; inner left right join
          (do
            (if inmemory
-             (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
-             (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception :format true))
+             (group b mgroup-b b-keys b-index exception)
+             (group b "./.clojask/join/b/" b-keys b-index exception :format true))
            (.final mgroup-b)
-           (start-onyx-join num-worker 10 a b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
+           (join b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out))
          (= type 3) ;; outer join
          (do
            (if inmemory
              (do
-               (start-onyx-groupby num-worker 10 a mgroup-a a-keys a-index exception)
-               (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
+               (group a mgroup-a a-keys a-index exception)
+               (group b mgroup-b b-keys b-index exception)
                (.final mgroup-a)
                )
              (do
-               (start-onyx-groupby num-worker 10 a "./.clojask/join/a/" a-keys a-index exception :format true)
-               (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception :format true)))
-           (start-onyx-outer num-worker 10 a b (if inmemory mgroup-a nil) (if inmemory mgroup-b nil) output-dir exception a-index b-index a-format b-format write-index out))
+               (group a "./.clojask/join/a/" a-keys a-index exception :format true)
+               (group b "./.clojask/join/b/" b-keys b-index exception :format true)))
+           (outer b (if inmemory mgroup-a nil) (if inmemory mgroup-b nil) output-dir exception a-index b-index a-format b-format write-index out))
          (or (= type 4) (= type 5))  ;; rolling join
          (do
            (if inmemory
-             (start-onyx-groupby num-worker 10 b mgroup-b b-keys b-index exception)
-             (start-onyx-groupby num-worker 10 b "./.clojask/join/b/" b-keys b-index exception))
+             (group b mgroup-b b-keys b-index exception)
+             (group b "./.clojask/join/b/" b-keys b-index exception))
            (.final mgroup-b)
-           (start-onyx-join num-worker 10 a b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out)))
+           (join b (if inmemory mgroup-b nil) output-dir exception a-keys b-keys a-roll b-roll type limit a-index (vec (take (count b-index) (iterate inc 0))) b-format write-index out)))
        (finally
          ;; the group files only serve this compute
          (if (not inmemory) (clojask.utils/clean-group-files)))))))

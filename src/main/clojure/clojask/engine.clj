@@ -5,8 +5,10 @@
    environment variable CLOJASK_ENGINE, chooses the engine: \"onyx\" (the
    default) or \"local\". Drivers not ported yet always run on Onyx."
   (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojask.api.aggregate :refer [start]]
             [clojask.groupby :as groupby]
+            [clojask.join :as join]
             [clojask.utils :as u])
   (:import [com.clojask.exception ExecutionException]
            [java.util.concurrent ArrayBlockingQueue Callable ExecutorService
@@ -237,3 +239,88 @@
                        (fn [rows]
                          (out wtr rows)))))
     "success"))
+
+(defn start-join
+  "The local engine's start-onyx-join: join every row of a that passes the
+   filters to its matches in b, whose groups are in source when they are in
+   memory, else in the group files under .clojask/join/b/, and append the
+   result rows to dist in a's order. Same rows as clojask-join."
+  [num-work batch-size a b source dist exception a-keys b-keys a-roll b-roll join-type limit a-index b-index b-format write-index out]
+  (let [a-map (.getKeyIndex (:col-info a))
+        work (prepare "join" #(row-worker a exception (range (count a-map)) false))
+        output-join (join/join-func join-type (or limit (fn [_ _] true)) source)
+        a-format (.getFormatter (:col-info a))
+        b-count (count (.getKeyIndex (:col-info b)))]
+    (run-stage "join"
+               #(with-open [wtr (io/writer dist :append true)]
+                  (run num-work (row-batches a batch-size) work
+                       (fn [rows]
+                         (doseq [row rows]
+                           (output-join wtr row a-keys a-map b-keys b-count a-roll b-roll a-format b-format a-index b-index write-index out))))))
+    "success"))
+
+(defn- outer-a-worker
+  "The work on one group of a in an outer join: its rows crossed with the
+   rows of b's group with the same key, or followed by empty cells when b
+   has none, reordered by write-index. A group is a key of mgroup-a when
+   the groups are in memory, else a file under .clojask/join/a/; a b group
+   file that matched is deleted, so only b's unmatched groups remain. Same
+   rows as outer-onyx-comps/worker-func-gen."
+  [mgroup-a mgroup-b a-index b-index write-index]
+  (let [a-new (range (count a-index))
+        b-new (range (count b-index))
+        b-nil (repeat (count b-index) nil)]
+    (fn [group]
+      (let [a-data (map #(u/gets % a-new) (if mgroup-a (.getKey mgroup-a group) (groupby/read-csv-seq group)))
+            b-group (if mgroup-a group (string/replace-first group "/a/" "/b/"))
+            b-data (when (if mgroup-a (.exists mgroup-b b-group) (.exists (io/file b-group)))
+                     (let [rows (mapv #(u/gets % b-new) (if mgroup-a (.getKey mgroup-b b-group) (groupby/read-csv-seq b-group)))]
+                       (when-not mgroup-a (io/delete-file b-group true))
+                       rows))]
+        (mapv #(u/gets % write-index)
+              (if b-data
+                (for [a-row a-data b-row b-data] (concat a-row b-row))
+                (map #(concat % b-nil) a-data)))))))
+
+(defn- outer-b-worker
+  "The work on one group of b that matched no group of a in an outer join:
+   its rows after empty cells for a, reordered by write-index. Same rows as
+   outer-onyx-comps/worker-func-gen2."
+  [mgroup-b a-index b-index write-index]
+  (let [b-new (range (count b-index))
+        a-nil (repeat (count a-index) nil)]
+    (fn [group]
+      (mapv (fn [row] (u/gets (concat a-nil (u/gets row b-new)) write-index))
+            (if mgroup-b (.getKey mgroup-b group) (groupby/read-csv-seq group))))))
+
+(defn- group-files
+  "The paths of the group files in dir."
+  [dir]
+  (map str (rest (file-seq (io/file dir)))))
+
+(defn start-outer
+  "The local engine's start-onyx-outer: append to dist every group of a
+   joined to b's group with the same key, then every group of b that had
+   none. The groups are in mgroup-a and mgroup-b when they are in memory,
+   else in the group files under .clojask/join/. Same rows as
+   outer-output."
+  [num-work batch-size a b mgroup-a mgroup-b dist exception a-index b-index a-format b-format write-index out]
+  (run-stage "outer join"
+             #(with-open [wtr (io/writer dist :append true)]
+                (let [sink (fn [rows] (out wtr rows))]
+                  ;; step 1: every group of a, with its matches in b
+                  (when mgroup-a
+                    (doseq [key (.getKeys mgroup-a)]
+                      (.delete mgroup-b key)))
+                  (run num-work
+                       (fn [] {:data (if mgroup-a (.getKeys mgroup-a) (group-files "./.clojask/join/a"))})
+                       (outer-a-worker mgroup-a mgroup-b a-index b-index write-index)
+                       sink)
+                  ;; step 2: the groups of b that had no match
+                  (when mgroup-b
+                    (.final mgroup-b))
+                  (run num-work
+                       (fn [] {:data (if mgroup-b (.getKeys mgroup-b) (group-files "./.clojask/join/b"))})
+                       (outer-b-worker mgroup-b a-index b-index write-index)
+                       sink))))
+  "success")
