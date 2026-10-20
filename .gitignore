@@ -1,5 +1,4 @@
 .DS_Store
-onyx.log*
 *.log
 resources/
 outputs/

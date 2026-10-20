@@ -1,5 +1,5 @@
 (ns regression-test
-  "Computes that each exercised a bug fixed in 2.0.5. Starts Onyx."
+  "Computes that each exercised a bug fixed in 2.0.5."
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [clojure.string :as str]
@@ -115,3 +115,18 @@
           (is (= 22 (count (lines outer))) "header, one match, twenty unmatched b rows")
           (ck/compute (ck/inner-join a b ["k"] ["k"]) 1 selected :select ["2_bv" "1_av"] :in-memory in-memory)
           (is (= ["2_bv,1_av" "b1,a1"] (lines selected))))))))
+
+(deftest sort-orders-rows-by-the-trending-list
+  (let [df (ck/dataframe input)
+        path (out "sorted.csv")]
+    (ck/set-type df "Salary" "double")
+    (ck/sort df ["+" "Department" "-" "Salary"] path)
+    (is (= ["Employee,EmployeeName,Department,Salary,UpdateDate"
+            "7,Amy,11,50000,2020/11/26"
+            "2,Bob,11,600,2020/12/01"
+            "1,Alice,11,300,2020/12/12"
+            "4,Daniel,12,1000,2020/12/05"
+            "3,Carla,12,900,2020/12/03"
+            "5,Evelyn,13,800,2020/12/03"
+            "6,Ferdinand,21,700,2020/12/05"]
+           (lines path)))))

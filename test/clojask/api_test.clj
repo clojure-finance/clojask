@@ -1,6 +1,6 @@
 (ns api-test
-  "Argument validation in the public API. Nothing here starts Onyx, so
-   these run in well under a second."
+  "Argument validation in the public API. Every compute here is rejected
+   before it starts, so these run in well under a second."
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [clojure.string :as str]

@@ -6,13 +6,9 @@
             [clojure.java.io :as io]
             [clojask.utils :as u]
             [clojask.engine :as engine]
-            [clojask.onyx-comps :refer [start-onyx start-onyx-aggre-only start-onyx-groupby]]
             [clojask.sort :as sort]
-            [clojask.aggregate.aggre-onyx-comps :refer [start-onyx-aggre]]
-            [clojask.join.outer-onyx-comps]
             [clojure.string :as str]
-            [clojask.preview :as preview]
-            [clojask.join.outer-output])
+            [clojask.preview :as preview])
   (:import [clojask.classes.ColInfo ColInfo]
            [clojask.classes.RowInfo RowInfo]
            [clojask.classes.DataStat DataStat]
@@ -127,9 +123,7 @@
           index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (keep key-index select))]
       (assert (or (= (count select) (count index)) (= select [nil])) "Must select existing columns; get-col-names lists them.")
       (if (= ifheader true) (.printCol this output-dir index out))
-      (let [res (if (= (engine/engine) :local)
-                  (engine/start-compute num-worker batch-size this output-dir exception index melt out)
-                  (start-onyx num-worker batch-size this output-dir exception order index melt out))]
+      (let [res (engine/start-compute num-worker batch-size this output-dir exception index melt out)]
         (if (= res "success")
           "success"
           "failed"))))
@@ -318,9 +312,7 @@
                                        (.indexOf index num))])
           aggre-func (mapv shift-func aggre-func)
           tmp (if (= ifheader true) (.printCol this output-dir select out))
-          res (if (= (engine/engine) :local)
-                (engine/start-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)
-                (start-onyx-aggre-only num-worker batch-size this output-dir exception aggre-func index select out))]
+          res (engine/start-aggre-only num-worker batch-size this output-dir exception aggre-func index select out)]
       (if (= res "success")
         "success"
         "failed")))
@@ -338,8 +330,7 @@
            data-index (mapv #(- % (count groupby-keys)) (remove #(< % (count groupby-keys)) select))
            groupby-index (vec (apply sorted-set (mapv #(nth % 1) (concat groupby-keys (u/gets aggre-keys data-index)))))
            mgroup (MGroup. (transient {}))
-           local? (= (engine/engine) :local)
-           res ((if local? engine/start-groupby start-onyx-groupby)
+           res (engine/start-groupby
                 num-worker batch-size this (if inmemory mgroup ".clojask/grouped/") groupby-keys groupby-index exception)]
        (if (= aggre-keys [])
          (println (str "Since the dataframe is only grouped by but not aggregated, the result will be the same as to choose the distinct values of "
@@ -353,7 +344,7 @@
                formatter (.getFormatter (.col-info this))
                formatter (u/formatters-by-position formatter groupby-index)]
            (.final mgroup)
-           (if (= "success" ((if local? engine/start-aggre start-onyx-aggre)
+           (if (= "success" (engine/start-aggre
                              num-worker batch-size this (if inmemory mgroup nil) output-dir exception aggre-func select formatter out))
              "success"
              (throw (OperationException. "Error when aggregating."))))
@@ -377,23 +368,23 @@
                                                   (recur res true)
                                                   false)))))))
           (throw (TypeException. "The order list is not in the correct format.")))
-    (defn clojask-compare
-      "a and b are two rows"
-      [a b]
-      (loop [list list key false sign +]
-        (if (= list '())
-          0
-          (let [_ (first list)
-                res (rest list)]
-            (if key
-              (let [tmp (compare (u/get-key a (.getType col-info) (.getKeyIndex col-info) _) (u/get-key b (.getType col-info) (.getKeyIndex col-info) _))]
-                (if (not= tmp 0)
-                  (sign tmp)
-                  (recur res false nil)))
-              (if (= _ "+")
-                (recur res true +)
-                (recur res true -)))))))
-    (sort/use-external-sort path output-dir clojask-compare))
+    (let [;; a and b are two rows
+          clojask-compare
+          (fn [a b]
+            (loop [list list key false sign +]
+              (if (= list '())
+                0
+                (let [_ (first list)
+                      res (rest list)]
+                  (if key
+                    (let [tmp (compare (u/get-key a (.getType col-info) (.getKeyIndex col-info) _) (u/get-key b (.getType col-info) (.getKeyIndex col-info) _))]
+                      (if (not= tmp 0)
+                        (sign tmp)
+                        (recur res false nil)))
+                    (if (= _ "+")
+                      (recur res true +)
+                      (recur res true -)))))))]
+      (sort/use-external-sort path output-dir clojask-compare)))
 
   (previewDF
     [this]
