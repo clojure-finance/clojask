@@ -18,9 +18,10 @@
         operations (.getDesc (:col-info  dataframe))
         types (.getType (:col-info  dataframe))
         filters (.getFilters (:row-info dataframe))
-        indices index
         no-aggre (= (.getAggreFunc (:row-info dataframe)) []) ;; if need to groupby & aggregate
         no-groupby (= (.getGroupbyKeys (:row-info dataframe)) [])
+        ;; group-by and aggregate address columns by index, so they get every column
+        indices (if (and no-aggre no-groupby) index (range (count index-key)))
         ;;
         preview-work-func (fn [seg]
                             (let [data (:d seg)]
@@ -31,9 +32,9 @@
                               (fn [row]
                                 ;; a row removed by a filter has no :d
                                 (when-let [d (:d row)]
-                                  (mapv (fn [_] (if-let [formatter (get formatters _)]
-                                                  (formatter (nth d _))
-                                                  (nth d _))) index)))
+                                  (mapv (fn [v i] (if-let [formatter (get formatters i)]
+                                                    (formatter v)
+                                                    v)) d index)))
                               (fn [row]
                                 (:d row))) ;; the function body of output operation (take over the work in output node) without formatting
 

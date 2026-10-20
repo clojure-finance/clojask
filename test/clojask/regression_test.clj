@@ -1,11 +1,12 @@
 (ns regression-test
-  "Computes that each exercised a bug fixed in 2.0.5."
+  "Computes that each exercised a bug fixed in 2.0.5 or later."
   (:require [clojure.test :refer :all]
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojask.dataframe :as ck]
             [clojask.api.aggregate :as agg]
-            [clojask.api.gb-aggregate :as gb]))
+            [clojask.api.gb-aggregate :as gb])
+  (:import [com.clojask.exception TypeException OperationException]))
 
 (def input "test/clojask/Employees-example.csv")
 (def dir "test/clojask/test_outputs/regression/")
@@ -130,3 +131,92 @@
             "5,Evelyn,13,800,2020/12/03"
             "6,Ferdinand,21,700,2020/12/05"]
            (lines path)))))
+
+(deftest reorder-col-keeps-operations-filters-and-types
+  (let [df (ck/dataframe input)
+        path (out "reorder.csv")
+        order ["UpdateDate" "Employee" "EmployeeName" "Department" "Salary"]]
+    (ck/set-type df "Employee" "int")
+    (ck/operate df inc "Employee")
+    (ck/filter df "Salary" #(> (Integer/parseInt %) 800))
+    (ck/set-formatter df "Department" #(str "D" %))
+    (ck/reorder-col df order)
+    (is (= order (ck/get-col-names df)))
+    (ck/compute df 1 path)
+    (is (= ["UpdateDate,Employee,EmployeeName,Department,Salary"
+            "2020/12/03,4,Carla,D12,900"
+            "2020/12/05,5,Daniel,D12,1000"
+            "2020/11/26,8,Amy,D11,50000"]
+           (lines path)))
+    (is (= {"UpdateDate" "2020/12/03" "Employee" "4" "EmployeeName" "Carla" "Department" "D12" "Salary" "900"}
+           (update (first (ck/preview df 100 1 :format true)) "Employee" str)))))
+
+(deftest delete-col-and-select-col-choose-the-output-columns
+  (let [df (ck/dataframe input)
+        path (out "delete.csv")]
+    (ck/operate df #(str % "!") "EmployeeName")
+    ;; a filter on a column that is deleted afterwards still applies
+    (ck/filter df "Salary" #(> (Integer/parseInt %) 800))
+    (ck/delete-col df ["Salary" "UpdateDate"])
+    (is (= ["Employee" "EmployeeName" "Department"] (ck/get-col-names df)))
+    (ck/compute df 1 path)
+    (is (= ["Employee,EmployeeName,Department" "3,Carla!,12" "4,Daniel!,12" "7,Amy!,11"] (lines path)))
+    (ck/select-col df ["Department" "Employee"])
+    (is (= ["Employee" "Department"] (ck/get-col-names df)) "select-col keeps the current order")
+    (ck/operate df str ["Employee" "Department"] "Both")
+    (is (= ["Employee" "Department" "Both"] (ck/get-col-names df)) "a new column is added to the output")
+    (is (= [["Employee" "Department" "Both"] ["3" "12" "312"] ["4" "12" "412"] ["7" "11" "711"]]
+           (mapv vec (ck/compute df 1 nil))))
+    (is (= {"Employee" "3" "Department" "12" "Both" "312"} (first (ck/preview df 100 1))))))
+
+(deftest aggregate-can-use-a-deleted-column
+  (let [df (ck/dataframe input)
+        path (out "delete-aggregate.csv")]
+    (ck/set-type df "Salary" "double")
+    (ck/delete-col df ["Salary" "EmployeeName"])
+    (ck/group-by df ["Department"])
+    (ck/aggregate df gb/max ["Salary"] ["Salary-max"])
+    (is (= 4 (count (ck/preview df 100 10))))
+    (ck/compute df 1 path)
+    (is (= 5 (count (lines path))) "header and four departments")
+    (is (= "Department,Salary-max" (first (lines path))))))
+
+(deftest joins-use-the-output-columns-of-each-side
+  (doseq [in-memory [false true]]
+    (testing (str "in-memory " in-memory)
+      (let [a (ck/dataframe input)
+            b (ck/dataframe "test/clojask/Employees-info-example.csv")
+            path (out "join-view.csv")
+            swapped (out "join-view-swapped.csv")
+            selected (out "join-view-selected.csv")]
+        (ck/select-col a ["Employee" "Salary"])
+        (ck/reorder-col a ["Salary" "Employee"])
+        ;; the join key of b is deleted from b's output, not from the join
+        (ck/delete-col b ["Employee" "UpdateDate"])
+        (let [j (ck/inner-join a b ["Employee"] ["Employee"])]
+          (is (= ["1_Salary" "1_Employee" "2_EmployeeName" "2_DayOff"] (ck/get-col-names j)))
+          (ck/compute j 1 path :in-memory in-memory)
+          (is (= "1_Salary,1_Employee,2_EmployeeName,2_DayOff" (first (lines path))))
+          (is (contains? (set (lines path)) "300,1,Alice,20")))
+        (testing "the larger side second, so the join swaps internally"
+          (let [j (ck/inner-join b a ["Employee"] ["Employee"])]
+            (ck/compute j 1 swapped :in-memory in-memory)
+            (is (= "1_EmployeeName,1_DayOff,2_Salary,2_Employee" (first (lines swapped))))
+            (is (contains? (set (lines swapped)) "Alice,20,300,1"))
+            (ck/compute j 1 selected :select ["2_Employee" "1_DayOff"] :in-memory in-memory)
+            (is (contains? (set (lines selected)) "1,20"))))))))
+
+(deftest column-functions-reject-bad-input
+  (let [df (ck/dataframe input)
+        names (ck/get-col-names df)]
+    (is (thrown? TypeException (ck/delete-col df ["Nope"])))
+    (is (thrown? TypeException (ck/select-col df ["Employee" "Nope"])))
+    (is (thrown? OperationException (ck/delete-col df names)))
+    (is (thrown? TypeException (ck/reorder-col df ["Employee"])))
+    (is (thrown? TypeException (ck/reorder-col df (assoc names 1 "Employee"))))
+    (is (= names (ck/get-col-names df)) "a rejected call changes nothing")
+    (ck/delete-col df ["Salary"])
+    (is (thrown? TypeException (ck/reorder-col df names)) "a deleted column is not output any more")
+    (ck/group-by df ["Department"])
+    (is (thrown? OperationException (ck/delete-col df ["Employee"])))
+    (is (thrown? OperationException (ck/reorder-col df ["Department"])))))

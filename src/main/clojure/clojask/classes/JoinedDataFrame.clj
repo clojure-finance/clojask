@@ -84,15 +84,16 @@
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select ifheader out inmemory]
     (let [select (if (coll? select) select [select])
           na (count (.getKeyIndex (.col-info a)))
-          nb (count (.getKeyIndex (.col-info b)))
+          ;; the internal index of each column in getColNames order: internal
+          ;; rows are always record-a columns then record-b columns, and each
+          ;; side lists only its output columns (get-col-names)
+          a-cols (vec (.getColIndex a))
+          b-cols (mapv #(+ na %) (.getColIndex b))
+          joined-index (vec (if swapped (concat b-cols a-cols) (concat a-cols b-cols)))
           select (if (= select [nil])
-                   (vec (take (+ na nb) (iterate inc 0)))
+                   (vec (range (count joined-index)))
                    (mapv (fn [key] (.indexOf (.getColNames this) key)) select))
-          ;; select follows the user-facing getColNames order; internal rows
-          ;; are always record-a columns then record-b columns
-          internal (if swapped
-                     (mapv (fn [i] (if (< i nb) (+ i na) (- i nb))) select)
-                     select)
+          internal (mapv joined-index select)
           a-index (vec (apply sorted-set (remove (fn [num] (>= num na)) internal)))
           ;; a-write 
           b-index (mapv #(- % na) (apply sorted-set (remove (fn [num] (< num na)) internal)))

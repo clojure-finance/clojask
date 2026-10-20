@@ -20,6 +20,15 @@
 
 (def debug (atom false))
 
+(defn- view-names
+  "The column names that delete-col, select-col and reorder-col work on.
+   They choose the output columns of a plain compute, so they cannot follow
+   group-by or aggregate."
+  [df fn-name]
+  (when (or (not= [] (.getGroupbyKeys (:row-info df))) (not= [] (.getAggreFunc (:row-info df))))
+    (throw (OperationException. (str fn-name " cannot follow group-by or aggregate; use compute's :select instead."))))
+  (.getColNames df))
+
 (definterface GenDFIntf
   (checkInputPathClash [path] "check if paths clashes with dataframes a/b input path")
   (getColNames [] "get the names of all the columns")
@@ -38,7 +47,7 @@
   (setParser [parser col] "add the parser for a col which acts like setType")
   (colDesc [] "get column description in ColInfo")
   (colTypes [] "get column type in ColInfo")
-  (getColIndex [] "get column indices, excluding deleted columns")
+  (getColIndex [] "get the indices of the output columns, in order (deleted ones left out)")
   (getAggreColNames [] "get column names if there is aggregate")
   (getStat [] "get the statistics of the dataframe")
   (delCol [col-to-del] "delete one or more columns in the dataframe")
@@ -119,10 +128,12 @@
   (compute
     [this ^int num-worker ^String output-dir ^boolean exception ^boolean order select melt ifheader out]
     (let [key-index (.getKeyIndex (:col-info this))
+          view (vec (.getColIndex this))
           select (if (coll? select) select [select])
-          index (if (= select [nil]) (take (count key-index) (iterate inc 0)) (keep key-index select))]
+          index (if (= select [nil]) view (keep key-index select))]
       (assert (or (= (count select) (count index)) (= select [nil])) "Must select existing columns; get-col-names lists them.")
-      (if (= ifheader true) (.printCol this output-dir index out))
+      ;; printCol takes positions in getColNames, which lists the view
+      (if (= ifheader true) (.printCol this output-dir (mapv #(.indexOf view %) index) out))
       (let [res (engine/start-compute num-worker batch-size this output-dir exception index melt out)]
         (if (= res "success")
           "success"
@@ -203,8 +214,7 @@
 
   (getColIndex
     [this]
-    (let [index-key (.getIndexKey (:col-info this))]
-      (take (count index-key) (iterate inc 0))))
+    (.getView (:col-info this)))
 
   (getStat
     [this]
@@ -228,21 +238,29 @@
           aggre-new-keys (.getAggreNewKeys (:row-info this))]
       (concat groupby-keys-value aggre-new-keys)))
 
-  ;; deprecated
+  ;; delCol and reorderCol only change which columns compute writes and in
+  ;; which order; operations, filters and types stay on their columns.
   (delCol
     [this col-to-del]
-    (cond (not (= 0 (count (u/are-in col-to-del this))))
-          (throw (TypeException. "Input includes non-existent column name(s).")))
-    (.delCol (.col-info this) col-to-del)
-    this)
-  ;; deprecated
+    (let [names (view-names this "delete-col")
+          col-to-del (if (coll? col-to-del) col-to-del [col-to-del])
+          kept (vec (remove (set col-to-del) names))]
+      (cond (not= [] (remove (set names) col-to-del))
+            (throw (TypeException. "Input includes non-existent column name(s)."))
+            (= [] kept)
+            (throw (OperationException. "Cannot delete every column.")))
+      (.setView col-info (mapv (.getKeyIndex col-info) kept))
+      this))
+
   (reorderCol
     [this new-col-order]
-    (cond (not (= (set (.getKeys (.col-info this))) (set new-col-order)))
-          (throw (TypeException. "Set of input in reorder-col contains column(s) that do not exist in dataframe.")))
-    (.setColInfo (.col-info this) new-col-order)
-    (.setRowInfo (.row-info this) (.getDesc (.col-info this)) new-col-order)
-    this)
+    (let [names (view-names this "reorder-col")]
+      (cond (not (and (coll? new-col-order)
+                      (= (count names) (count new-col-order))
+                      (= (set names) (set new-col-order))))
+            (throw (TypeException. "reorder-col needs every column exactly once; get-col-names lists them.")))
+      (.setView col-info (mapv (.getKeyIndex col-info) new-col-order))
+      this))
 
   (renameCol
     [this old-col new-col]

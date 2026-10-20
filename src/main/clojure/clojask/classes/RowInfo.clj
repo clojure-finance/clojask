@@ -8,7 +8,6 @@
   (filter [cols predicate])
   (groupby [a])
   (aggregate [func old-key new-key])
-  (setRowInfo [new-col-desc new-col-set])
   (copy [])
   (rollback [])
   (commit []))
@@ -56,26 +55,6 @@
     (doseq [new-key new-keys]
       (set! aggre-new-key (conj aggre-new-key new-key)))
     nil)
-
-  (setRowInfo
-    [this new-col-desc new-col-set]
-    (.copy this)
-    (let [original-filter (.getFilters this)
-          original-groupby-keys (.getGroupbyKeys this)
-          original-aggre-func (.getAggreFunc this)
-          new-filter-fns (map #(first %) original-filter)
-          new-filter-cols (map (fn [fcols] (map #(first (first (get new-col-desc %))) fcols)) (doall (map #(last %) original-filter)))
-          new-groupby-fns (map #(first %) original-groupby-keys)
-          new-groupby-cols (map #(first (first (get new-col-desc (last %)))) original-groupby-keys)
-          new-aggre-fns (map #(first %) original-aggre-func)
-          new-aggre-cols (map #(first (first (get new-col-desc (last %)))) original-aggre-func)]
-      (if (not (empty? (.getFilters this)))
-        (set! filters (vec (map vector new-filter-fns new-filter-cols))))
-      (if (not (empty? (.getGroupbyKeys this)))
-        (set! groupby-key (vec (map vector new-groupby-fns new-groupby-cols)))
-        )
-      (if (not (empty? (.getAggreFunc this)))
-        (set! aggre-func (vec (map vector new-aggre-fns new-aggre-cols))))))
 
   (copy
     [this]
