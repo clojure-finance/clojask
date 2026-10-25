@@ -20,6 +20,17 @@
 
 (def debug (atom false))
 
+(defn- groupby-fn-name
+  "The name a group-by function gets in its output column, taken from its
+   class: user$rem10 -> rem10, clojure.core$inc -> inc,
+   user$eval12$fn__13 -> fn, user$eval12$my_fn__13 -> my-fn."
+  [f]
+  (-> (.getName (class f))
+      (str/split #"\$")
+      last
+      (str/replace #"__\d+$" "")
+      clojure.lang.Compiler/demunge))
+
 (defn- view-names
   "The column names that delete-col, select-col and reorder-col work on.
    They choose the output columns of a plain compute, so they cannot follow
@@ -226,12 +237,7 @@
           groupby-key-index (.getGroupbyKeys (:row-info this))
           groupby-keys (.getGroupbyKeys (:row-info this))
           groupby-keys-value (vec (map #(if (nth % 0)
-                                          (let [func-str (str (nth % 0))
-                                                tmp-idx (+ (str/index-of func-str "$") 1)
-                                                bgn-idx (+ (str/index-of func-str "$" tmp-idx) 1)
-                                                end-idx (str/index-of func-str "__" bgn-idx)
-                                                col-func-str (subs func-str bgn-idx end-idx)]
-                                            (str col-func-str "(" (index-key (nth % 1)) ")"))
+                                          (str (groupby-fn-name (nth % 0)) "(" (index-key (nth % 1)) ")")
                                           (index-key (nth % 1))) groupby-keys))
         ;; Deprecated
         ;groupby-keys (vec (map (.getIndexKey (.col-info this)) (vec (map #(last %) groupby-key-index))))

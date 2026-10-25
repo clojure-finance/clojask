@@ -251,3 +251,24 @@
     (spit path "keep me")
     (is (thrown-with-msg? TypeException #"\.xlsx only" (ck/compute (ck/dataframe input) 1 path)))
     (is (= "keep me" (slurp path)) "the existing file is not deleted")))
+
+(defn- rem10 [n] (rem n 10))
+
+(deftest group-by-named-function
+  (testing "a top-level defn, as in the docs, used to crash group-by"
+    (let [df (ck/dataframe input)]
+      (ck/set-type df "Department" "int")
+      (ck/set-type df "Salary" "int")
+      (ck/group-by df [rem10 "Department"])
+      (ck/aggregate df gb/max "Salary" "max")
+      (is (= ["rem10(Department)" "max"] (ck/get-col-names df)))
+      (is (= #{["1" "50000"] ["2" "1000"] ["3" "800"]}
+             (set (map vec (rest (ck/compute df 1 nil))))))))
+  (testing "names of other function kinds"
+    (doseq [[f col] [[inc "inc(Salary)"]
+                     [(fn [n] n) "fn(Salary)"]
+                     [(fn my-key [n] n) "my-key(Salary)"]]]
+      (let [df (ck/dataframe input)]
+        (ck/set-type df "Salary" "int")
+        (ck/group-by df [f "Salary"])
+        (is (= col (first (ck/get-col-names df))))))))
