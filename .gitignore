@@ -3,9 +3,8 @@
 resources/
 outputs/
 test/clojask/test_outputs/*
-.lein-failures
-.lein-repl-history
 .nrepl-port
+.cpcache/
 target/
 pom.xml
 .clojask/

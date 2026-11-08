@@ -1,0 +1,40 @@
+{:paths ["src/main/clojure" "target/classes"]
+
+ :deps {org.clojure/clojure {:mvn/version "1.12.6"}
+        com.google.code.externalsortinginjava/externalsortinginjava {:mvn/version "0.6.6"}
+        com.github.clojure-finance/clojask-io {:mvn/version "1.0.8"}}
+
+ :aliases
+ {;; clojure -M:nrepl — nREPL server for interactive development.
+  ;; Run `clojure -T:build javac` first (the Java exception classes).
+  :nrepl
+  {:extra-deps {nrepl/nrepl {:mvn/version "1.7.0"}}
+   :extra-paths ["test/clojask"]
+   :jvm-opts ["-XX:+UseG1GC"]
+   :main-opts ["-m" "nrepl.cmdline" "--port" "0"]}
+
+  ;; clojure -X:test — run the suite. Needs `clojure -T:build javac` first.
+  :test
+  {:extra-paths ["test/clojask"]
+   :extra-deps {io.github.cognitect-labs/test-runner {:git/tag "v0.5.1"
+                                                      :git/sha "dfb30dd"}}
+   :jvm-opts ["-XX:+UseG1GC"]
+   :main-opts ["-m" "cognitect.test-runner" "-d" "test/clojask"]
+   :exec-fn cognitect.test-runner.api/test
+   :exec-args {:dirs ["test/clojask"]}}
+
+  ;; clojure -M:check — load every src namespace, like `lein check`.
+  :check
+  {:extra-deps {org.clojure/tools.namespace {:mvn/version "1.5.0"}}
+   :main-opts ["-e"
+               "(require '[clojure.tools.namespace.find :as find]) (run! (fn [n] (println \"Checking\" n) (require n)) (find/find-namespaces-in-dir (java.io.File. \"src/main/clojure\")))"]}
+
+  ;; clojure -X:test:local-io — test against the sibling clojask-io sources.
+  :local-io
+  {:override-deps {com.github.clojure-finance/clojask-io {:local/root "../clojask-io"}}}
+
+  ;; clojure -T:build <task> — see build.clj (clean, javac, jar, deploy).
+  :build
+  {:deps {io.github.clojure/tools.build {:mvn/version "0.10.10"}
+          slipset/deps-deploy {:mvn/version "0.2.2"}}
+   :ns-default build}}}
